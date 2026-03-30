@@ -9,7 +9,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ChatMessenger.Shared\ChatMessenger.Shared\ChatMessenger.Shared.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChatMessenger.Shared\ChatMessenger.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -8,10 +8,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ChatMessenger.Shared\ChatMessenger.Shared\ChatMessenger.Shared.csproj" />
+    <ProjectReference Include="..\ChatMessenger.Shared\ChatMessenger.Shared.csproj" />
   </ItemGroup>
 
 </Project>
