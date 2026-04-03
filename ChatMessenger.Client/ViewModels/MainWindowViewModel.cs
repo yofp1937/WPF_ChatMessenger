@@ -6,9 +6,11 @@
  * 1.기존 LoginView에서 RegisterView, MainShellView로 이동 가능
  */
 
+using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ChatMessenger.Client.ViewModels
@@ -29,13 +31,16 @@ namespace ChatMessenger.Client.ViewModels
         {
             _serviceProvider = serviceProvider;
             CurrentView = _serviceProvider.GetRequiredService<LoginViewModel>();
+            SubscribeMessages();
         }
 
-        [RelayCommand] // View에서 해당 Method를 호출할 수 있게 해줌(매개변수 object sender, EventArgs e 제거 가능)
-        public void MoveToRegister() => CurrentView = _serviceProvider.GetRequiredService<RegisterViewModel>();
-        [RelayCommand]
-        public void MoveToLogin() => CurrentView = _serviceProvider.GetRequiredService<LoginViewModel>();
-        [RelayCommand]
-        public void MoveToMainShell() => CurrentView = _serviceProvider.GetRequiredService<MainShellViewModel>();
+        private void SubscribeMessages()
+        {
+            WeakReferenceMessenger.Default.Register<NavigationMessage>(this, (r, m) =>
+            {
+                // 받은 메시지에 담긴 타입으로 서비스를 가져와서 화면을 교체합니다.
+                CurrentView = (BaseViewModel)_serviceProvider.GetRequiredService(m.ViewModelType);
+            });
+        }
     }
 }

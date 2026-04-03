@@ -9,14 +9,6 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <materialDesign:ColorZone Mode="PrimaryMid" Padding="16" materialDesign:ElevationAssist.Elevation="Dp2">
-            <DockPanel>
-                <materialDesign:PackIcon Kind="Message" Width="24" Height="24" VerticalAlignment="Center"/>
-                <TextBlock Margin="16,0,0,0" Text="CHAT MESSENGER" VerticalAlignment="Center" 
-                           FontSize="18" FontWeight="Bold"/>
-            </DockPanel>
-        </materialDesign:ColorZone>
-
         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
             <materialDesign:Card Width="300" Padding="20" UniformCornerRadius="15">
                 <StackPanel>
