@@ -1,24 +1,91 @@
-﻿using ChatMessenger.Client.Common.Messages;
+﻿using ChatMessenger.Client.Common.Interfaces;
+using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.ViewModels.Base;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
+using System.Windows.Controls;
 
 namespace ChatMessenger.Client.ViewModels
 {
     public partial class LoginViewModel : BaseViewModel
     {
-        public LoginViewModel() { }
+        private readonly IAuthService _authService;
 
-        /// <summary>s
+        // 사용자 입력 Email
+        [ObservableProperty]
+        private string? _email;
+        // 경고 메세지
+        [ObservableProperty]
+        private string? _warningText;
+        // 로딩 중임을 표시하기 위한 속성
+        [ObservableProperty]
+        private bool _isBusy;
+
+        public LoginViewModel(IAuthService authService)
+        {
+            _authService = authService;
+        }
+
+        /// <summary>
         /// Register here를 누르면 회원가입 화면으로 전환되게 Messenger를 통해 MainWindowViewModel에 요청
         /// </summary>
-        [RelayCommand] // 
+        [RelayCommand]
         private void MoveToRegister()
         {
             WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(RegisterViewModel)));
+        }
+        /// <summary>
+        /// 입력된 Data를 기반으로 Server에 인증을 요청합니다.
+        /// <br/>RelayCommand에서 Async는 제거하고 Command를 만들기 때문에
+        /// View에서는 SignInCommand에 Binding하여 사용하면 됨
+        /// </summary>
+        /// <returns></returns>
+        [RelayCommand]
+        private async Task SignInAsync(object? parameter) 
+        {
+            if (IsBusy) return;
+            // 1. 전달받은 parameter에서 비밀번호 추출
+            string? pwd = (parameter as PasswordBox)?.Password;
+            // 2. 아이디나 비밀번호가 입력되지 않았으면 return
+            if (string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(pwd))
+            {
+                WarningText = "아이디와 비밀번호를 정확하게 입력해주세요.";
+                return;
+            }
+
+            try
+            {
+                // TODO : EmailTextBox와 PasswordBox에 접근 불가능하게 변경
+                IsBusy = true;
+                WarningText = string.Empty;
+
+                // 3. _authService를 이용해 서버에 인증 요청
+                string? token = await _authService.SignInAsync(Email, pwd);
+
+                // token은 인증 실패시 null로 반환되므로 IsNullOrEmpty로 체크
+                if (!string.IsNullOrEmpty(token))
+                {
+                    // 3-1. 로그인 성공하여 MainShellView로 이동
+                    // TODO: Token은 나중에 메모리에 저장하여 사용해야함
+                    WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(MainShellViewModel)));
+                }
+                else
+                {
+                    // 3-2. 로그인 실패
+                    WarningText = "이메일 혹은 비밀번호가 일치하지 않습니다.";
+                }
+            }
+            catch (Exception ex)
+            {
+                WarningText = "서버와 통신 중 오류가 발생했습니다. 잠시 후 시도해주세요.";
+                Debug.WriteLine($"[Login Error]: {ex.Message}");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
     }
 }

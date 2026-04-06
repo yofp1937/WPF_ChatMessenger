@@ -34,6 +34,11 @@ namespace ChatMessenger.Client.Config
         private static IServiceCollection AddCommonServices(this IServiceCollection services)
         {
             services.AddSingleton<IWindowService, WindowService>();
+            services.AddHttpClient<IAuthService, AuthService>(client =>
+            {
+                // TODO: 추후 Server를 웹으로 올리면 주소 변경해줘야함
+                client.BaseAddress = new Uri("http://localhost:5204");
+            });
 
             return services;
         }
