@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Windows;
 
-namespace ChatMessenger.Client.Config
+namespace ChatMessenger.Client.Configs
 {
     public static class DependencyInjectionConfig
     {
@@ -39,6 +39,7 @@ namespace ChatMessenger.Client.Config
                 // TODO: 추후 Server를 웹으로 올리면 주소 변경해줘야함
                 client.BaseAddress = new Uri("http://localhost:5204");
             });
+            services.AddSingleton<IIdentityService, IdentityService>();
 
             return services;
         }

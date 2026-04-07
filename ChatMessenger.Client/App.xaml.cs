@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Client.Config;
+using ChatMessenger.Client.Configs;
 using ChatMessenger.Client.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +13,7 @@ namespace ChatMessenger.Client
         public App()
         {
             ServiceCollection services = new();
+            // "/Config/DependencyInjectionConfig"에 선언된 AddAppServices 메서드 실행
             services.AddAppServices();
             ServiceProvider = services.BuildServiceProvider();
         }

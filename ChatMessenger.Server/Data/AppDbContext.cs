@@ -5,7 +5,7 @@
 using ChatMessenger.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace ChatMessenger.Server.Database
+namespace ChatMessenger.Server.Data
 {
     public class AppDbContext : DbContext
     {

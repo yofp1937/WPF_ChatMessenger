@@ -12,6 +12,7 @@ namespace ChatMessenger.Client.ViewModels
     public partial class LoginViewModel : BaseViewModel
     {
         private readonly IAuthService _authService;
+        private readonly IIdentityService _identityService;
 
         // 사용자 입력 Email
         [ObservableProperty]
@@ -23,9 +24,10 @@ namespace ChatMessenger.Client.ViewModels
         [ObservableProperty]
         private bool _isBusy;
 
-        public LoginViewModel(IAuthService authService)
+        public LoginViewModel(IAuthService authService, IIdentityService identityService)
         {
             _authService = authService;
+            _identityService = identityService;
         }
 
         /// <summary>
@@ -67,8 +69,9 @@ namespace ChatMessenger.Client.ViewModels
                 // token은 인증 실패시 null로 반환되므로 IsNullOrEmpty로 체크
                 if (!string.IsNullOrEmpty(token))
                 {
-                    // 3-1. 로그인 성공하여 MainShellView로 이동
-                    // TODO: Token은 나중에 메모리에 저장하여 사용해야함
+                    // 3-1. 로그인 성공하여 Token 저장 및 MainShellView로 이동
+                    _identityService.Token = token;
+                    _identityService.CurrentUserEmail = Email;
                     WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(MainShellViewModel)));
                 }
                 else

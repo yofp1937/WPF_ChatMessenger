@@ -3,7 +3,7 @@
  * 
  * 해당 인터페이스가 담당하는 핵심 기능은 Db와 연결이지만 초기화까지 담당해야해서 Initializer로 이름 정함
  */
-using ChatMessenger.Server.Database;
+using ChatMessenger.Server.Data;
 
 namespace ChatMessenger.Server.Interfaces
 {

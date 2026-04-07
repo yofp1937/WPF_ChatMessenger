@@ -1,4 +1,5 @@
-﻿using ChatMessenger.Server.Database;
+﻿using ChatMessenger.Server.Data;
+using ChatMessenger.Server.Interfaces;
 using ChatMessenger.Shared.DTOs.Requests;
 using ChatMessenger.Shared.DTOs.Responses;
 using ChatMessenger.Shared.Models;
@@ -12,10 +13,12 @@ namespace ChatMessenger.Server.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ITokenService _tokenService;
 
-        public AuthController(AppDbContext context)
+        public AuthController(AppDbContext context, ITokenService tokenService)
         {
             _context = context;
+            _tokenService = tokenService;
         }
 
         /// <summary>
@@ -41,10 +44,11 @@ namespace ChatMessenger.Server.Controllers
             }
 
             // 3. 로그인 성공 (토큰은 임시로 생성)
+            string token = _tokenService.CreateToken(user);
             return Ok(new LoginResponse
             {
                 IsSuccess = true,
-                Token = $"fake-jwt-token-for-{user.Email}",
+                Token = token,
                 Message = "로그인에 성공했습니다."
             });
         }
