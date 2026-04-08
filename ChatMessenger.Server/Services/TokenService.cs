@@ -2,7 +2,7 @@
  * JWT 토큰 생성 기능을 담당하는 서비스 클래스입니다.
  */
 using ChatMessenger.Server.Interfaces;
-using ChatMessenger.Shared.Models;
+using ChatMessenger.Server.Data.Entities;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

@@ -20,7 +20,7 @@ namespace ChatMessenger.Client.Common.Service
         }
 
         /// <inheritdoc/>
-        public async Task<string?> SignInAsync(string email, string password)
+        public async Task<LoginResponse?> SignInAsync(string email, string password)
         {
             try
             {
@@ -39,7 +39,7 @@ namespace ChatMessenger.Client.Common.Service
                 {
                     // Response의 JSON을 LoginResponse 객체로 역직렬화
                     LoginResponse? result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                    return result?.Token;
+                    return result;
                 }
                 return null;
             }

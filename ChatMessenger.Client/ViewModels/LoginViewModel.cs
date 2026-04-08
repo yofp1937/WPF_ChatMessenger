@@ -1,6 +1,7 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.ViewModels.Base;
+using ChatMessenger.Shared.DTOs.Responses;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -64,14 +65,16 @@ namespace ChatMessenger.Client.ViewModels
                 WarningText = string.Empty;
 
                 // 3. _authService를 이용해 서버에 인증 요청
-                string? token = await _authService.SignInAsync(Email, pwd);
+                LoginResponse? response = await _authService.SignInAsync(Email, pwd);
 
-                // token은 인증 실패시 null로 반환되므로 IsNullOrEmpty로 체크
-                if (!string.IsNullOrEmpty(token))
+                if (response != null && response.IsSuccess)
                 {
-                    // 3-1. 로그인 성공하여 Token 저장 및 MainShellView로 이동
-                    _identityService.Token = token;
+                    // 3-1. 로그인 성공하여 데이터 저장 및 MainShellView로 이동
+                    _identityService.Token = response.Token;
                     _identityService.CurrentUserEmail = Email;
+                    _identityService.Nickname = response.Nickname;
+                    _identityService.StatusMessage = response.StatusMessage;
+                    _identityService.ProfileImageURL = response.ProfileImageURL;
                     WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(MainShellViewModel)));
                 }
                 else

@@ -1,8 +1,8 @@
 ﻿using ChatMessenger.Server.Data;
+using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces;
 using ChatMessenger.Shared.DTOs.Requests;
 using ChatMessenger.Shared.DTOs.Responses;
-using ChatMessenger.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,7 +49,10 @@ namespace ChatMessenger.Server.Controllers
             {
                 IsSuccess = true,
                 Token = token,
-                Message = "로그인에 성공했습니다."
+                Message = "로그인에 성공했습니다.",
+                Nickname = user.NickName,
+                StatusMessage = user.StatusMessage,
+                ProfileImageURL = user.ProfileImageURL,
             });
         }
 

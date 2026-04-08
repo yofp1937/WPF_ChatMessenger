@@ -9,6 +9,8 @@ namespace ChatMessenger.Client.Common.Interfaces
         string? Token { get; set; }
         string? CurrentUserEmail { get; set; }
         string? Nickname { get; set; }
+        string? StatusMessage { get; set; }
+        string? ProfileImageURL { get; set; }
         bool IsLoggedIn => !string.IsNullOrEmpty(Token);
 
         /// <summary>

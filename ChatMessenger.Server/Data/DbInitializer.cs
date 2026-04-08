@@ -6,8 +6,8 @@
  * 2.Scope 내부에서 Database 없으면 생성하고, AppDbContext에 등록된 Table 확인하고 없으면 생성함
  * 3.Test Data까지 주입하고 Scope 종료함
  */
+using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces;
-using ChatMessenger.Shared.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChatMessenger.Server.Data
@@ -75,7 +75,7 @@ namespace ChatMessenger.Server.Data
             /* EnsureCreatedAsync를 사용해서 Database와 Table이 존재하지 않으면 생성
              * 1.context를 생성할때 매개변수로 넣은 option의 database가 존재하는지 확인하고 없으면 생성
              * 2.context 객체 내부에 DbSet으로 선언된 Property들의 정보대로 Table들 존재하는지 확인하고 없으면 생성 */
-           await context.Database.EnsureCreatedAsync();
+            await context.Database.EnsureCreatedAsync();
             Console.WriteLine("[DbInitializer - CheckAndCreateTablesAsync]: 데이터베이스 구조가 준비되었습니다.");
         }
         /// <inheritdoc/>

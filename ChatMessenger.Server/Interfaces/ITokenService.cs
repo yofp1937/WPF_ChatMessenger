@@ -1,7 +1,7 @@
 ﻿/*
  * JWT 토큰 생성을 담당하는 클래스들이 구현해야하는 Interface
  */
-using ChatMessenger.Shared.Models;
+using ChatMessenger.Server.Data.Entities;
 
 namespace ChatMessenger.Server.Interfaces
 {
