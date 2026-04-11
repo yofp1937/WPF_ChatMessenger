@@ -1,4 +1,7 @@
-﻿using ChatMessenger.Server.Data;
+﻿/*
+ * Client에서 로그인, 회원가입 요청을 전송하면 이곳에서 처리합니다.
+ */
+using ChatMessenger.Server.Data;
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces;
 using ChatMessenger.Shared.DTOs.Requests;
@@ -9,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ChatMessenger.Server.Controllers
 {
     [ApiController] // 웹 API 응답을 전담하는 Controller임을 선언
-    [Route("api/[controller]")] // 주소: "https://서버주소/api/auth" (Class 이름에서 Contoller를 뺀 이름으로 자동 치환 됨 )
+    [Route("api/[controller]")] // 주소: "https://서버주소/api/auth" (Class 이름에서 Contoller를 뺀 이름으로 자동 치환 됨)
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -50,7 +53,7 @@ namespace ChatMessenger.Server.Controllers
                 IsSuccess = true,
                 Token = token,
                 Message = "로그인에 성공했습니다.",
-                Nickname = user.NickName,
+                Nickname = user.Nickname,
                 StatusMessage = user.StatusMessage,
                 ProfileImageURL = user.ProfileImageURL,
             });
@@ -78,7 +81,7 @@ namespace ChatMessenger.Server.Controllers
             {
                 Email = request.Email!,
                 Password = request.Password!, // TODO: 나중에 암호화 필요
-                NickName = request.Nickname ?? "새 사용자"
+                Nickname = request.Nickname ?? "새 사용자"
             };
 
             Console.WriteLine($"{newUser.Email}님의 회원가입이 성공적으로 이루어졌습니다.");

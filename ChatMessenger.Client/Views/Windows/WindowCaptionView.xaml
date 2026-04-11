@@ -1,0 +1,23 @@
+<UserControl
+    x:Class="ChatMessenger.Client.Views.Windows.WindowCaptionView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+
+    <materialDesign:ColorZone Grid.Row="0" Style="{StaticResource WindowCaption_ColorZone}">
+        <DockPanel LastChildFill="False">
+            <!-- 왼쪽 아이콘, 프로그램 이름 -->
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                <materialDesign:PackIcon Style="{StaticResource WindowCaption_PackIcon}"/>
+                <TextBlock Style="{StaticResource WindowCaption_MainTextBlock}" Text="CHAT MESSENGER"/>
+            </StackPanel>
+            <!-- 오른쪽 최소화, 최대화, 닫기 버튼 -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Style="{StaticResource WindowCaption_MinimizeButton}" Command="{Binding MinimizeWindowCommand}"/>
+                <Button Style="{StaticResource WindowCaption_MaximizeButton}" Command="{Binding MaximizeWindowCommand}"/>
+                <Button Style="{StaticResource WindowCaption_CloseButton}" Command="{Binding CloseWindowCommand}"/>
+            </StackPanel>
+        </DockPanel>
+    </materialDesign:ColorZone>
+    
+</UserControl>

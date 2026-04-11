@@ -2,6 +2,7 @@
  * JWT 설정을 담당하는 클래스
  */
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -32,7 +33,8 @@ namespace ChatMessenger.Server.Configs
                         ValidateIssuerSigningKey = true, // Server 내부에 설정된 jwtKey로 서명된건지 확인
                         ValidIssuer = jwtIssuer,
                         ValidAudience = jwtAudience,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)) // jwtKey를 암호화하여 입력해두고 나중에 이를통해 검증
+                        // jwtKey를 암호화하여 입력해두고 나중에 이를통해 검증
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
                     };
                 });
             return services;

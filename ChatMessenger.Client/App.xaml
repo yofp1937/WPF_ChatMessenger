@@ -9,9 +9,15 @@
             <ResourceDictionary.MergedDictionaries>
                 <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="DeepPurple" SecondaryColor="Lime" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
-                <ResourceDictionary Source="/Styles/MaterialDesignStyles.xaml"/>
-                <ResourceDictionary Source="/Styles/CommonStyle.xaml"/>
-                <ResourceDictionary Source="/Styles/MainWindowStyle.xaml"/>
+                <ResourceDictionary Source="/Styles/Base/CommonStyle.xaml"/>
+                <ResourceDictionary Source="/Styles/Base/MaterialDesignStyles.xaml" />
+                <ResourceDictionary Source="/Styles/Windows/MainWindowStyle.xaml"/>
+                <ResourceDictionary Source="/Styles/Windows/WindowCaptionStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/Pages/AuthStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/Pages/MainShellStyle.xaml"/>
+                <ResourceDictionary Source="/Styles/Tabs/ChatStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/Tabs/FriendStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/Tabs/SettingStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

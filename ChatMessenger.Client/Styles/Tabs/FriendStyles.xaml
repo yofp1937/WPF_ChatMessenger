@@ -1,0 +1,71 @@
+<!-- /Views/Tabs/Friends에 포함되는 Views에서 사용되는 Style들을 정의하는곳 -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:views="clr-namespace:ChatMessenger.Client.Views.Tabs.Friends"
+    xmlns:vms="clr-namespace:ChatMessenger.Client.ViewModels.Tabs.Friends">
+    <!-- 왼쪽 패널 Style -->
+    <!-- 친구 목록 표시 ListBox 내부 Item들의 Style -->
+    <Style x:Key="FriendList_ListBoxItem" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+        <Setter Property="Height" Value="80"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+    <!-- 친구 목록 표시 ListBox의 Style -->
+    <Style x:Key="FriendList_ListBox" TargetType="ListBox">
+        <Setter Property="ItemContainerStyle" Value="{StaticResource FriendList_ListBoxItem}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="materialDesign:ScrollViewerAssist.IsAutoHideEnabled" Value="false" />
+        <Setter Property="materialDesign:ListBoxAssist.IsToggle" Value="False" />
+    </Style>
+    <!-- Profile ListBox 내부의 Image, Nickname 등 기본 정보 배치용 Grid의 Style -->
+    <Style x:Key="MainShell_LeftPanel_ProfileGrid" TargetType="Grid">
+        <Setter Property="Margin" Value="3"/>
+    </Style>
+    <!-- Profile 내부의 ProfileImage 표시용 Grid의 Style -->
+    <Style x:Key="ProfileGrid_ProfileImageGrid" TargetType="Grid">
+        <Setter Property="Width" Value="45"/>
+        <Setter Property="Height" Value="45"/>
+        <Setter Property="Margin" Value="10"/>
+    </Style>
+    <!-- ProfileImage를 원형으로 만들어주는 Ellipse의 Style -->
+    <Style x:Key="ProfileGrid_ProfileImageEllipse" TargetType="Ellipse">
+        <Setter Property="Fill" Value="{DynamicResource MaterialDesignCardBackground}"/>
+        <Setter Property="Stroke" Value="{DynamicResource PrimaryHueMidBrush}"/>
+        <Setter Property="StrokeThickness" Value="2"/>
+    </Style>
+    <!-- ProfileImage 내부 기본 Icon의 Style -->
+    <Style x:Key="ProfileGrid_ProfileImageIcon" TargetType="materialDesign:PackIcon">
+        <Setter Property="Kind" Value="Account"/>
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryHueMidForegroundBrush}"/>
+    </Style>
+    <!-- Profile 내부의 Nickname, StatusMessage 표시용 StackPanel의 Style -->
+    <Style x:Key="ProfileGrid_InfoStackPanel" TargetType="StackPanel">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <!-- Nickname 표시용 TextBlock의 Style -->
+    <Style x:Key="ProfileGrid_InfoStackPanel_NicknameTextBlock" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <!-- StatusMessage 표시용 TextBlock의 Style -->
+    <Style x:Key="ProfileGrid_InfoStackPanel_StatusMessageTextBlock" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBodyLight}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Visibility" Value="{Binding Path=Text, RelativeSource={RelativeSource Self},
+                                                         Converter={StaticResource StringToVisibilityConverter}}"/>
+    </Style>
+    
+</ResourceDictionary>

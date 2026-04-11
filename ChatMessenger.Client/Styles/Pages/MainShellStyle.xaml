@@ -1,0 +1,37 @@
+<!-- MainShellView에서 사용되는 Style들을 정의하는곳 -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:chatViews="clr-namespace:ChatMessenger.Client.Views.Tabs.Chats"
+    xmlns:chatVms="clr-namespace:ChatMessenger.Client.ViewModels.Tabs.Chats"
+    xmlns:friendViews="clr-namespace:ChatMessenger.Client.Views.Tabs.Friends"
+    xmlns:friendVms="clr-namespace:ChatMessenger.Client.ViewModels.Tabs.Friends"
+    xmlns:settingsViews="clr-namespace:ChatMessenger.Client.Views.Tabs.Settings"
+    xmlns:settingVms="clr-namespace:ChatMessenger.Client.ViewModels.Tabs.Settings">
+
+    <!-- 화면 전환 Style -->
+    <DataTemplate DataType="{x:Type friendVms:FriendListViewModel}">
+        <friendViews:FriendListView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type friendVms:FriendDetailViewModel}">
+        <friendViews:FriendDetailView/>
+    </DataTemplate>
+
+    <!-- 아직 없는거 주석처리
+    <DataTemplate DataType="{x:Type chatVms:ChatListViewModel}">
+        <chatViews:ChatListView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type chatVms:ChatDetailViewModel}">
+        <chatViews:ChatDetailView/>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type settingVms:SettingListViewModel}">
+        <settingsViews:SettingListView/>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type settingVms:SettingDetailViewModel}">
+        <settingsViews:SettingDetailView/>
+    </DataTemplate>
+    -->
+
+</ResourceDictionary>

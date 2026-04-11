@@ -5,9 +5,10 @@
  *  - 각종 Service
  *  - ViewModel과 Window 창을 필요로하는 View
  */
+using ChatMessenger.Client.Common.Handlers;
 using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Client.Common.Service;
-using ChatMessenger.Client.ViewModels;
+using ChatMessenger.Client.Common.Services;
+using ChatMessenger.Client.ViewModels.Windows;
 using ChatMessenger.Client.ViewModels.Base;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -34,13 +35,14 @@ namespace ChatMessenger.Client.Configs
         private static IServiceCollection AddCommonServices(this IServiceCollection services)
         {
             services.AddSingleton<IWindowService, WindowService>();
-            services.AddHttpClient<IAuthService, AuthService>(client =>
-            {
-                // TODO: 추후 Server를 웹으로 올리면 주소 변경해줘야함
-                client.BaseAddress = new Uri("http://localhost:5204");
-            });
             services.AddSingleton<IIdentityService, IdentityService>();
 
+            // request 요청마다 AuthHeaderHandler가 생성되야하므로 Transient로 설정
+            services.AddTransient<AuthHeaderHandler>();
+
+            services.AddBaseSettingHttpClient<IAuthService, AuthService>();
+            // Request를 전송할때 Header에 Token을 삽입해야하므로 AddHandler를 적용해줌
+            services.AddBaseSettingHttpClient<IFriendService, FriendService>().AddHttpMessageHandler<AuthHeaderHandler>();
             return services;
         }
 
@@ -54,7 +56,7 @@ namespace ChatMessenger.Client.Configs
             // 1. BaseViewModel을 상속받는 클래스 자동 등록
             IEnumerable<Type> viewModels = assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(BaseViewModel)));
-            foreach (var vm in viewModels)
+            foreach (Type vm in viewModels)
             {
                 services.AddTransient(vm);
             }
@@ -64,12 +66,25 @@ namespace ChatMessenger.Client.Configs
             // 2. Window를 상속받는 클래스 자동 등록
             IEnumerable<Type> views = assembly.GetTypes()
                 .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(Window)));
-            foreach (var view in views)
+            foreach (Type view in views)
             {
                 services.AddTransient(view);
             }
 
             return services;
+        }
+
+        /// <summary>
+        /// 서버 주소 등 공통 HttpClient 설정을 적용하는 확장 메서드
+        /// </summary>
+        private static IHttpClientBuilder AddBaseSettingHttpClient<TClient, TImplementation>(this IServiceCollection services)
+            where TClient : class
+            where TImplementation : class, TClient
+        {
+            return services.AddHttpClient<TClient, TImplementation>(client =>
+            {
+                client.BaseAddress = new Uri("http://localhost:5204");
+            });
         }
     }
 }

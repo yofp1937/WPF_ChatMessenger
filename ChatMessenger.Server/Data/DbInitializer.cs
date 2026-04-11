@@ -83,16 +83,46 @@ namespace ChatMessenger.Server.Data
         {
             if (!await context.Users.AnyAsync())
             {
-                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 초기 테스트 데이터 주입 중...");
-                User testUser = new User
+                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 초기 테스트 유저 데이터 주입 중...");
+                string[] emailArray = { "test1@naver.com", "test1@gmail.com", "test2@naver.com", "test2@gmail.com", "test3@naver.com", "test3@gmail.com", "test4@naver.com", "test4@gmail.com" };
+                string[] nicknameArray = { "테스터1_네이버", "테스터1_지메일", "테스터2_네이버", "테스터2_지메일", "테스터3_네이버", "테스터3_지메일", "테스터4_네이버", "테스터4_지메일" };
+                string password = "1";
+
+                for (int i = 0; i < emailArray.Length; i++)
                 {
-                    Email = "test@test.com",
-                    Password = "1234",
-                    NickName = "테스터",
-                };
-                context.Users.Add(testUser);
+                    context.Users.Add(new User
+                    {
+                        Email = emailArray[i],
+                        Password = password,
+                        Nickname = nicknameArray[i]
+                    });
+                }
+                await context.SaveChangesAsync(); 
+                string updateSql = "UPDATE Users SET StatusMessage = N'안녕하세요 ' + Nickname + N'입니다.'";
+
+                await context.Database.ExecuteSqlRawAsync(updateSql);
+                Console.WriteLine($"[DbInitializer - SeedTestDataAsync]: 테스트 유저 데이터가 생성되었습니다.");
+            }
+
+            // 2. 친구 관계(Friendship) 데이터 시딩
+            if (!await context.Friendships.AnyAsync())
+            {
+                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 초기 테스트 친구 관계 주입 중...");
+
+                // test1@naver.com 유저의 친구 목록에 나머지 3명을 추가
+                string myEmail = "test1@naver.com";
+                string[] friendEmails = { "test1@gmail.com", "test2@naver.com", "test2@gmail.com", "test3@naver.com", "test3@gmail.com", "test4@naver.com", "test4@gmail.com" };
+
+                foreach (string friendEmail in friendEmails)
+                {
+                    context.Friendships.Add(new Friendship
+                    {
+                        UserEmail = myEmail,
+                        FriendEmail = friendEmail,
+                    });
+                }
                 await context.SaveChangesAsync();
-                Console.WriteLine($"[DbInitializer - SeedTestDataAsync]: 테스트 데이터({testUser})가 생성되었습니다.");
+                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 테스트 친구 관계가 생성되었습니다.");
             }
             else
             {

@@ -17,9 +17,9 @@ namespace ChatMessenger.Server.Data.Entities
 
         [Required]
         [MaxLength(16)]
-        public string NickName { get; set; } = string.Empty;
+        public string Nickname { get; set; } = string.Empty;
 
-        [MaxLength(100)]
+        [MaxLength(25)]
         public string StatusMessage { get; set; } = string.Empty;
 
         [Required]

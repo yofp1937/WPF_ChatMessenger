@@ -1,0 +1,72 @@
+<UserControl
+    x:Class="ChatMessenger.Client.Views.Tabs.Friends.FriendListView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    
+    <!-- 왼쪽 Grid 영역-->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 내 프로필: FriendResponse 형식의 단일 데이터를 Binding 하고있기때문에 Content를 설정 -->
+        <ListBox x:Name="MyProfileListBox" Style="{StaticResource FriendList_ListBox}"
+                    PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
+            <ListBoxItem Content="{Binding UserProfile}">
+                <ListBoxItem.ContentTemplate>
+                    <DataTemplate>
+                        <Grid Style="{StaticResource MainShell_LeftPanel_ProfileGrid}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Image 표시용 Grid -->
+                            <Grid Style="{StaticResource ProfileGrid_ProfileImageGrid}">
+                                <!-- Image를 원형으로 보이게해주는 Ellipse -->
+                                <Ellipse Style="{StaticResource ProfileGrid_ProfileImageEllipse}"/>
+                                <materialDesign:PackIcon Style="{StaticResource ProfileGrid_ProfileImageIcon}"/>
+                            </Grid>
+                            <!-- Nickname과 StatusMessage 표시용 DockPanel -->
+                            <StackPanel Grid.Column="1" Style="{StaticResource ProfileGrid_InfoStackPanel}">
+                                <TextBlock Text="{Binding Nickname}" Style="{StaticResource ProfileGrid_InfoStackPanel_NicknameTextBlock}"/>
+                                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource ProfileGrid_InfoStackPanel_StatusMessageTextBlock}"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBoxItem.ContentTemplate>
+            </ListBoxItem>
+        </ListBox>
+
+        <Separator Grid.Row="1" VerticalAlignment="Top" Margin="20,0"
+                   Background="{DynamicResource MaterialDesignDivider}"/>
+
+        <!-- 친구 목록: ObservableCollection 형식의 데이터를 Binding 하고있기때문에 ItemSource를 설정 -->
+        <ListBox Grid.Row="2" x:Name="FriendsListBox" Style="{StaticResource FriendList_ListBox}"
+                    ItemsSource="{Binding Friends}" PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Style="{StaticResource MainShell_LeftPanel_ProfileGrid}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <!-- Image 표시용 Grid -->
+                        <Grid Style="{StaticResource ProfileGrid_ProfileImageGrid}">
+                            <!-- Image를 원형으로 보이게해주는 Ellipse -->
+                            <Ellipse Style="{StaticResource ProfileGrid_ProfileImageEllipse}"/>
+                            <materialDesign:PackIcon Style="{StaticResource ProfileGrid_ProfileImageIcon}"/>
+                        </Grid>
+                        <!-- Nickname과 StatusMessage 표시용 DockPanel -->
+                        <StackPanel Grid.Column="1" Style="{StaticResource ProfileGrid_InfoStackPanel}">
+                            <TextBlock Text="{Binding Nickname}" Style="{StaticResource ProfileGrid_InfoStackPanel_NicknameTextBlock}"/>
+                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource ProfileGrid_InfoStackPanel_StatusMessageTextBlock}"/>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>
