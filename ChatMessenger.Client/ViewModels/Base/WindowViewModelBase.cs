@@ -2,14 +2,19 @@
  * Window 창을 제어해야하는 ViewModel들의 부모 클래스
  * 공통 창 제어 로직(최소화, 최대화, 닫기)을 포함
  */
+using ChatMessenger.Client.Common.Interfaces;
 using CommunityToolkit.Mvvm.Input;
-using System.Windows;
 
 namespace ChatMessenger.Client.ViewModels.Base
 {
     public abstract partial class WindowViewModelBase : BaseViewModel
     {
-        public WindowViewModelBase() { }
+        protected readonly IWindowControlService _windowControlService;
+
+        public WindowViewModelBase(IWindowControlService windowControlService)
+        {
+            _windowControlService = windowControlService;
+        }
 
         #region Protected Method
         /* [RelayCommand] 참고 사항
@@ -23,7 +28,7 @@ namespace ChatMessenger.Client.ViewModels.Base
         [RelayCommand]
         protected virtual void MinimizeWindow()
         {
-            Application.Current.MainWindow.WindowState = WindowState.Minimized;
+            _windowControlService.MinimizeWindow();
         }
         /// <summary>
         /// 창을 최대화합니다.
@@ -31,8 +36,7 @@ namespace ChatMessenger.Client.ViewModels.Base
         [RelayCommand]
         protected virtual void MaximizeWindow()
         {
-            Window window = Application.Current.MainWindow;
-            window.WindowState = window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            _windowControlService.MaximizeWindow();
         }
         /// <summary>
         /// 창을 닫습니다.
@@ -41,7 +45,13 @@ namespace ChatMessenger.Client.ViewModels.Base
         [RelayCommand]
         protected virtual void CloseWindow()
         {
-            Application.Current.MainWindow.Close();
+            _windowControlService.CloseWindow();
+        }
+
+        [RelayCommand]
+        protected virtual void DragMove()
+        {
+            _windowControlService.DragMoveWindow();
         }
         #endregion
     }

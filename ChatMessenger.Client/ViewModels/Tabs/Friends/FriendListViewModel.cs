@@ -4,6 +4,7 @@ using ChatMessenger.Shared.DTOs.Responses;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace ChatMessenger.Client.ViewModels.Tabs.Friends
 {

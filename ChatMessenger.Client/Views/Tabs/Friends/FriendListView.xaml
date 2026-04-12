@@ -12,8 +12,9 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 내 프로필: FriendResponse 형식의 단일 데이터를 Binding 하고있기때문에 Content를 설정 -->
+        <!-- 내 프로필: FriendResponse 형식의단일 데이터를 Binding 하고있기때문에 Content를 설정 -->
         <ListBox x:Name="MyProfileListBox" Style="{StaticResource FriendList_ListBox}"
+                    SelectedValue="{Binding SelectedFriend, Mode=TwoWay}" SelectedValuePath="Content"
                     PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
             <ListBoxItem Content="{Binding UserProfile}">
                 <ListBoxItem.ContentTemplate>
@@ -45,7 +46,8 @@
 
         <!-- 친구 목록: ObservableCollection 형식의 데이터를 Binding 하고있기때문에 ItemSource를 설정 -->
         <ListBox Grid.Row="2" x:Name="FriendsListBox" Style="{StaticResource FriendList_ListBox}"
-                    ItemsSource="{Binding Friends}" PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
+                    SelectedItem="{Binding SelectedFriend, Mode=TwoWay}" ItemsSource="{Binding Friends}"
+                    PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Grid Style="{StaticResource MainShell_LeftPanel_ProfileGrid}">

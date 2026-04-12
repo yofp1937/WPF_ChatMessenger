@@ -1,7 +1,9 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.ViewModels.Base;
+using ChatMessenger.Client.ViewModels.Tabs.Chats;
 using ChatMessenger.Client.ViewModels.Tabs.Friends;
+using ChatMessenger.Client.ViewModels.Tabs.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -14,13 +16,24 @@ namespace ChatMessenger.Client.ViewModels.Pages
         private readonly IServiceProvider _serviceProvider;
         private readonly IIdentityService _identityService;
 
+        // 하위 TabViewModel들은 생성하여 갖고있다가 CurrentViewModel이 바뀌면 할당해줌
+        private readonly FriendMainViewModel _friendViewModel;
+        private readonly ChatMainViewModel _chatViewModel;
+        private readonly SettingMainViewModel _settingViewModel;
+
         [ObservableProperty]
         private TabViewModelBase _currentViewModel;
 
-        public MainShellViewModel(IServiceProvider serviceProvider, IIdentityService identityService)
+        public MainShellViewModel(IServiceProvider serviceProvider, IIdentityService identityService,
+                                             FriendMainViewModel friendViewModel, ChatMainViewModel chatViewModel,
+                                             SettingMainViewModel settingViewModel)
         {
             _serviceProvider = serviceProvider;
             _identityService = identityService;
+            
+            _friendViewModel = friendViewModel;
+            _chatViewModel = chatViewModel;
+            _settingViewModel = settingViewModel;
 
             _currentViewModel = _serviceProvider.GetRequiredService<FriendMainViewModel>();
         }

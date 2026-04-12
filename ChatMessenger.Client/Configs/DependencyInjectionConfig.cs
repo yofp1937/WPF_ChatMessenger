@@ -36,6 +36,7 @@ namespace ChatMessenger.Client.Configs
         {
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<IIdentityService, IdentityService>();
+            services.AddSingleton<IWindowControlService, WindowControlService>();
 
             // request 요청마다 AuthHeaderHandler가 생성되야하므로 Transient로 설정
             services.AddTransient<AuthHeaderHandler>();

@@ -2,13 +2,15 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:behaviors="clr-namespace:ChatMessenger.Client.Common.Behaviors">
     
     <!-- 최상단 타이틀바 Style -->
     <Style x:Key="WindowCaption_ColorZone" TargetType="materialDesign:ColorZone">
         <Setter Property="Mode" Value="PrimaryMid"/>
         <Setter Property="Padding" Value="10"/>
         <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp2"/>
+        <Setter Property="behaviors:WindowDragBehavior.MouseDownToDragMoveCommand" Value="{Binding DragMoveCommand}"/>
     </Style>
     <!-- 타이틀바 내부 아이콘 Style -->
     <Style x:Key="WindowCaption_PackIcon" TargetType="materialDesign:PackIcon">
