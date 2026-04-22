@@ -84,8 +84,12 @@ namespace ChatMessenger.Server.Data
             if (!await context.Users.AnyAsync())
             {
                 Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 초기 테스트 유저 데이터 주입 중...");
-                string[] emailArray = { "test1@naver.com", "test1@gmail.com", "test2@naver.com", "test2@gmail.com", "test3@naver.com", "test3@gmail.com", "test4@naver.com", "test4@gmail.com" };
-                string[] nicknameArray = { "테스터1_네이버", "테스터1_지메일", "테스터2_네이버", "테스터2_지메일", "테스터3_네이버", "테스터3_지메일", "테스터4_네이버", "테스터4_지메일" };
+                string[] emailArray = { "test1@naver.com", "test1@gmail.com", "test2@naver.com", "test2@gmail.com",
+                                              "test3@naver.com", "test3@gmail.com", "test4@naver.com", "test4@gmail.com",
+                                              "yofp1937@naver.com", "yofp1937@gmail.com"};
+                string[] nicknameArray = { "테스터1_네이버", "테스터1_지메일", "테스터2_네이버", "테스터2_지메일",
+                                                   "테스터3_네이버", "테스터3_지메일", "테스터4_네이버", "테스터4_지메일",
+                                                   "김상훈_네이버", "김상훈_지메일"};
                 string password = "1";
 
                 for (int i = 0; i < emailArray.Length; i++)
@@ -97,7 +101,7 @@ namespace ChatMessenger.Server.Data
                         Nickname = nicknameArray[i]
                     });
                 }
-                await context.SaveChangesAsync(); 
+                await context.SaveChangesAsync();
                 string updateSql = "UPDATE Users SET StatusMessage = N'안녕하세요 ' + Nickname + N'입니다.'";
 
                 await context.Database.ExecuteSqlRawAsync(updateSql);
@@ -111,7 +115,8 @@ namespace ChatMessenger.Server.Data
 
                 // test1@naver.com 유저의 친구 목록에 나머지 3명을 추가
                 string myEmail = "test1@naver.com";
-                string[] friendEmails = { "test1@gmail.com", "test2@naver.com", "test2@gmail.com", "test3@naver.com", "test3@gmail.com", "test4@naver.com", "test4@gmail.com" };
+                string[] friendEmails = { "test1@gmail.com", "test2@naver.com", "test2@gmail.com", "test3@naver.com",
+                                                "test3@gmail.com", "test4@naver.com", "test4@gmail.com" };
 
                 foreach (string friendEmail in friendEmails)
                 {

@@ -1,8 +1,8 @@
-﻿using System.Windows;
-using ChatMessenger.Client.Common.Interfaces;
+﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Configs;
 using ChatMessenger.Client.ViewModels.Windows;
 using Microsoft.Extensions.DependencyInjection;
+using System.Windows;
 
 namespace ChatMessenger.Client
 {

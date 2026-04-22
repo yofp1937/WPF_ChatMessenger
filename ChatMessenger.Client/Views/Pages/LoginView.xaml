@@ -21,7 +21,7 @@
                         </Hyperlink>
                     </TextBlock>
 
-                    <TextBlock Text="{Binding WarningText}" Style="{StaticResource Auth_WarningTextBlcok}"/>
+                    <TextBlock Text="{Binding WarningText}" Style="{StaticResource Common_WarningTextBlock}"/>
 
                     <Button Content="SIGN IN" Style="{StaticResource Auth_RequestButton}"
                                 Command="{Binding SignInCommand}"

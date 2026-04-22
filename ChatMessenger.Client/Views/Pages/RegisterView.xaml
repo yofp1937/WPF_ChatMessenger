@@ -32,8 +32,8 @@
 
                     <PasswordBox x:Name="PasswordInputCheck" Style="{StaticResource Auth_PasswordBox}"
                                         materialDesign:HintAssist.Hint="Confirm Password"/>
-                    
-                    <TextBlock Text="{Binding WarningText}" Style="{StaticResource Auth_WarningTextBlcok}"/>
+
+                    <TextBlock Text="{Binding WarningText}" Style="{StaticResource Common_WarningTextBlock}"/>
 
                     <Button Content="Create Acount" Style="{StaticResource Auth_RequestButton}"
                                 Command="{Binding RegisterCommand}">

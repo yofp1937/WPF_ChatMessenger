@@ -34,8 +34,30 @@ namespace ChatMessenger.Client.Common.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[FriendService Error]: {ex.Message}");
+                Debug.WriteLine($"[{GetType().Name}_GetFriendsListAsync] - Error: {ex.Message}");
                 return null;
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<FriendResponse?> SearchFriendAsync(string email)
+        {
+            try
+            {
+                // email을 담아서 검색 요청
+                HttpResponseMessage response = await _httpClient.GetAsync($"api/friend/searchuser?email={email}");
+                if(response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<FriendResponse>();
+                }
+                // 실패시 서버에서 전송한 텍스트 메세지를 담아서 Exception 던짐
+                string errorMsg = await response.Content.ReadAsStringAsync();
+                throw new Exception(errorMsg);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[{GetType().Name}_SearchFriendAsync] - Error: {ex.Message}");
+                throw;
             }
         }
     }

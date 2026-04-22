@@ -2,11 +2,7 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-    xmlns:converters="clr-namespace:ChatMessenger.Client.Common.Converters">
-    <!-- 사용할 Converter 선언 -->
-    <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
-
+    xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <!-- LoginView, RegisterView의 최상단 TitleTextBlock Style -->
     <Style x:Key="Auth_TitleTextBlcok" TargetType="TextBlock">
         <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -21,31 +17,30 @@
         <Setter Property="materialDesign:HintAssist.Hint" Value="Email"/>
         <Setter Property="Margin" Value="0,10"/>
         <Setter Property="CaretBrush" Value="{DynamicResource MaterialDesignBody}"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:HintAssist.HintPaddingBrush" Value="{DynamicResource MaterialDesignCardBackground}"/>
     </Style>
     <!-- Nickname 입력 TextBox-->
     <Style x:Key="Auth_NicknameTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
         <Setter Property="materialDesign:HintAssist.Hint" Value="Nickname"/>
         <Setter Property="Margin" Value="0,10"/>
         <Setter Property="CaretBrush" Value="{DynamicResource MaterialDesignBody}"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:HintAssist.HintPaddingBrush" Value="{DynamicResource MaterialDesignCardBackground}"/>
     </Style>
     <!-- Password 입력 PasswordBox-->
     <Style x:Key="Auth_PasswordBox" TargetType="PasswordBox" BasedOn="{StaticResource MaterialDesignOutlinedPasswordBox}">
         <Setter Property="materialDesign:HintAssist.Hint" Value="Password"/>
         <Setter Property="Margin" Value="0,10"/>
         <Setter Property="CaretBrush" Value="{DynamicResource MaterialDesignBody}"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:HintAssist.HintPaddingBrush" Value="{DynamicResource MaterialDesignCardBackground}"/>
     </Style>
     <!-- LoginView, RegisterView의 최하단 로그인, 회원가입 Button Style -->
     <Style x:Key="Auth_RequestButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatMidBgButton}">
         <Setter Property="Margin" Value="0,15,0,0"/>
         <Setter Property="Height" Value="45"/>
         <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="10"/>
-    </Style>
-    <!-- 경고 메세지 Style -->
-    <Style x:Key="Auth_WarningTextBlcok" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="Crimson"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="Visibility" Value="{Binding Path=Text, RelativeSource={RelativeSource Self},
-                                                         Converter={StaticResource StringToVisibilityConverter}}"/>
     </Style>
     <!-- 뒤로가기 Button Style -->
     <Style x:Key="Auth_GoBackButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignIconButton}">

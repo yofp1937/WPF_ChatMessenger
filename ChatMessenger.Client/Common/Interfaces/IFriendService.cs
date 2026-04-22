@@ -11,5 +11,9 @@ namespace ChatMessenger.Client.Common.Interfaces
         /// 서버에서 내 친구 목록을 비동기로 가져옵니다.
         /// </summary>
         Task<List<FriendResponse>?> GetFriendsListAsync();
+        /// <summary>
+        /// 서버에 친구를 검색하여 데이터를 요청합니다.
+        /// </summary>
+        Task<FriendResponse?> SearchFriendAsync(string email);
     }
 }

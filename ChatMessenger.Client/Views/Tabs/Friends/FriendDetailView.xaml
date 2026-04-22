@@ -3,9 +3,70 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
-
+    
     <!-- 오른쪽 영역 -->
     <Grid>
-        <TextBlock Text="채팅창 구역"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 친구 추가 창 -->
+        <StackPanel Style="{StaticResource FriendDetail_AddFriendStackPanel}">
+            <TextBox Text="{Binding SearchEmail}" Style="{StaticResource FriendDetail_AddFriendTextBox}"/>
+            <Button Command="{Binding SearchFriendCommand}" Style="{StaticResource FriendDetail_AddFriendSearchButton}"/>
+            <Button Command="{Binding CloseAddFriendModeCommand}" Style="{StaticResource FriendDetail_AddFriendCloseButton}"/>
+            <TextBlock Text="{Binding WarningText}" Style="{StaticResource Common_WarningTextBlock}"/>
+        </StackPanel>
+        
+        <!-- 우측 상단 더보기 탭(즐겨찾기, 차단 전용) -->
+        <materialDesign:PopupBox Style="{StaticResource FriendDetail_SeeMorePopupBox}">
+            <!-- PopupBox 내부 Button 정렬용 Panel -->
+            <StackPanel Orientation="Vertical">
+                <StackPanel Orientation="Vertical" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource InvertedBoolToColl}}">
+                    <Button Content="친구 등록" Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource InvertedBoolToColl}}"/>
+                    <Button Content="친구 삭제" Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+                <Button Content="차단" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource InvertedBoolToColl}}"/>
+                <Button Content="차단 해제" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource BoolToVis}}"/>
+            </StackPanel>
+        </materialDesign:PopupBox>
+
+        <!-- 친구 정보 창 -->
+        <Grid Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <!-- 이미지 표시용 그리드 -->
+            <Grid Style="{StaticResource FriendDetail_ProfileGrid}">
+                <!-- Image를 원형으로 보이게해주는 Ellipse -->
+                <Ellipse Style="{StaticResource Friend_ProfileImageEllipse}"/>
+                <materialDesign:PackIcon Style="{StaticResource FriendDetail_ProfileDefaultIcon}"/>
+                <!-- 프로필 이미지 수정 Button (CurrentFirend.IsMe가 true일 경우에만 표시) -->
+                <Button Style="{StaticResource FriendDetial_ProfileChangeButton}"/>
+            </Grid>
+
+            <!-- 닉네임, 상태메세지 표시 Panel -->
+            <StackPanel Grid.Row="1" Style="{StaticResource FriendDetail_Info_NicknameStackPanel}">
+                <materialDesign:PackIcon Style="{StaticResource FriendDetail_FavoriteIcon}"
+                                                  Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>
+                <TextBlock Text="{Binding CurrentFriend.Nickname}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
+                <TextBlock Text="{Binding CurrentFriend.Email, StringFormat='({0})'}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
+            </StackPanel>
+            <TextBlock Grid.Row="2" Text="{Binding CurrentFriend.StatusMessage}" Style="{StaticResource FriendDetail_Info_StatusMessageTextBlock}"/>
+        </Grid>
+
+        <!-- CurrentFriend.IsMe가 True일때 표시되는 버튼 패널 -->
+        <StackPanel Grid.Row="2" Style="{StaticResource FriendDetail_EditButtonPanel}">
+            <Button Content="프로필 수정" Margin="5,0" Command="{Binding ChangeProfileEditModeCommand}"
+                        Visibility="{Binding IsEditMode, Converter={StaticResource InvertedBoolToColl}}"/>
+            <Button Content="변경" Margin="5,0" 
+                        Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVis}}"/>
+            <Button Content="취소" Margin="5,0" Command="{Binding ChangeProfileEditModeCommand}"
+                        Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVis}}"/>
+        </StackPanel>
     </Grid>
 </UserControl>

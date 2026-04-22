@@ -21,7 +21,5 @@ namespace ChatMessenger.Client.Common.Interfaces
         /// 창을 누르고있을시 이동시킵니다.
         /// </summary>
         void DragMoveWindow();
-
-        void ResizeWindow(object direction);
     }
 }

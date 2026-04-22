@@ -46,7 +46,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
         /// </summary>
         /// <returns></returns>
         [RelayCommand]
-        private async Task SignInAsync(object? parameter) 
+        private async Task SignInAsync(object? parameter)
         {
             if (IsBusy) return;
             // 1. 전달받은 parameter에서 비밀번호 추출

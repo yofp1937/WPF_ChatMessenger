@@ -2,7 +2,6 @@
  * JWT 설정을 담당하는 클래스
  */
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 

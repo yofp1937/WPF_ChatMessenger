@@ -79,7 +79,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
                 IsBusy = false;
             }
         }
-        
+
         /// <summary>
         /// Parameter(object[])에서 두개의 PasswordBox 값을 추출합니다.
         /// </summary>
@@ -107,7 +107,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
                 WarningText = "이메일과 닉네임을 입력해주세요.";
                 return false;
             }
-            if(string.IsNullOrEmpty(pwd) || string.IsNullOrEmpty(pwdCheck))
+            if (string.IsNullOrEmpty(pwd) || string.IsNullOrEmpty(pwdCheck))
             {
                 WarningText = "비밀번호를 입력해주세요.";
                 return false;

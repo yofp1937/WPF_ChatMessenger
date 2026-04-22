@@ -27,7 +27,7 @@ namespace ChatMessenger.Client.ViewModels.Windows
         [ObservableProperty] // 아래에 선언한 Field의 Property를 자동 생성하고 Field의 값이 바뀌면 자동으로 OnPropertyChanged도 호출해줌
         private PageViewModelBase _currentViewModel; // 현재 화면에따라 ViewModel을 생성하여 담는 변수
 
-        public MainWindowViewModel(IWindowControlService windowControlService , IServiceProvider serviceProvider) : base(windowControlService)
+        public MainWindowViewModel(IWindowControlService windowControlService, IServiceProvider serviceProvider) : base(windowControlService)
         {
             _serviceProvider = serviceProvider;
             CurrentViewModel = _serviceProvider.GetRequiredService<LoginViewModel>();

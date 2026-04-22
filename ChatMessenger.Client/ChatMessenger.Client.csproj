@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Styles\Tabs\" />
+    <Folder Include="Styles\Tabs\Friends\" />
   </ItemGroup>
 
 </Project>

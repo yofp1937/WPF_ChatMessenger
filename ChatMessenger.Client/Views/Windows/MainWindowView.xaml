@@ -6,14 +6,13 @@
     xmlns:win="clr-namespace:ChatMessenger.Client.Views.Windows"
     xmlns:util="clr-namespace:ChatMessenger.Client.Common.Utilities"
     
-    Title="ChatMessenger" Height="600" MinHeight="400" Width="1000" MinWidth="800"
+    Title="ChatMessenger" Height="600" MinHeight="500" Width="1000" MinWidth="800"
     WindowStartupLocation="CenterScreen"
     WindowStyle="None"
-    AllowsTransparency="True"
-    Style="{StaticResource MaterialDesignWindow}"
+    AllowsTransparency="False"
+    Style="{StaticResource ChatMessengerCustomWindowStyle}"
     Background="{DynamicResource MaterialDesignPaper}"
     TextElement.Foreground="{DynamicResource MaterialDesignBody}">
-    
     <Grid Background="{DynamicResource MaterialDesignPaper}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -23,13 +22,5 @@
         <win:WindowCaptionView/>
         <!-- 메인 화면 -->
         <ContentControl Grid.Row="1" Content="{Binding CurrentViewModel}" />
-        <Rectangle Grid.Row="0" Grid.Column="1" Cursor="SizeNS" Fill="Transparent">
-            <i:Interaction.Triggers>
-                <i:EventTrigger EventName="MouseLeftButtonDown">
-                    <i:InvokeCommandAction Command="{Binding ResizeCommand}" 
-                       CommandParameter="{x:Static util:Win32Api+ResizeDirection.Top}"/>
-                </i:EventTrigger>
-            </i:Interaction.Triggers>
-        </Rectangle>
     </Grid>
 </Window>

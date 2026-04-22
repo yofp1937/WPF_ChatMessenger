@@ -19,7 +19,7 @@ namespace ChatMessenger.Server.Data.Entities
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        public bool IsBlocked { get; set; }  // 차단 여부
+        public bool IsBlocked { get; set; } // 차단 여부
         public bool IsFavorite { get; set; } // 즐겨찾기 여부
     }
 }

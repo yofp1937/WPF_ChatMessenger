@@ -9,6 +9,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -16,59 +17,25 @@
         <ListBox x:Name="MyProfileListBox" Style="{StaticResource FriendList_ListBox}"
                     SelectedValue="{Binding SelectedFriend, Mode=TwoWay}" SelectedValuePath="Content"
                     PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
-            <ListBoxItem Content="{Binding UserProfile}">
-                <ListBoxItem.ContentTemplate>
-                    <DataTemplate>
-                        <Grid Style="{StaticResource MainShell_LeftPanel_ProfileGrid}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <!-- Image 표시용 Grid -->
-                            <Grid Style="{StaticResource ProfileGrid_ProfileImageGrid}">
-                                <!-- Image를 원형으로 보이게해주는 Ellipse -->
-                                <Ellipse Style="{StaticResource ProfileGrid_ProfileImageEllipse}"/>
-                                <materialDesign:PackIcon Style="{StaticResource ProfileGrid_ProfileImageIcon}"/>
-                            </Grid>
-                            <!-- Nickname과 StatusMessage 표시용 DockPanel -->
-                            <StackPanel Grid.Column="1" Style="{StaticResource ProfileGrid_InfoStackPanel}">
-                                <TextBlock Text="{Binding Nickname}" Style="{StaticResource ProfileGrid_InfoStackPanel_NicknameTextBlock}"/>
-                                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource ProfileGrid_InfoStackPanel_StatusMessageTextBlock}"/>
-                            </StackPanel>
-                        </Grid>
-                    </DataTemplate>
-                </ListBoxItem.ContentTemplate>
-            </ListBoxItem>
+            <ListBoxItem Content="{Binding UserProfile}" ContentTemplate="{StaticResource FriendList_ProfileTemplate}"/>
         </ListBox>
 
-        <Separator Grid.Row="1" VerticalAlignment="Top" Margin="20,0"
-                   Background="{DynamicResource MaterialDesignDivider}"/>
+        <!-- 경계선 -->
+        <Separator Grid.Row="1" VerticalAlignment="Top" Margin="20,0" Background="{DynamicResource MaterialDesignDivider}"/>
+
+        <!-- 친구 추가, 친구 검색 기능-->
+        <DockPanel Grid.Row="2" Style="{StaticResource FriendList_AddSearchPanel}">
+            <Button DockPanel.Dock="Left" Style="{StaticResource FriendList_AddFriendButton}"
+                        Command="{Binding ChangeAddFriendModeCommand}"/>
+            <TextBox DockPanel.Dock="Right" Text="{Binding SearchNickname, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource FriendList_SearchFriendTextBox}"/>
+        </DockPanel>
 
         <!-- 친구 목록: ObservableCollection 형식의 데이터를 Binding 하고있기때문에 ItemSource를 설정 -->
-        <ListBox Grid.Row="2" x:Name="FriendsListBox" Style="{StaticResource FriendList_ListBox}"
-                    SelectedItem="{Binding SelectedFriend, Mode=TwoWay}" ItemsSource="{Binding Friends}"
+        <ListBox Grid.Row="3" x:Name="FriendsListBox" Style="{StaticResource FriendList_ListBox}" IsSynchronizedWithCurrentItem="False"
+                    SelectedItem="{Binding SelectedFriend, Mode=TwoWay}" ItemsSource="{Binding FriendsList}"
+                    ItemTemplate="{StaticResource FriendList_ProfileTemplate}"
                     PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid Style="{StaticResource MainShell_LeftPanel_ProfileGrid}">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <!-- Image 표시용 Grid -->
-                        <Grid Style="{StaticResource ProfileGrid_ProfileImageGrid}">
-                            <!-- Image를 원형으로 보이게해주는 Ellipse -->
-                            <Ellipse Style="{StaticResource ProfileGrid_ProfileImageEllipse}"/>
-                            <materialDesign:PackIcon Style="{StaticResource ProfileGrid_ProfileImageIcon}"/>
-                        </Grid>
-                        <!-- Nickname과 StatusMessage 표시용 DockPanel -->
-                        <StackPanel Grid.Column="1" Style="{StaticResource ProfileGrid_InfoStackPanel}">
-                            <TextBlock Text="{Binding Nickname}" Style="{StaticResource ProfileGrid_InfoStackPanel_NicknameTextBlock}"/>
-                            <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource ProfileGrid_InfoStackPanel_StatusMessageTextBlock}"/>
-                        </StackPanel>
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
         </ListBox>
     </Grid>
 </UserControl>

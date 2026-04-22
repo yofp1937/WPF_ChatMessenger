@@ -1,12 +1,11 @@
 ﻿/*
  * Window의 행동을 처리해주는 Service
  */
+using ChatMessenger.Client.Common.Enums;
 using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Utilities;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 
@@ -20,7 +19,7 @@ namespace ChatMessenger.Client.Common.Services
         {
             Window window = GetWindow();
             if (window == null) return;
-            
+
             window.WindowState = WindowState.Minimized;
         }
         /// <inheritdoc/>
@@ -30,7 +29,7 @@ namespace ChatMessenger.Client.Common.Services
             if (window == null) return;
 
             // 윈도우 창이 최대상태면 일반 상태로 돌리고, 일반 상태면 최대 상태로 변경
-            if(window.WindowState == WindowState.Maximized)
+            if (window.WindowState == WindowState.Maximized)
             {
                 window.WindowState = WindowState.Normal;
             }
@@ -108,12 +107,16 @@ namespace ChatMessenger.Client.Common.Services
             nint windowHandle = new WindowInteropHelper(window).Handle;
             // Handle을 기반으로 현재 어느 모니터와 가까운지 찾습니다.
             // (MONITOR_DEFAULTTONEAREST: 현재 창이 걸쳐있는 모니터중 가까운 모니터 선택)
-            nint monitor = Win32Api.MonitorFromWindow(windowHandle, (uint)Win32Api.MonitorOptions.MONITOR_DEFAULTTONEAREST);
+            nint monitor = Win32Api.MonitorFromWindow(windowHandle, (uint)MonitorOptions.MONITOR_DEFAULTTONEAREST);
+
+            // 최대화 시 화면 밖으로 나가는 약간의 테두리 두께 보정을위해 값 계산
+            double horizontalBorder = SystemParameters.WindowResizeBorderThickness.Left + SystemParameters.WindowResizeBorderThickness.Right;
+            double verticalBorder = SystemParameters.WindowResizeBorderThickness.Top + SystemParameters.WindowResizeBorderThickness.Bottom;
 
             // 유효한 모니터 핸들을 찾았으면
             if (monitor != nint.Zero)
             {
-                Win32Api.MONITORINFO monitorInfo = new();
+                MONITORINFO monitorInfo = new();
                 monitorInfo.cbSize = Marshal.SizeOf(monitorInfo);
                 // 모니터의 가용 영역을 받아옵니다.
                 Win32Api.GetMonitorInfo(monitor, ref monitorInfo);
@@ -125,10 +128,6 @@ namespace ChatMessenger.Client.Common.Services
                     double matrixX = source.CompositionTarget.TransformToDevice.M11;
                     double matrixY = source.CompositionTarget.TransformToDevice.M22;
 
-                    // 최대화 시 화면 밖으로 나가는 약간의 테두리 두께 보정을위해 값 계산
-                    double horizontalBorder = SystemParameters.WindowResizeBorderThickness.Left + SystemParameters.WindowResizeBorderThickness.Right;
-                    double verticalBorder = SystemParameters.WindowResizeBorderThickness.Top + SystemParameters.WindowResizeBorderThickness.Bottom;
-
                     // 배율 적용, 우측 하단에 미리 계산한 두께 보정값 적용
                     window.MaxHeight = Math.Abs(monitorInfo.rcWork.Bottom - monitorInfo.rcWork.Top) / matrixY + verticalBorder;
                     window.MaxWidth = Math.Abs(monitorInfo.rcWork.Right - monitorInfo.rcWork.Left) / matrixX + horizontalBorder;
@@ -136,30 +135,11 @@ namespace ChatMessenger.Client.Common.Services
                 else
                 {
                     // 모니터를 찾지못했으면 기본 배율 적용해서 최대화
-                    window.MaxHeight = Math.Abs(monitorInfo.rcWork.Bottom - monitorInfo.rcWork.Top) + 14;
-                    window.MaxWidth = Math.Abs(monitorInfo.rcWork.Right - monitorInfo.rcWork.Left) + 14;
+                    window.MaxHeight = Math.Abs(monitorInfo.rcWork.Bottom - monitorInfo.rcWork.Top) + verticalBorder;
+                    window.MaxWidth = Math.Abs(monitorInfo.rcWork.Right - monitorInfo.rcWork.Left) + horizontalBorder;
                 }
             }
         }
         #endregion
-        // WindowControlService.cs 구현부
-        public void ResizeWindow(object direction)
-        {
-            Window window = GetWindow();
-            if (window == null || window.WindowState == WindowState.Maximized) return;
-
-            // enum으로 변환 (전달받은 방향 값)
-            if (direction is Win32Api.ResizeDirection resizeDir)
-            {
-                nint handle = new WindowInteropHelper(window).Handle;
-
-                // 마우스 왼쪽 버튼을 뗀 상태에서 실행되면 문제가 생길 수 있으므로 체크 후 전송
-                if (Mouse.LeftButton == MouseButtonState.Pressed)
-                {
-                    // OS에 크기 조절 시스템 명령을 보냄
-                    Win32Api.SendMessage(handle, Win32Api.WM_SYSCOMMAND, (nint)(Win32Api.SC_SIZE + (uint)resizeDir), nint.Zero);
-                }
-            }
-        }
     }
 }

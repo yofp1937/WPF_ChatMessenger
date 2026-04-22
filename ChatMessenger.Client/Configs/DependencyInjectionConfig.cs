@@ -8,8 +8,8 @@
 using ChatMessenger.Client.Common.Handlers;
 using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Services;
-using ChatMessenger.Client.ViewModels.Windows;
 using ChatMessenger.Client.ViewModels.Base;
+using ChatMessenger.Client.ViewModels.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Windows;

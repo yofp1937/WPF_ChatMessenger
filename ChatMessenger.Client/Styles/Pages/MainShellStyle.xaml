@@ -18,12 +18,11 @@
         <friendViews:FriendDetailView/>
     </DataTemplate>
 
-    <!-- 아직 없는거 주석처리
     <DataTemplate DataType="{x:Type chatVms:ChatListViewModel}">
         <chatViews:ChatListView/>
     </DataTemplate>
-    <DataTemplate DataType="{x:Type chatVms:ChatDetailViewModel}">
-        <chatViews:ChatDetailView/>
+    <DataTemplate DataType="{x:Type chatVms:ChatRoomViewModel}">
+        <chatViews:ChatRoomView/>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type settingVms:SettingListViewModel}">
@@ -32,6 +31,5 @@
     <DataTemplate DataType="{x:Type settingVms:SettingDetailViewModel}">
         <settingsViews:SettingDetailView/>
     </DataTemplate>
-    -->
 
 </ResourceDictionary>

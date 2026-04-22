@@ -9,5 +9,10 @@ namespace ChatMessenger.Shared.DTOs.Responses
         public string Nickname { get; set; } = string.Empty;
         public string StatusMessage { get; set; } = string.Empty;
         public string ProfileImageURL { get; set; } = string.Empty;
+
+        public bool IsMe { get; set; }
+        public bool IsAdded { get; set; }
+        public bool IsBlocked { get; set; }
+        public bool IsFavorite { get; set; }
     }
 }
