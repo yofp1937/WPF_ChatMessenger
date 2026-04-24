@@ -24,12 +24,22 @@
         <materialDesign:PopupBox Style="{StaticResource FriendDetail_SeeMorePopupBox}">
             <!-- PopupBox 내부 Button 정렬용 Panel -->
             <StackPanel Orientation="Vertical">
-                <StackPanel Orientation="Vertical" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource InvertedBoolToColl}}">
-                    <Button Content="친구 등록" Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource InvertedBoolToColl}}"/>
-                    <Button Content="친구 삭제" Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource BoolToVis}}"/>
+                <StackPanel Style="{StaticResource FriendDetail_FavoriteButton_StackPanel}">
+                    <Button Content="즐겨찾기 등록" Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource InvertedBoolToColl}}"
+                                Command="{Binding UpdateFavoriteCommand}"/>
+                    <Button Content="즐겨찾기 해제" Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"
+                                Command="{Binding UpdateFavoriteCommand}"/>
                 </StackPanel>
-                <Button Content="차단" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource InvertedBoolToColl}}"/>
-                <Button Content="차단 해제" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource BoolToVis}}"/>
+                <StackPanel Style="{StaticResource FriendDetail_FriendButton_StackPanel}">
+                    <Button Content="친구 등록" Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource InvertedBoolToColl}}"
+                                Command="{Binding AddFriendCommand}"/>
+                    <Button Content="친구 삭제" Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource BoolToVis}}"
+                                Command="{Binding DeleteFriendCommand}"/>
+                </StackPanel>
+                <Button Content="차단" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource InvertedBoolToColl}}"
+                            Command="{Binding UpdateBlockedCommand}"/>
+                <Button Content="차단 해제" Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource BoolToVis}}"
+                            Command="{Binding UpdateBlockedCommand}"/>
             </StackPanel>
         </materialDesign:PopupBox>
 
@@ -50,13 +60,33 @@
             </Grid>
 
             <!-- 닉네임, 상태메세지 표시 Panel -->
-            <StackPanel Grid.Row="1" Style="{StaticResource FriendDetail_Info_NicknameStackPanel}">
-                <materialDesign:PackIcon Style="{StaticResource FriendDetail_FavoriteIcon}"
-                                                  Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>
-                <TextBlock Text="{Binding CurrentFriend.Nickname}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
-                <TextBlock Text="{Binding CurrentFriend.Email, StringFormat='({0})'}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
+            <StackPanel Grid.Row="1" Style="{StaticResource FriendDetail_Info_StackPanel}">
+                <!-- 즐겨찾기 아이콘, 닉네임, 이메일 한줄 배치용 StackPanel -->
+                <StackPanel Style="{StaticResource FriendDetail_NicknameStackPanel}">
+                    <materialDesign:PackIcon Style="{StaticResource FriendDetail_FriendIcon}"
+                                                      Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource BoolToVis}}"/>
+                    <materialDesign:PackIcon Style="{StaticResource Friend_FavoriteIcon}"
+                                                      Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>
+                    <materialDesign:PackIcon Style="{StaticResource FriendDetail_BlockedIcon}"
+                                                      Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource BoolToVis}}"/>
+                    <TextBlock Text="{Binding CurrentFriend.Nickname}" Style="{StaticResource FriendDetail_Info_NicknameTextBlock}"/>
+                    <TextBlock Text="{Binding CurrentFriend.Email, StringFormat='({0})'}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
+                </StackPanel>
+                <TextBlock Grid.Row="2"  Text="{Binding CurrentFriend.StatusMessage}" Style="{StaticResource FriendDetail_Info_StatusMessageTextBlock}"/>
             </StackPanel>
-            <TextBlock Grid.Row="2" Text="{Binding CurrentFriend.StatusMessage}" Style="{StaticResource FriendDetail_Info_StatusMessageTextBlock}"/>
+            
+            <!-- 닉네임, 상태메세지 편집용 StackPanel -->
+            <StackPanel Grid.Row="1" Style="{StaticResource FriendDetail_Edit_StackPanel}">
+                <StackPanel Style="{StaticResource FriendDetail_NicknameStackPanel}">
+                    <materialDesign:PackIcon Style="{StaticResource Friend_FavoriteIcon}"
+                                                      Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>
+                    <TextBox Text="{Binding EditNickname, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource FriendDetail_Edit_NicknameTextBox}"/>
+                    <TextBlock Text="{Binding CurrentFriend.Email, StringFormat='({0})'}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
+                </StackPanel>
+                <TextBox Grid.Row="2" Text="{Binding EditStatusMessage, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource FriendDetail_Edit_StatusMessageTextBox}"/>
+            </StackPanel>
         </Grid>
 
         <!-- CurrentFriend.IsMe가 True일때 표시되는 버튼 패널 -->

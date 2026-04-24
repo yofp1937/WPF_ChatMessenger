@@ -5,7 +5,8 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:views="clr-namespace:ChatMessenger.Client.Views.Tabs.Friends"
     xmlns:vms="clr-namespace:ChatMessenger.Client.ViewModels.Tabs.Friends">
-    <!-- FriendDetail Style -->
+    
+    <!-- 최상단 친구 추가 패널 -->
     <!-- 친구 추가 StackPanel Style -->
     <Style x:Key="FriendDetail_AddFriendStackPanel" TargetType="StackPanel">
         <Setter Property="Orientation" Value="Horizontal"/>
@@ -24,7 +25,7 @@
         <Setter Property="Margin" Value="5,5"/>
         <Setter Property="Width" Value="180"/>
     </Style>
-    <!-- 검색 Button Style -->
+    <!-- 친구 추가 검색 Button Style -->
     <Style x:Key="FriendDetail_AddFriendSearchButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatMidBgButton}">
         <Setter Property="Width" Value="30"/>
         <Setter Property="Margin" Value="5,5"/>
@@ -40,6 +41,7 @@
         <Setter Property="Content" Value="{StaticResource FriendDetail_CloseIcon}"/>
     </Style>
     
+    <!-- 프로필 우측 상단 더보기 버튼 -->
     <!-- 우측 상단 더보기 탭 Style -->
     <Style x:Key="FriendDetail_SeeMorePopupBox" TargetType="materialDesign:PopupBox" BasedOn="{StaticResource MaterialDesignPopupBox}">
         <Setter Property="PlacementMode" Value="BottomAndAlignRightEdges"/>
@@ -49,16 +51,19 @@
         <Setter Property="HorizontalAlignment" Value="Right"/>
         <Setter Property="Visibility" Value="{Binding CurrentFriend.IsMe, Converter={StaticResource InvertedBoolToHidden}}"/>
     </Style>
-
-    <!-- 친구 정보 표시 StackPanel Style-->
-    <Style x:Key="FriendDetail_InfoStackPanel" TargetType="StackPanel">
+    <!-- 즐겨찾기 버튼 StackPanel -->
+    <Style x:Key="FriendDetail_FavoriteButton_StackPanel" TargetType="StackPanel">
         <Setter Property="Orientation" Value="Vertical"/>
-        <Setter Property="VerticalAlignment" Value="Stretch"/>
-        <Setter Property="HorizontalAlignment" Value="Stretch"/>
-        <Setter Property="Width" Value="Auto"/>
-        <Setter Property="Height" Value="Auto"/>
-        <Setter Property="Visibility" Value="{Binding CurrentFriend, Converter={StaticResource NullToVisibilityConverter}}"/>
+        <!-- 친구 추가상태여야 보이게 설정 -->
+        <Setter Property="Visibility" Value="{Binding CurrentFriend.IsAdded, Converter={StaticResource BoolToVis}}"/>
     </Style>
+    <!-- 친구 등록, 삭제 버튼 StackPanel -->
+    <Style x:Key="FriendDetail_FriendButton_StackPanel" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Vertical"/>
+        <!-- 차단 안돼있어야 보이게 설정 -->
+        <Setter Property="Visibility" Value="{Binding CurrentFriend.IsBlocked, Converter={StaticResource InvertedBoolToColl}}"/>
+    </Style>
+    
     <!-- ProfileImage 표시용 Grid -->
     <Style x:Key="FriendDetail_ProfileGrid" TargetType="Grid">
         <Setter Property="Width" Value="200"/>
@@ -78,9 +83,18 @@
         <Setter Property="ToolTip" Value="이미지 변경"/>
         <Setter Property="Content" Value="{StaticResource FriendDetail_ProfileChangeIcon}"/>
     </Style>
-    
+
+    <!-- 친구 정보 표시 StackPanel Style-->
+    <Style x:Key="FriendDetail_Info_StackPanel" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Vertical"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="Width" Value="Auto"/>
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="Visibility" Value="{Binding IsEditMode, Converter={StaticResource InvertedBoolToColl}}"/>
+    </Style>
     <!-- 기본 정보 표시 StackPanel -->
-    <Style x:Key="FriendDetail_Info_NicknameStackPanel" TargetType="StackPanel">
+    <Style x:Key="FriendDetail_NicknameStackPanel" TargetType="StackPanel">
         <Setter Property="Orientation" Value="Horizontal"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -90,22 +104,57 @@
     <Style x:Key="FriendDetail_Info_NicknameTextBlock" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
-        <Setter Property="Visibility" Value="{Binding IsEditMode, Converter={StaticResource InvertedBoolToColl}}"/>
     </Style>
     <!-- 이메일 표시용 TextBlock -->
     <Style x:Key="FriendDetail_Info_EmailTextBlock" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="Margin" Value="5,0,0,0"/>
-        <Setter Property="Visibility" Value="{Binding IsEditMode, Converter={StaticResource InvertedBoolToColl}}"/>
     </Style>
     <!-- 상태 메세지 표시용 TextBlock -->
     <Style x:Key="FriendDetail_Info_StatusMessageTextBlock" TargetType="TextBlock">
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="TextAlignment" Value="Center"/>
         <Setter Property="Margin" Value="10"/>
-        <Setter Property="Visibility" Value="{Binding IsEditMode, Converter={StaticResource InvertedBoolToColl}}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <!-- 프로필 수정용 Stack Panel -->
+    <Style x:Key="FriendDetail_Edit_StackPanel" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Vertical"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="Width" Value="Auto"/>
+        <Setter Property="Height" Value="Auto"/>
+        <Setter Property="Visibility" Value="{Binding IsEditMode, Converter={StaticResource BoolToVis}}"/>
+    </Style>
+    <!-- 닉네임 수정용 TextBox -->
+    <Style x:Key="FriendDetail_Edit_NicknameTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:HintAssist.Hint" Value="Nickname"/>
+        <Setter Property="MaxLength" Value="12"/>
+        <Setter Property="materialDesign:TextFieldAssist.CharacterCounterVisibility" Value="Visible"/>
+        <Setter Property="Width" Value="150"/>
+    </Style>
+    <!-- 상태 메세지 수정용 TextBox -->
+    <Style x:Key="FriendDetail_Edit_StatusMessageTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="materialDesign:HintAssist.Hint" Value="Status Message"/>
+        <Setter Property="MaxLength" Value="50"/>
+        <Setter Property="materialDesign:TextFieldAssist.CharacterCounterVisibility" Value="Visible"/>
+        <Setter Property="AcceptsReturn" Value="True"/>
+        <Setter Property="Width" Value="350"/>
+        <Setter Property="Height" Value="100"/>
     </Style>
 
     <!-- 내 프로필일때 최하단 수정 버튼 표시 Panel -->

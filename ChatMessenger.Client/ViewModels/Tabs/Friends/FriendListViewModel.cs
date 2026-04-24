@@ -6,7 +6,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 
 namespace ChatMessenger.Client.ViewModels.Tabs.Friends
 {
@@ -114,10 +113,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         /// <param name="value"></param>
         partial void OnSelectedFriendChanged(FriendResponse? value)
         {
-            Debug.WriteLine($"OnSelectedFriendChanged 실행");
             if(value == null) return;
 
-            Debug.WriteLine($"OnSelectedFriendChanged {value.Email} 전송");
             WeakReferenceMessenger.Default.Send(new FriendSelectionChangedMessage(value));
         }
         #endregion
@@ -128,6 +125,32 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             {
                 SelectedFriend = null;
             });
+            WeakReferenceMessenger.Default.Register<FriendAddedMessage>(this, (r, m) =>
+            {
+                // 1.중복 데이터가 존재하면 추가 안함
+                if (_friends.Any(f => f.Email == m.friend.Email)) return;
+                // 2.원본 친구 리스트에 추가하고 정렬
+                _friends.Add(m.friend);
+                ApplyFilterAndSort();
+            });
+            WeakReferenceMessenger.Default.Register<FriendDeletedMessage>(this, (r, m) =>
+            {
+                // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
+                FriendResponse? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
+                if(target == null) return;
+                // 2.있으면 삭제하고 정렬
+                _friends.Remove(target);
+                ApplyFilterAndSort();
+            });
+            WeakReferenceMessenger.Default.Register<FriendStatusChangeMessage>(this, (r, m) =>
+            {
+                // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
+                FriendResponse? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
+                if (target == null) return;
+                // 있으면 상태 동기화하고 정렬
+                target.IsFavorite = m.friend.IsFavorite;
+                ApplyFilterAndSort();
+            });
         }
         /// <summary>
         /// 사용자가 직접 호출하는 필터링/정렬 메서드
@@ -135,11 +158,15 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         private void ApplyFilterAndSort()
         {
             // LINQ를 사용하여 필터링과 정렬을 한 번에 처리
+            // 1.즐겨찾기 우선
+            // 2.닉네임 순
             List<FriendResponse> filtered = _friends.Where(f => string.IsNullOrWhiteSpace(SearchNickname) ||
                                                                           f.Nickname.Contains(SearchNickname, StringComparison.OrdinalIgnoreCase))
-                                                                 .OrderBy(f => f.Nickname) // 정렬 조건
+                                                                 .OrderByDescending(f => f.IsFavorite)
+                                                                 .ThenBy(f => f.Nickname)
                                                                  .ToList();
             // UI 갱신 (새로운 컬렉션으로 교체)
+            // Todo: 정렬할때마다 새로운 FriendList 생성 말고 더 좋은 방법 있는지 나중에 찾아보기
             FriendsList = new ObservableCollection<FriendResponse>(filtered);
         }
         #endregion
