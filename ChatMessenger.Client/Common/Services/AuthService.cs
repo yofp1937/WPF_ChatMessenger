@@ -38,8 +38,7 @@ namespace ChatMessenger.Client.Common.Services
                 if (response.IsSuccessStatusCode)
                 {
                     // Response의 JSON을 LoginResponse 객체로 역직렬화
-                    LoginResponse? result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                    return result;
+                    return await response.Content.ReadFromJsonAsync<LoginResponse>();
                 }
                 return null;
             }

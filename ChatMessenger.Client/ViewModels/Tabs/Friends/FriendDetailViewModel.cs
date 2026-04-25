@@ -1,7 +1,7 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
-using ChatMessenger.Shared.DTOs.Responses;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -24,7 +24,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
 
         // 프로필 표시용
         [ObservableProperty]
-        private FriendResponse? _currentFriend;
+        private FriendModel? _currentFriend;
 
         // 내 프로필 수정 모드
         [ObservableProperty]
@@ -39,15 +39,13 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         {
             _friendService = friendService;
 
-            // View에서 Binding하여 사용하기위해 로그인한 User의 FriendResponse 객체 생성
-            CurrentFriend = new FriendResponse()
+            // 로그인에 성공했지만 Profile 정보가 존재하지않으면 강제 로그아웃
+            if (identityService.MyProfile == null)
             {
-                Email = identityService.CurrentUserEmail!,
-                Nickname = identityService.Nickname!,
-                StatusMessage = identityService.StatusMessage!,
-                ProfileImageURL = identityService.ProfileImageURL!,
-                IsMe = true,
-            };
+                WeakReferenceMessenger.Default.Send(new ForceLogoutMessage());
+                return;
+            }
+            CurrentFriend = identityService.MyProfile;
 
             SubscribeMessages();
         }
@@ -69,7 +67,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             try
             {
                 // 1. 서버에 검색 요청
-                FriendResponse? result = await _friendService.SearchFriendAsync(SearchEmail);
+                FriendModel? result = await _friendService.SearchFriendAsync(SearchEmail);
                 if (result == null) return;
 
                 // 2. 검색 성공 시 상세 정보 업데이트
@@ -99,7 +97,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [RelayCommand]
         private void ChangeProfileEditMode()
         {
-            if(!IsEditMode)
+            if (!IsEditMode)
             {
                 IsEditMode = true;
                 EditNickname = CurrentFriend?.Nickname;
@@ -121,7 +119,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             try
             {
                 // 1. 현재 화면에 표시되는 유저를 친구 추가 요청
-                FriendResponse? result = await _friendService.AddFriendAsync(CurrentFriend.Email);
+                FriendModel? result = await _friendService.AddFriendAsync(CurrentFriend.Email);
                 if (result == null) return;
 
                 // 2. 친구 추가 완료되면 CurrentFriend 갱신하여 화면 갱신
@@ -151,19 +149,12 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                 // 2. 친구 삭제 성공하면 CurrentFriend 
                 CurrentFriend.IsAdded = false;
                 CurrentFriend.IsFavorite = false;
-                /* TODO
-                 * FriendResponse는 데이터 전달에 사용되는 DTO를 빠른 개발을위해 ViewModel 내부에서 사용중인데
-                 * DTO에 ObservableObject로 선언하면 DTO를 위한 객체가 아니게되는것같아서
-                 * 값이 변하면 임시로 OnPropertyChanged를 호출하여 사용함
-                 * 만약 다른곳에서도 FriendResponse 객체 내부의 값이 변해 OnPropertyChanged가 호출되야할 일이 생길때
-                 * FriendResponse의 값을 바탕으로 Client 내에서 사용되는 ObservableObject인 FriendModel을 만들어 사용해야할듯 */
-                OnPropertyChanged(nameof(CurrentFriend));
                 // 3. FriendList도 갱신하라고 알림
                 WeakReferenceMessenger.Default.Send(new FriendDeletedMessage(CurrentFriend));
             }
             catch
             {
-                Debug.WriteLine($"[{GetType().Name}_DeleteFriendAsync]: 친구 추가 실패");
+                Debug.WriteLine($"[{GetType().Name}_DeleteFriendAsync]: 친구 삭제 실패");
             }
         }
 
@@ -173,7 +164,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [RelayCommand]
         private async Task UpdateFavorite()
         {
-            if(CurrentFriend == null) return;
+            if (CurrentFriend == null) return;
             try
             {
                 // 업데이트하려는 값은 항상 현재 상태의 반대값
@@ -183,8 +174,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
 
                 // 변경 성공시 로컬 데이터 갱신
                 CurrentFriend.IsFavorite = targetStatus;
-                // UI 갱신
-                OnPropertyChanged(nameof(CurrentFriend));
                 // 친구 목록 즐겨찾기 아이콘 갱신
                 WeakReferenceMessenger.Default.Send(new FriendStatusChangeMessage(CurrentFriend));
             }
@@ -227,8 +216,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                     CurrentFriend.IsAdded = false;
                     CurrentFriend.IsFavorite = false;
                 }
-                // UI 갱신
-                OnPropertyChanged(nameof(CurrentFriend));
             }
             catch (Exception ex)
             {
@@ -257,7 +244,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         {
             WeakReferenceMessenger.Default.Register<FriendSelectionChangedMessage>(this, (r, m) =>
             {
-                OnFriendReceived(m.Value);
+                OnFriendReceived(m.friend);
             });
             WeakReferenceMessenger.Default.Register<AddFriendModeChangedMessage>(this, (r, m) =>
             {
@@ -268,7 +255,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         /// <summary>
         /// 메신저를통해 데이터를 전달받으면 필드에 데이터를 할당합니다.
         /// </summary>
-        private void OnFriendReceived(FriendResponse friend)
+        private void OnFriendReceived(FriendModel friend)
         {
             CurrentFriend = friend;
             IsEditMode = false;

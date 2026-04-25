@@ -1,7 +1,7 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
-using ChatMessenger.Shared.DTOs.Responses;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -16,12 +16,12 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
 
         // 로그인한 사용자의 프로필
         [ObservableProperty]
-        private FriendResponse _userProfile;
+        private FriendModel _userProfile;
         // 로그인한 사용자가 추가한 친구 목록
-        private List<FriendResponse> _friends = new();
+        private List<FriendModel> _friends = new();
         // View에 Binding되어 보여질 친구 목록(검색, 정렬 값이 바뀔때마다 전환)
         [ObservableProperty]
-        private ObservableCollection<FriendResponse> _friendsList = new();
+        private ObservableCollection<FriendModel> _friendsList = new();
 
         // 친구 검색과 Binding된 string
         [ObservableProperty]
@@ -30,7 +30,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         private CancellationTokenSource? _searchCts;
         // 오른쪽 Panel에 정보를 표시할 선택된 친구 Data
         [ObservableProperty]
-        private FriendResponse? _selectedFriend = null;
+        private FriendModel? _selectedFriend = null;
 
 
         public FriendListViewModel(IIdentityService identityService, IFriendService friendService)
@@ -39,15 +39,14 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             _identityService = identityService;
             _friendService = friendService;
 
-            // View에서 Binding하여 사용하기위해 로그인한 User의 FriendResponse 객체 생성
-            _userProfile = new FriendResponse()
+            // 로그인에 성공했지만 Profile 정보가 존재하지않으면 강제 로그아웃
+            if (_identityService.MyProfile == null)
             {
-                Email = _identityService.CurrentUserEmail!,
-                Nickname = _identityService.Nickname!,
-                StatusMessage = _identityService.StatusMessage!,
-                ProfileImageURL = _identityService.ProfileImageURL!,
-                IsMe = true,
-            };
+                _userProfile = new FriendModel();
+                WeakReferenceMessenger.Default.Send(new ForceLogoutMessage());
+                return;
+            }
+            _userProfile = _identityService.MyProfile;
 
             // 친구 목록 불러오기
             LoadFriendsCommand.Execute(null);
@@ -59,7 +58,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [RelayCommand] // 나중에 친구 목록 새로고침 기능이 추가될수있으니 RelayCommand로 선언해둠
         private async Task LoadFriendsAsync()
         {
-            List<FriendResponse>? result = await _friendService.GetFriendsListAsync();
+            List<FriendModel>? result = await _friendService.GetFriendsListAsync();
             if (result == null) return;
 
             // DeferRefresh를 사용하여 using 블록 내에서는 필터 적용을 하지않고 종료할때 한번만 필터링함
@@ -111,9 +110,9 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         /// 오른쪽 FriendDetailView에 상세 정보를 띄우기위해 FriendDetailViewModel에게 데이터를 전송합니다.
         /// </remarks>
         /// <param name="value"></param>
-        partial void OnSelectedFriendChanged(FriendResponse? value)
+        partial void OnSelectedFriendChanged(FriendModel? value)
         {
-            if(value == null) return;
+            if (value == null) return;
 
             WeakReferenceMessenger.Default.Send(new FriendSelectionChangedMessage(value));
         }
@@ -136,8 +135,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             WeakReferenceMessenger.Default.Register<FriendDeletedMessage>(this, (r, m) =>
             {
                 // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
-                FriendResponse? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
-                if(target == null) return;
+                FriendModel? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
+                if (target == null) return;
                 // 2.있으면 삭제하고 정렬
                 _friends.Remove(target);
                 ApplyFilterAndSort();
@@ -145,7 +144,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             WeakReferenceMessenger.Default.Register<FriendStatusChangeMessage>(this, (r, m) =>
             {
                 // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
-                FriendResponse? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
+                FriendModel? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
                 if (target == null) return;
                 // 있으면 상태 동기화하고 정렬
                 target.IsFavorite = m.friend.IsFavorite;
@@ -160,14 +159,14 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             // LINQ를 사용하여 필터링과 정렬을 한 번에 처리
             // 1.즐겨찾기 우선
             // 2.닉네임 순
-            List<FriendResponse> filtered = _friends.Where(f => string.IsNullOrWhiteSpace(SearchNickname) ||
+            List<FriendModel> filtered = _friends.Where(f => string.IsNullOrWhiteSpace(SearchNickname) ||
                                                                           f.Nickname.Contains(SearchNickname, StringComparison.OrdinalIgnoreCase))
                                                                  .OrderByDescending(f => f.IsFavorite)
                                                                  .ThenBy(f => f.Nickname)
                                                                  .ToList();
             // UI 갱신 (새로운 컬렉션으로 교체)
             // Todo: 정렬할때마다 새로운 FriendList 생성 말고 더 좋은 방법 있는지 나중에 찾아보기
-            FriendsList = new ObservableCollection<FriendResponse>(filtered);
+            FriendsList = new ObservableCollection<FriendModel>(filtered);
         }
         #endregion
     }

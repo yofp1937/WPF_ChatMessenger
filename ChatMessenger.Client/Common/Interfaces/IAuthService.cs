@@ -12,13 +12,15 @@ namespace ChatMessenger.Client.Common.Interfaces
         /// </summary>
         /// <param name="email">사용자 이메일</param>
         /// <param name="password">사용자 비밀번호</param>
-        /// <param name="nickname">사용자 별명</param>
         /// <returns>인증 성공시 LoginResponse DTO, 실패시 null</returns>
         Task<LoginResponse?> SignInAsync(string email, string password);
 
         /// <summary>
         /// DB에 회원가입을 요청합니다.
         /// </summary>
+        /// <param name="email">사용자 이메일</param>
+        /// <param name="password">사용자 비밀번호</param>
+        /// <param name="nickname">사용자 별명</param>
         Task<bool> RegisterAsync(string email, string password, string nickname);
     }
 }

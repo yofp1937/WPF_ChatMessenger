@@ -3,6 +3,7 @@
  */
 using ChatMessenger.Server.Data;
 using ChatMessenger.Server.Data.Entities;
+using ChatMessenger.Server.Extensions;
 using ChatMessenger.Server.Interfaces;
 using ChatMessenger.Shared.DTOs.Requests;
 using ChatMessenger.Shared.DTOs.Responses;
@@ -53,9 +54,7 @@ namespace ChatMessenger.Server.Controllers
                 IsSuccess = true,
                 Token = token,
                 Message = "로그인에 성공했습니다.",
-                Nickname = user.Nickname,
-                StatusMessage = user.StatusMessage,
-                ProfileImageURL = user.ProfileImageURL,
+                UserProfile = user.MapToFriendResponse(isMe: true)
             });
         }
 

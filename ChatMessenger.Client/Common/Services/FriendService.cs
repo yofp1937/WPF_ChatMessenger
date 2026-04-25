@@ -2,6 +2,7 @@
  * 사용자의 친구 목록을 관리해주는 서비스
  */
 using ChatMessenger.Client.Common.Interfaces;
+using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Shared.DTOs.Requests;
 using ChatMessenger.Shared.DTOs.Responses;
 using System.Diagnostics;
@@ -20,7 +21,7 @@ namespace ChatMessenger.Client.Common.Services
         }
 
         /// <inheritdoc/>
-        public async Task<List<FriendResponse>?> GetFriendsListAsync()
+        public async Task<List<FriendModel>?> GetFriendsListAsync()
         {
             try
             {
@@ -28,8 +29,10 @@ namespace ChatMessenger.Client.Common.Services
                 HttpResponseMessage response = await _httpClient.GetAsync("api/friend/list");
                 if (response.IsSuccessStatusCode)
                 {
-                    // 2.요청이 성공적으로 처리됐으면 반환값을 역직렬화하여 반환
-                    return await response.Content.ReadFromJsonAsync<List<FriendResponse>>();
+                    // 2.요청이 성공적으로 처리됐으면 FriendResponse를 FriendModel로 변환하여 반환
+                    List<FriendResponse>? dtos = await response.Content.ReadFromJsonAsync<List<FriendResponse>>();
+
+                    return dtos?.Select(dto => new FriendModel(dto)).ToList();
                 }
                 return null;
             }
@@ -41,15 +44,16 @@ namespace ChatMessenger.Client.Common.Services
         }
 
         /// <inheritdoc/>
-        public async Task<FriendResponse?> SearchFriendAsync(string friendEmail)
+        public async Task<FriendModel?> SearchFriendAsync(string friendEmail)
         {
             try
             {
                 // email을 담아서 검색 요청
                 HttpResponseMessage response = await _httpClient.GetAsync($"api/friend/searchuser?friendEmail={friendEmail}");
-                if(response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<FriendResponse>();
+                    if (await response.Content.ReadFromJsonAsync<FriendResponse>() is { } dto)
+                        return new FriendModel(dto);
                 }
                 // 실패시 서버에서 전송한 텍스트 메세지를 담아서 Exception 던짐
                 string errorMsg = await response.Content.ReadAsStringAsync();
@@ -63,7 +67,7 @@ namespace ChatMessenger.Client.Common.Services
         }
 
         /// <inheritdoc/>
-        public async Task<FriendResponse?> AddFriendAsync(string friendEmail)
+        public async Task<FriendModel?> AddFriendAsync(string friendEmail)
         {
             try
             {
@@ -71,10 +75,11 @@ namespace ChatMessenger.Client.Common.Services
                 AddorDeleteFriendRequest request = new() { Email = friendEmail };
                 // 2.email을 담아서 친구 추가 요청
                 HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/friend/add", request);
-                if(response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
-                    // 성공시 추가한 친구의 FriendResponse를 반환
-                    return await response.Content.ReadFromJsonAsync<FriendResponse>();
+                    // 성공시 추가한 친구의 FriendModel를 반환
+                    if (await response.Content.ReadFromJsonAsync<FriendResponse>() is { } dto)
+                        return new FriendModel(dto);
                 }
                 // 실패시 서버에서 전송한 텍스트를 메세지에 담아서 Exception 던짐
                 string errorMsg = await response.Content.ReadAsStringAsync();
@@ -118,10 +123,10 @@ namespace ChatMessenger.Client.Common.Services
             try
             {
                 // 1.Body에 실어 보낼 Request DTO 생성
-                FriendStatusRequest request = new() { Email = friendEmail, IsFavorite = isFavorite};
+                FriendStatusRequest request = new() { Email = friendEmail, IsFavorite = isFavorite };
                 // 2.DTO 담아서 변경 요청
                 HttpResponseMessage response = await _httpClient.PatchAsJsonAsync("api/friend/favorite", request);
-                if(response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                 {
                     return true;
                 }

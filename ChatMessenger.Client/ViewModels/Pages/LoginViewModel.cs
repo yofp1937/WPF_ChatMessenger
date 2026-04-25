@@ -1,5 +1,6 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
 using ChatMessenger.Shared.DTOs.Responses;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -69,12 +70,17 @@ namespace ChatMessenger.Client.ViewModels.Pages
 
                 if (response != null && response.IsSuccess)
                 {
-                    // 3-1. 로그인 성공하여 데이터 저장 및 MainShellView로 이동
+                    // 3-1. 로그인 성공하면 profile 생성 시도
+                    FriendModel? profile = response.UserProfile != null ? new FriendModel(response.UserProfile) : null;
+                    // profile 생성 실패하면 return
+                    if (profile == null)
+                    {
+                        WarningText = "사용자 정보를 불러오는데 실패했습니다. 다시 시도해주세요";
+                        return;
+                    }
+                    // 3-2. 확실히 검증이 끝나면 데이터 할당하고 View 이동
                     _identityService.Token = response.Token;
-                    _identityService.CurrentUserEmail = Email;
-                    _identityService.Nickname = response.Nickname;
-                    _identityService.StatusMessage = response.StatusMessage;
-                    _identityService.ProfileImageURL = response.ProfileImageURL;
+                    _identityService.MyProfile = profile;
                     WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(MainShellViewModel)));
                 }
                 else

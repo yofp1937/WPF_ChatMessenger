@@ -1,7 +1,7 @@
 ﻿/*
  * 사용자의 친구 목록을 관리해줄 서비스 Interface
  */
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Client.Models.Friends;
 
 namespace ChatMessenger.Client.Common.Interfaces
 {
@@ -10,17 +10,17 @@ namespace ChatMessenger.Client.Common.Interfaces
         /// <summary>
         /// 서버에서 내 친구 목록을 비동기로 가져옵니다.
         /// </summary>
-        Task<List<FriendResponse>?> GetFriendsListAsync();
+        Task<List<FriendModel>?> GetFriendsListAsync();
         /// <summary>
         /// 서버에 친구를 검색하여 데이터를 요청합니다.
         /// </summary>
         /// <param name="friendEmail">검색하려는 친구의 이메일</param>
-        Task<FriendResponse?> SearchFriendAsync(string friendEmail);
+        Task<FriendModel?> SearchFriendAsync(string friendEmail);
         /// <summary>
         /// 서버에 친구 추가를 요청합니다.
         /// </summary>
         /// <param name="friendEmail">추가하려는 친구의 이메일</param>
-        Task<FriendResponse?> AddFriendAsync(string friendEmail);
+        Task<FriendModel?> AddFriendAsync(string friendEmail);
         /// <summary>
         /// 서버에 친구 삭제를 요청합니다.
         /// </summary>

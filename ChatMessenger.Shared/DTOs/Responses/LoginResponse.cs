@@ -13,8 +13,6 @@ namespace ChatMessenger.Shared.DTOs.Responses
         public string? Message { get; set; } // 실패 시 에러 메시지띄울 용도
 
         // 로그인한 유저의 정보도 전송
-        public string? Nickname { get; set; }
-        public string? StatusMessage { get; set; }
-        public string? ProfileImageURL { get; set; }
+        public FriendResponse? UserProfile { get; set; }
     }
 }

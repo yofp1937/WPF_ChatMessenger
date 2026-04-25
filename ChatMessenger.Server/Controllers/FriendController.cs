@@ -3,6 +3,7 @@
  */
 using ChatMessenger.Server.Data;
 using ChatMessenger.Server.Data.Entities;
+using ChatMessenger.Server.Extensions;
 using ChatMessenger.Shared.DTOs.Requests;
 using ChatMessenger.Shared.DTOs.Responses;
 using Microsoft.AspNetCore.Authorization;
@@ -37,20 +38,11 @@ namespace ChatMessenger.Server.Controllers
 
             // 내 친구 목록(Friendships)을 가져와서 User 테이블과 Join하여 상세 정보 추출
             List<FriendResponse> friendList = await _context.Friendships
-                .Where(f => f.UserEmail == myEmail && !f.IsBlocked)        // 1.Friendships 테이블에서 UserEmail과 myEmail 값이 같은것과 IsBlocked가 false인것들 필터링
-                .Join(_context.Users,                                                    // 2.Users와 연결
-                    friendship => friendship.FriendEmail,                          // 3.Friendship.FriendEmail과 user.Email이 일치하는 데이터들을 꺼내겠다
-                    user => user.Email,
-                    (friendship, user) => new FriendResponse                    // 4.두 테이블에서 값을 꺼내서 새로운 FriendResponse를 만들겠다.
-                    {
-                        Email = user.Email,
-                        Nickname = user.Nickname,
-                        StatusMessage = user.StatusMessage,
-                        ProfileImageURL = user.ProfileImageURL,
-                        IsAdded = true,
-                        IsBlocked = friendship.IsBlocked,
-                        IsFavorite = friendship.IsFavorite,
-                    })
+                // 1. Friendship 테이블에서 기본적으로 아래 조건을 충족하는 데이터를 사용
+                .Where(f => f.UserEmail == myEmail && !f.IsBlocked)
+                // 2. User 테이블과 Join하여 FriendResponse 구조로 데이터를 추출할 Sql 쿼리 생성
+                .ProjectToFriendResponse(_context.Users)
+                // 3. Sql을 Db에서 실행하고 결과 데이터를 FriendResponse 객체 리스트로 반환
                 .ToListAsync();
 
             Console.WriteLine($"[{DateTime.Now}][Friend/list]: {myEmail}님이 친구 목록을 요청하셨습니다.");
@@ -62,7 +54,7 @@ namespace ChatMessenger.Server.Controllers
         /// </summary>
         /// <param name="friendEmail">검색하려는 친구의 이메일</param>
         [HttpGet("searchuser")]
-        public async Task<ActionResult<FriendResponse>> SearchUser([FromQuery]string friendEmail)
+        public async Task<ActionResult<FriendResponse>> SearchUser([FromQuery] string friendEmail)
         {
             // 1.토큰에서 내 이메일 추출
             string? myEmail = User.Identity?.Name;
@@ -74,19 +66,11 @@ namespace ChatMessenger.Server.Controllers
 
             // 3.검색된 유저와 나의 관계 정보 확인
             Friendship? friendship = await GetFriendshipAsync(myEmail, friendEmail);
+            bool isMe = targetUser.Email == myEmail;
 
             // 4.반환용 FriendResponse 객체 생성
-            FriendResponse response = new()
-            {
-                Email = targetUser.Email,
-                Nickname = targetUser.Nickname,
-                StatusMessage = targetUser.StatusMessage,
-                ProfileImageURL = targetUser.ProfileImageURL,
-                // 관계 데이터가 존재하면 넣고 없으면 false
-                IsAdded = friendship != null && !friendship.IsBlocked,
-                IsBlocked = friendship?.IsBlocked ?? false,
-                IsFavorite = friendship?.IsFavorite ?? false,
-            };
+            FriendResponse response = targetUser.MapToFriendResponse(friendship, isMe);
+
             Console.WriteLine($"[{DateTime.Now}][Friend/searchuser]: {myEmail}님이 {friendEmail}님을 검색하셨습니다.");
             return Ok(response);
         }
@@ -96,7 +80,7 @@ namespace ChatMessenger.Server.Controllers
         /// </summary>
         /// <param name="request">친구 목록에 추가하려는 친구의 이메일</param>
         [HttpPost("add")]
-        public async Task<ActionResult<FriendResponse>> AddFriend([FromBody]AddorDeleteFriendRequest request)
+        public async Task<ActionResult<FriendResponse>> AddFriend([FromBody] AddorDeleteFriendRequest request)
         {
             // 1.토큰에서 내 이메일 추출
             string? myEmail = User.Identity?.Name;
@@ -136,7 +120,7 @@ namespace ChatMessenger.Server.Controllers
         /// </summary>
         /// <param name="request">삭제하려는 친구의 이메일</param>
         [HttpPost("delete")]
-        public async Task<IActionResult> DeleteFriend([FromBody]AddorDeleteFriendRequest request)
+        public async Task<IActionResult> DeleteFriend([FromBody] AddorDeleteFriendRequest request)
         {
             // 1.토큰에서 내 이메일 추출
             string? myEmail = User.Identity?.Name;
@@ -150,7 +134,7 @@ namespace ChatMessenger.Server.Controllers
             // 차단 상태인건 삭제하면 안되니 걸러야함
             Friendship? friendship = await _context.Friendships
                 .FirstOrDefaultAsync(f => f.UserEmail == myEmail && f.FriendEmail == friendEmail && f.IsBlocked == false);
-            if(friendship == null) return BadRequest("친구 등록이 되어있지않은 사용자입니다.");
+            if (friendship == null) return BadRequest("친구 등록이 되어있지않은 사용자입니다.");
 
             // 4.친구 삭제
             _context.Friendships.Remove(friendship);
@@ -165,7 +149,7 @@ namespace ChatMessenger.Server.Controllers
         /// </summary>
         /// <param name="request">친구의 이메일과 변경하려는 즐겨찾기 상태(true인지, false인지)</param>
         [HttpPatch("favorite")]
-        public async Task<IActionResult> UpdateFavorite([FromBody]FriendStatusRequest request)
+        public async Task<IActionResult> UpdateFavorite([FromBody] FriendStatusRequest request)
         {
             // 1.토큰에서 내 이메일 추출
             string? myEmail = User.Identity?.Name;
@@ -190,7 +174,7 @@ namespace ChatMessenger.Server.Controllers
         /// </summary>
         /// <param name="request">친구의 이메일과 변경하려는 차단 상태(true인지, false인지)</param>
         [HttpPatch("block")]
-        public async Task<IActionResult> UpdateBlock([FromBody]FriendStatusRequest request)
+        public async Task<IActionResult> UpdateBlock([FromBody] FriendStatusRequest request)
         {
             // 1.토큰에서 내 이메일 추출
             string? myEmail = User.Identity?.Name;
@@ -202,10 +186,10 @@ namespace ChatMessenger.Server.Controllers
             Friendship? friendship = await GetFriendshipAsync(myEmail, friendEmail);
 
             // 4.차단하려는 경우
-            if(request.IsBlocked)
+            if (request.IsBlocked)
             {
                 // 등록된 관계가 없으면 차단 관계 생성
-                if(friendship == null)
+                if (friendship == null)
                 {
                     _context.Friendships.Add(new Friendship
                     {
@@ -231,8 +215,8 @@ namespace ChatMessenger.Server.Controllers
                 _context.Friendships.Remove(friendship);
                 Console.WriteLine($"[{DateTime.Now}][Friend/block]: {myEmail}님이 {friendEmail}님의 차단을 해제하셨습니다.");
             }
-
             await _context.SaveChangesAsync();
+
             return Ok();
         }
         #endregion

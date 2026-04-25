@@ -41,6 +41,14 @@ namespace ChatMessenger.Client.ViewModels.Windows
                 // 받은 메시지에 담긴 타입으로 서비스를 가져와서 화면을 교체합니다.
                 CurrentViewModel = (PageViewModelBase)_serviceProvider.GetRequiredService(m.ViewModelType);
             });
+            WeakReferenceMessenger.Default.Register<ForceLogoutMessage>(this, (r, m) =>
+            {
+                // 1.서비스 계층의 토큰과 프로필 정보 삭제
+                IIdentityService identityService = _serviceProvider.GetRequiredService<IIdentityService>();
+                identityService.Logout();
+                // 2.화면을 LoginView로 교체
+                CurrentViewModel = _serviceProvider.GetRequiredService<LoginViewModel>();
+            });
         }
     }
 }

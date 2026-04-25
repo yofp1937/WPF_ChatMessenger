@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Folder Include="Styles\Tabs\Friends\" />
+    <Folder Include="Styles\Tabs\Chats\" />
   </ItemGroup>
 
 </Project>

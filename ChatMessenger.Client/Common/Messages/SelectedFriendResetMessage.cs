@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ChatMessenger.Client.Common.Messages
+﻿namespace ChatMessenger.Client.Common.Messages
 {
     /// <summary>
     /// FriendDetail에서 친구를 검색했을때 FriendList의 SelectedFriend를 초기화시키는 메세지<br/>

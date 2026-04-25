@@ -3,26 +3,21 @@
  * 싱글톤으로 만들어서 사용합니다.
  */
 using ChatMessenger.Client.Common.Interfaces;
+using ChatMessenger.Client.Models.Friends;
 
 namespace ChatMessenger.Client.Common.Services
 {
     public class IdentityService : IIdentityService
     {
         public string? Token { get; set; }
-        public string? CurrentUserEmail { get; set; }
-        public string? Nickname { get; set; }
-        public string? StatusMessage { get; set; }
-        public string? ProfileImageURL { get; set; }
+        public FriendModel? MyProfile { get; set; }
         public bool IsLoggedIn => !string.IsNullOrEmpty(Token);
 
         /// <inheritdoc/>
         public void Logout()
         {
             Token = null;
-            CurrentUserEmail = null;
-            Nickname = null;
-            StatusMessage = null;
-            ProfileImageURL = null;
+            MyProfile = null;
         }
     }
 }
