@@ -1,7 +1,7 @@
 ﻿/*
  * ChatRoomView에서 표시될 채팅방의 상세한 정보를 담고있는 모델
  */
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Client.Models.Friends;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 namespace ChatMessenger.Client.Models.Chats
@@ -23,7 +23,7 @@ namespace ChatMessenger.Client.Models.Chats
         private int _participiantCount;
         // 실제 참여자 상세 정보 목록
         [ObservableProperty]
-        private ObservableCollection<FriendResponse> _participants = new();
+        private ObservableCollection<FriendModel> _participants = new();
 
         // 채팅 내역
         [ObservableProperty]
