@@ -15,9 +15,10 @@ namespace ChatMessenger.Server.Data.Entities
         public Guid Id { get; set; }
 
         // 채팅방 이름
-        [Required]
-        [MaxLength(24)]
+        // 1대1 채팅의 경우 값이 null로 들어갈 예정이고, ViewModel에서 상대방 닉네임을 띄워줘야함
+        [MaxLength(24, ErrorMessage = "채팅방 이름은 24자 이내로 입력해주세요.")]
         public string? Title { get; set; }
+        public string? RoomProfileImageURL { get; set; }
 
         // 채팅방 생성 날짜
         [Required]

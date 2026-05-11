@@ -2,12 +2,17 @@
  * 엔티티(Entity) 모델을 클라이언트 전송용 DTO로 변환하는 확장 메서드들을 정의하는 클래스입니다.
  */
 using ChatMessenger.Server.Data.Entities;
+using ChatMessenger.Server.Data.Projections;
 using ChatMessenger.Shared.DTOs.Responses;
 using Microsoft.EntityFrameworkCore;
 
-namespace ChatMessenger.Server.Extensions
+namespace ChatMessenger.Server.Mappers
 {
-    public static class DTOMapper
+    /// <summary>
+    /// FriendService에서 사용되는 DTO들의 Mapper 클래스입니다. <br/>
+    /// Controller와 Service 사이에서 데이터를 목적에 적합한 형태로 가공해줍니다.
+    /// </summary>
+    public static class FriendMapper
     {
         /// <summary>
         /// IQueryable(DB 쿼리) 단계에서 Friendship과 User 테이블을 Join하여 필요한 컬럼만 선별적으로 추출(Projection)합니다.
@@ -43,7 +48,6 @@ namespace ChatMessenger.Server.Extensions
         /// </summary>
         /// <param name="user">변환할 원본 User 객체</param>
         /// <param name="friendship">나와의 관계 정보(선택 사항)</param>
-        // 매개변수 user에 this를 붙임으로써 User의 내부 메서드처럼 호출이 가능해짐
         public static FriendResponse MapToFriendResponse(this User user, Friendship? friendship = null, bool isMe = false)
         {
             return new FriendResponse
@@ -55,9 +59,29 @@ namespace ChatMessenger.Server.Extensions
 
                 IsMe = isMe,
                 IsAdded = friendship != null && !friendship.IsBlocked,
-                IsBlocked = friendship?.IsBlocked ?? false,
                 IsFavorite = friendship?.IsFavorite ?? false,
+                IsBlocked = friendship?.IsBlocked ?? false,
             };
+        }
+
+        /// <summary>
+        /// 채팅방의 참가자 목록 List와 친구관계 List로 FriendResponse를 만들어 반환합니다.
+        /// </summary>
+        /// <param name="myEmail">로그인한 User의 Email</param>
+        /// <param name="participants">Response 생성을 위한 참가자들의 원본 데이터 포인터</param>
+        /// <param name="friendships">참가자들 Email과 Friendship 정보를 담고있는 Dictionary</param>
+        /// <returns>채팅방 참가자들과의 관계 정보를 포함한 Response DTO</returns>
+        public static List<FriendResponse> ToFriendResponseList(string myEmail, IEnumerable<ChatParticipantProjection> participants, Dictionary<string, Friendship> friendships)
+        {
+            return participants.Select(p =>
+            {
+                User user = p.User;
+                // 1. 해당 유저와의 관계 정보 추출
+                friendships.TryGetValue(user.Email, out Friendship? f);
+
+                // 2. FriendMapper의 확장 메서드 재사용
+                return user.MapToFriendResponse(f, p.User.Email == myEmail);
+            }).ToList();
         }
     }
 }

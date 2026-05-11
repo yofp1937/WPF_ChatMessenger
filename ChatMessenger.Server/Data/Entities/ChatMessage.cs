@@ -23,7 +23,7 @@ namespace ChatMessenger.Server.Data.Entities
 
         // 1.실제로 DB 컬럼에 저장될 값 (채팅 전송자)
         [Required]
-        public string SenderEmail { get; set; } = string.Empty;
+        public string SenderEmail { get; set; } = null!;
         // 2.SenderEmail에 데이터를 가져올 객체
         [ForeignKey("SenderEmail")]
         public virtual User Sender { get; set; } = null!;

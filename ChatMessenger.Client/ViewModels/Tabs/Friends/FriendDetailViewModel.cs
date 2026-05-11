@@ -20,7 +20,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [ObservableProperty]
         private string? _searchEmail = string.Empty;
         [ObservableProperty]
-        private string? _warningText = string.Empty;
+        private string? _addFriendWarningText = string.Empty;
 
         // 프로필 표시용
         [ObservableProperty]
@@ -34,6 +34,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         private string? _editNickname;
         [ObservableProperty]
         private string? _editStatusMessage;
+        [ObservableProperty]
+        private string? _editProfileWarningText = string.Empty;
 
         public FriendDetailViewModel(IIdentityService identityService, IFriendService friendService)
         {
@@ -58,10 +60,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [RelayCommand]
         private async Task SearchFriendAsync()
         {
-            WarningText = string.Empty;
+            AddFriendWarningText = string.Empty;
             if (string.IsNullOrEmpty(SearchEmail))
             {
-                WarningText = "이메일을 입력해주세요.";
+                AddFriendWarningText = "이메일을 입력해주세요.";
                 return;
             }
             try
@@ -78,7 +80,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             }
             catch (Exception ex)
             {
-                WarningText = ex.Message;
+                AddFriendWarningText = ex.Message;
             }
         }
 
@@ -222,6 +224,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                 Debug.WriteLine($"[{GetType().Name}_UpdateBlockAsync]: {ex.Message}");
             }
         }
+
+        // TODO: 수정 완료 RelayCommand 만들때 닉네임이 4~12글자 사이인지 확인하는 유효성 검사 해야함
         #endregion
         #region OnChanged Method
         /// <summary>
@@ -232,7 +236,28 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             if (!value)
             {
                 SearchEmail = string.Empty;
-                WarningText = string.Empty;
+                AddFriendWarningText = string.Empty;
+            }
+        }
+        /// <summary>
+        /// Nickname 입력 TextBox에 사용자가 값을 입력하면 상황에따라 경고 메세지를 띄워줍니다.
+        /// </summary>
+        /// <param name="value">사용자가 입력한 문자열</param>
+        partial void OnEditNicknameChanged(string? value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                EditProfileWarningText = "닉네임을 입력해주세요.";
+                return;
+            }
+
+            if (value.Length < 4)
+            {
+                EditProfileWarningText = "닉네임은 최소 4글자 이상이어야 합니다.";
+            }
+            else
+            {
+                EditProfileWarningText = string.Empty;
             }
         }
         #endregion

@@ -24,6 +24,7 @@
     <Style x:Key="Auth_NicknameTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
         <Setter Property="materialDesign:HintAssist.Hint" Value="Nickname"/>
         <Setter Property="Margin" Value="0,10"/>
+        <Setter Property="MaxLength" Value="12"/>
         <Setter Property="CaretBrush" Value="{DynamicResource MaterialDesignBody}"/>
         <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
         <Setter Property="materialDesign:HintAssist.HintPaddingBrush" Value="{DynamicResource MaterialDesignCardBackground}"/>
@@ -50,7 +51,7 @@
         <Setter Property="Height" Value="32"/>
         <Setter Property="Content">
             <Setter.Value>
-                <materialDesign:PackIcon Kind="ArrowLeft" Foreground="DimGray"/>
+                <materialDesign:PackIcon Kind="ArrowLeft" Foreground="{DynamicResource MaterialDesignBodyLight}"/>
             </Setter.Value>
         </Setter>
     </Style>

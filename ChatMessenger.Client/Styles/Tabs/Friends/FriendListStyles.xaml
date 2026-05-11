@@ -4,23 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
-    <!-- 친구 목록 표시 ListBox 내부 Item들의 Style -->
-    <Style x:Key="FriendList_ListBoxItem" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
-        <Setter Property="Height" Value="80"/>
-        <Setter Property="Padding" Value="0"/>
-    </Style>
-    <!-- 친구 목록 표시 ListBox의 Style -->
-    <Style x:Key="FriendList_ListBox" TargetType="ListBox">
-        <Setter Property="ItemContainerStyle" Value="{StaticResource FriendList_ListBoxItem}"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
-        <Setter Property="materialDesign:ScrollViewerAssist.IsAutoHideEnabled" Value="false" />
-        <Setter Property="materialDesign:ListBoxAssist.IsToggle" Value="False" />
-    </Style>
-    
     <!-- 친구 추가, 검색 DockPanel -->
     <Style x:Key="FriendList_AddSearchPanel" TargetType="DockPanel">
         <Setter Property="HorizontalAlignment" Value="Stretch"/>
@@ -33,7 +16,7 @@
         <Setter Property="Width" Value="40"/>
         <Setter Property="Height" Value="40"/>
         <Setter Property="ToolTip" Value="친구 추가"/>
-        <Setter Property="Content" Value="{StaticResource FriendList_AddFriendIcon}"/>
+        <Setter Property="Content" Value="{StaticResource MDStyle_FriendList_AddFriendIcon}"/>
     </Style>
     <!-- 친구 검색 TextBox -->
     <Style x:Key="FriendList_SearchFriendTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBoxBase}">
@@ -47,65 +30,35 @@
         <Setter Property="ToolTip" Value="친구 검색"/>
         <Setter Property="CaretBrush" Value="{DynamicResource MaterialDesignBody}"/>
     </Style>
-    
-    <!-- Profile ListBox 내부의 Image, Nickname 등 기본 정보 배치용 Grid의 Style -->
-    <Style x:Key="FriendList_ProfileTemplateGrid" TargetType="Grid">
-        <Setter Property="Margin" Value="3"/>
-    </Style>
-    <!-- Profile 내부의 ProfileImage 표시용 Grid의 Style -->
-    <Style x:Key="FriendList_ProfileImageGrid" TargetType="Grid">
-        <Setter Property="Width" Value="45"/>
-        <Setter Property="Height" Value="45"/>
-        <Setter Property="Margin" Value="10"/>
-    </Style>
-    <!-- FriendDetail과 공유 -->
-    <!-- ProfileImage를 원형으로 만들어주는 Ellipse의 Style -->
-    <Style x:Key="Friend_ProfileImageEllipse" TargetType="Ellipse">
-        <Setter Property="Fill" Value="{DynamicResource MaterialDesignCardBackground}"/>
-    </Style>
-    <!-- Profile 내부의 Nickname, StatusMessage 표시용 StackPanel의 Style -->
-    <Style x:Key="FriendList_InfoStackPanel" TargetType="StackPanel">
-        <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-    <!-- Nickname 표시용 TextBlock의 Style -->
-    <Style x:Key="FriendList_InfoStackPanel_NicknameTextBlock" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
-    </Style>
-    <!-- StatusMessage 표시용 TextBlock의 Style -->
-    <Style x:Key="FriendList_InfoStackPanel_StatusMessageTextBlock" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="13"/>
-        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBodyLight}"/>
-        <Setter Property="VerticalAlignment" Value="Center"/>
-        <Setter Property="TextWrapping" Value="Wrap"/>
-        <Setter Property="Visibility" Value="{Binding Path=Text, RelativeSource={RelativeSource Self},
-                                                         Converter={StaticResource StringToVisibilityConverter}}"/>
-    </Style>
 
     <!-- ListBox 공통 Template -->
     <DataTemplate x:Key="FriendList_ProfileTemplate">
-        <Grid Style="{StaticResource FriendList_ProfileTemplateGrid}">
+        <Grid Margin="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <!-- Image 표시용 Grid -->
-            <Grid Style="{StaticResource FriendList_ProfileImageGrid}">
+            <!-- 프로필 Image 표시용 Grid -->
+            <Grid Style="{StaticResource Common_ProfileImageGridInListBox}">
                 <!-- Image를 원형으로 보이게해주는 Ellipse -->
-                <Ellipse Style="{StaticResource Friend_ProfileImageEllipse}"/>
-                <materialDesign:PackIcon Style="{StaticResource FriendList_ProfileDefaultIcon}"/>
+                <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
+                <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}"/>
             </Grid>
-            <!-- Nickname과 StatusMessage 표시용 DockPanel -->
-            <StackPanel Grid.Column="1" Style="{StaticResource FriendList_InfoStackPanel}">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Nickname}" Style="{StaticResource FriendList_InfoStackPanel_NicknameTextBlock}"/>
-                    <materialDesign:PackIcon Style="{StaticResource Friend_FavoriteIcon}" Margin="0,0,0,5"
+            <!-- 그외 정보 표시용 Grid -->
+            <Grid Grid.Column="1" Style="{StaticResource Common_InfoGridInListBox}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,10,0,0">
+                    <TextBlock Text="{Binding Nickname}" Style="{StaticResource Common_InfoGrid_MainTextBlock}"/>
+                    <materialDesign:PackIcon Style="{StaticResource MDStyle_Friend_FavoriteIcon}"
                                                        Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVis}}"/>
                 </StackPanel>
-                <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource FriendList_InfoStackPanel_StatusMessageTextBlock}"/>
-            </StackPanel>
+                <Grid Grid.Row="1" Margin="0,5,5,0">
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource Common_InfoGrid_SubTextBlock}"/>
+                </Grid>
+            </Grid>
         </Grid>
     </DataTemplate>
 </ResourceDictionary>

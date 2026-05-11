@@ -31,6 +31,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
             _authService = authService;
         }
 
+        #region RelayCommand
         /// <summary>
         /// 뒤로가기 버튼을 누르면 로그인 화면으로 전환되게 Messenger를 통해 MainWindowViewModel에 요청합니다.
         /// </summary>
@@ -69,17 +70,36 @@ namespace ChatMessenger.Client.ViewModels.Pages
                     WarningText = "이미 회원가입된 이메일입니다.";
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 WarningText = "서버 통신 중 오류가 발생했습니다.";
-                System.Diagnostics.Debug.WriteLine($"[RegisterViewModel - Register Error]: {ex.Message}");
             }
             finally
             {
                 IsBusy = false;
             }
         }
+        #endregion
+        #region OnChanged
+        /// <summary>
+        /// Nickname 입력 TextBox에 사용자가 값을 입력하면 상황에따라 경고 메세지를 띄워줍니다.
+        /// </summary>
+        /// <param name="value">사용자가 입력한 문자열</param>
+        partial void OnNicknameChanged(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                WarningText = string.Empty;
+                return;
+            }
 
+            if (value.Length < 4 || value.Length > 12)
+                WarningText = "닉네임은 4~12자 사이여야 합니다.";
+            else
+                WarningText = string.Empty;
+        }
+        #endregion
+        #region private Method
         /// <summary>
         /// Parameter(object[])에서 두개의 PasswordBox 값을 추출합니다.
         /// </summary>
@@ -107,6 +127,11 @@ namespace ChatMessenger.Client.ViewModels.Pages
                 WarningText = "이메일과 닉네임을 입력해주세요.";
                 return false;
             }
+            if (Nickname.Length < 4 || Nickname.Length > 12)
+            {
+                WarningText = "닉네임은 4~12자 사이여야 합니다.";
+                return false;
+            }
             if (string.IsNullOrEmpty(pwd) || string.IsNullOrEmpty(pwdCheck))
             {
                 WarningText = "비밀번호를 입력해주세요.";
@@ -119,5 +144,6 @@ namespace ChatMessenger.Client.ViewModels.Pages
             }
             return true;
         }
+        #endregion
     }
 }

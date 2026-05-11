@@ -17,7 +17,7 @@
             <TextBox Text="{Binding SearchEmail}" Style="{StaticResource FriendDetail_AddFriendTextBox}"/>
             <Button Command="{Binding SearchFriendCommand}" Style="{StaticResource FriendDetail_AddFriendSearchButton}"/>
             <Button Command="{Binding CloseAddFriendModeCommand}" Style="{StaticResource FriendDetail_AddFriendCloseButton}"/>
-            <TextBlock Text="{Binding WarningText}" Style="{StaticResource Common_WarningTextBlock}"/>
+            <TextBlock Text="{Binding AddFriendWarningText}" Style="{StaticResource Common_WarningTextBlock}"/>
         </StackPanel>
         
         <!-- 우측 상단 더보기 탭(즐겨찾기, 차단 전용) -->
@@ -53,8 +53,8 @@
             <!-- 이미지 표시용 그리드 -->
             <Grid Style="{StaticResource FriendDetail_ProfileGrid}">
                 <!-- Image를 원형으로 보이게해주는 Ellipse -->
-                <Ellipse Style="{StaticResource Friend_ProfileImageEllipse}"/>
-                <materialDesign:PackIcon Style="{StaticResource FriendDetail_ProfileDefaultIcon}"/>
+                <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
+                <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendDetail_ProfileDefaultIcon}"/>
                 <!-- 프로필 이미지 수정 Button (CurrentFirend.IsMe가 true일 경우에만 표시) -->
                 <Button Style="{StaticResource FriendDetial_ProfileChangeButton}"/>
             </Grid>
@@ -63,11 +63,11 @@
             <StackPanel Grid.Row="1" Style="{StaticResource FriendDetail_Info_StackPanel}">
                 <!-- 즐겨찾기 아이콘, 닉네임, 이메일 한줄 배치용 StackPanel -->
                 <StackPanel Style="{StaticResource FriendDetail_NicknameStackPanel}">
-                    <materialDesign:PackIcon Style="{StaticResource FriendDetail_FriendIcon}"
+                    <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendDetail_FriendIcon}"
                                                       Visibility="{Binding CurrentFriend.IsAdded, Converter={StaticResource BoolToVis}}"/>
-                    <materialDesign:PackIcon Style="{StaticResource Friend_FavoriteIcon}"
+                    <materialDesign:PackIcon Style="{StaticResource MDStyle_Friend_FavoriteIcon}"
                                                       Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>
-                    <materialDesign:PackIcon Style="{StaticResource FriendDetail_BlockedIcon}"
+                    <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendDetail_BlockedIcon}"
                                                       Visibility="{Binding CurrentFriend.IsBlocked, Converter={StaticResource BoolToVis}}"/>
                     <TextBlock Text="{Binding CurrentFriend.Nickname}" Style="{StaticResource FriendDetail_Info_NicknameTextBlock}"/>
                     <TextBlock Text="{Binding CurrentFriend.Email, StringFormat='({0})'}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
@@ -78,12 +78,13 @@
             <!-- 닉네임, 상태메세지 편집용 StackPanel -->
             <StackPanel Grid.Row="1" Style="{StaticResource FriendDetail_Edit_StackPanel}">
                 <StackPanel Style="{StaticResource FriendDetail_NicknameStackPanel}">
-                    <materialDesign:PackIcon Style="{StaticResource Friend_FavoriteIcon}"
+                    <materialDesign:PackIcon Style="{StaticResource MDStyle_Friend_FavoriteIcon}"
                                                       Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>
                     <TextBox Text="{Binding EditNickname, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource FriendDetail_Edit_NicknameTextBox}"/>
                     <TextBlock Text="{Binding CurrentFriend.Email, StringFormat='({0})'}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
                 </StackPanel>
+                <TextBlock Text="{Binding EditProfileWarningText}" Style="{StaticResource FriendEtail_Edit_WarningText}"/>
                 <TextBox Grid.Row="2" Text="{Binding EditStatusMessage, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource FriendDetail_Edit_StatusMessageTextBox}"/>
             </StackPanel>

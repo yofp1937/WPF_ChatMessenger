@@ -18,6 +18,7 @@ namespace ChatMessenger.Client.Configs
 {
     public static class DependencyInjectionConfig
     {
+        public const string ServerBaseUrl = "https://localhost:7015";
         /// <summary>
         /// DI 컨테이너가 대신 관리할 객체들을 IServiceCollection에 등록합니다.<br/>
         /// 해당 메서드는 App.xaml.cs에서 프로그램이 실행될때 동작합니다.
@@ -37,6 +38,8 @@ namespace ChatMessenger.Client.Configs
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<IIdentityService, IdentityService>();
             services.AddSingleton<IWindowControlService, WindowControlService>();
+            // ChatHubService는 SignalR 연결을 관리하므로 싱글톤으로 관리돼야함.
+            services.AddSingleton<IChatHubService, ChatHubService>();
 
             // request 요청마다 AuthHeaderHandler가 생성되야하므로 Transient로 설정
             services.AddTransient<AuthHeaderHandler>();
@@ -44,6 +47,7 @@ namespace ChatMessenger.Client.Configs
             services.AddBaseSettingHttpClient<IAuthService, AuthService>();
             // Request를 전송할때 Header에 Token을 삽입해야하므로 AddHandler를 적용해줌
             services.AddBaseSettingHttpClient<IFriendService, FriendService>().AddHttpMessageHandler<AuthHeaderHandler>();
+            services.AddBaseSettingHttpClient<IChatService, ChatService>().AddHttpMessageHandler<AuthHeaderHandler>();
             return services;
         }
 
@@ -84,7 +88,7 @@ namespace ChatMessenger.Client.Configs
         {
             return services.AddHttpClient<TClient, TImplementation>(client =>
             {
-                client.BaseAddress = new Uri("http://localhost:5204");
+                client.BaseAddress = new Uri(ServerBaseUrl);
             });
         }
     }

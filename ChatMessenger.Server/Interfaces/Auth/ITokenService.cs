@@ -1,10 +1,10 @@
-﻿/*
- * JWT 토큰 생성을 담당하는 클래스들이 구현해야하는 Interface
- */
-using ChatMessenger.Server.Data.Entities;
+﻿using ChatMessenger.Server.Data.Entities;
 
-namespace ChatMessenger.Server.Interfaces
+namespace ChatMessenger.Server.Interfaces.Auth
 {
+    /// <summary>
+    /// JWT 토큰 생성 로직을 처리하는 Service의 Interface입니다.
+    /// </summary>
     public interface ITokenService
     {
         /// <summary>

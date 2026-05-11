@@ -14,14 +14,14 @@
         </Grid.RowDefinitions>
 
         <!-- 내 프로필: FriendResponse 형식의단일 데이터를 Binding 하고있기때문에 Content를 설정 -->
-        <ListBox x:Name="MyProfileListBox" Style="{StaticResource FriendList_ListBox}"
+        <ListBox x:Name="MyProfileListBox" Style="{StaticResource Common_ListViewsListBox}"
                     SelectedValue="{Binding SelectedFriend, Mode=TwoWay}" SelectedValuePath="Content"
                     PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
             <ListBoxItem Content="{Binding UserProfile}" ContentTemplate="{StaticResource FriendList_ProfileTemplate}"/>
         </ListBox>
 
         <!-- 경계선 -->
-        <Separator Grid.Row="1" VerticalAlignment="Top" Margin="20,0" Background="{DynamicResource MaterialDesignDivider}"/>
+        <Separator Grid.Row="1" Style="{StaticResource Common_Boundary}"/>
 
         <!-- 친구 추가, 친구 검색 기능-->
         <DockPanel Grid.Row="2" Style="{StaticResource FriendList_AddSearchPanel}">
@@ -32,10 +32,9 @@
         </DockPanel>
 
         <!-- 친구 목록: ObservableCollection 형식의 데이터를 Binding 하고있기때문에 ItemSource를 설정 -->
-        <ListBox Grid.Row="3" x:Name="FriendsListBox" Style="{StaticResource FriendList_ListBox}" IsSynchronizedWithCurrentItem="False"
-                    SelectedItem="{Binding SelectedFriend, Mode=TwoWay}" ItemsSource="{Binding FriendsList}"
+        <ListBox Grid.Row="3" x:Name="FriendsListBox" Style="{StaticResource Common_ListViewsListBox}" IsSynchronizedWithCurrentItem="False"
+                    ItemsSource="{Binding FriendsList}" SelectedItem="{Binding SelectedFriend, Mode=TwoWay}"
                     ItemTemplate="{StaticResource FriendList_ProfileTemplate}"
-                    PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">
-        </ListBox>
+                    PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown"/>
     </Grid>
 </UserControl>

@@ -1,5 +1,6 @@
 ﻿/*
  * 채팅방의 참가자 정보를 저장하는 테이블 구조입니다.
+ * 각 유저별 마지막 확인 메세지도 같이 관리합니다.
  */
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -23,12 +24,16 @@ namespace ChatMessenger.Server.Data.Entities
 
         // 1.실제로 DB 컬럼에 저장될 값 (채팅방 참가자)
         [Required]
-        public string UserEmail { get; set; } = string.Empty;
+        public string UserEmail { get; set; } = null!;
         // 2.UserEmail에 데이터를 가져올 객체
         [ForeignKey("UserEmail")]
         public virtual User User { get; set; } = null!;
+        // 사용자가 개별적으로 설정한 채팅방 이름
+        [StringLength(24, ErrorMessage = "채팅방 이름은 24자 이내로 입력해주세요.")]
+        public string? RenamedRoomName { get; set; }
 
         // 이 유저가 마지막으로 읽은 메세지 식별 번호
-        public long LastReadMessageId { get; set; }
+        // 초기값 = 0 (0이면 읽은 메세지 없음)
+        public long LastReadMessageId { get; set; } = 0;
     }
 }

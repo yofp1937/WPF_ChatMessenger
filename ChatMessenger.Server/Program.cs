@@ -1,4 +1,5 @@
 using ChatMessenger.Server.Configs;
+using ChatMessenger.Server.Hubs;
 using ChatMessenger.Server.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 // 서비스 등록
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddSignalR();
 
 // "/Configs/DataConfig"의 AddDataServices 메서드 실행하여 DB 관련 서비스 등록
 builder.Services.AddDataServices(builder.Configuration);
@@ -40,5 +42,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ChatHub>("/chathub");
 
 app.Run();

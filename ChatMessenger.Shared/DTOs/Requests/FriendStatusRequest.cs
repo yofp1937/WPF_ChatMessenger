@@ -5,7 +5,7 @@
     /// </summary>
     public class FriendStatusRequest
     {
-        public string Email { get; set; } = string.Empty!;
+        public string Email { get; set; } = string.Empty;
         public bool IsFavorite { get; set; }
         public bool IsBlocked { get; set; }
     }

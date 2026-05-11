@@ -15,6 +15,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
     {
         private readonly IAuthService _authService;
         private readonly IIdentityService _identityService;
+        private readonly IChatHubService _chatHubService;
 
         // 사용자 입력 Email
         [ObservableProperty]
@@ -26,10 +27,13 @@ namespace ChatMessenger.Client.ViewModels.Pages
         [ObservableProperty]
         private bool _isBusy;
 
-        public LoginViewModel(IAuthService authService, IIdentityService identityService)
+        public LoginViewModel(IAuthService authService, IIdentityService identityService, IChatHubService chatHubService)
         {
             _authService = authService;
             _identityService = identityService;
+            _chatHubService = chatHubService;
+
+            Email = "test1@naver.com";
         }
 
         /// <summary>
@@ -81,6 +85,8 @@ namespace ChatMessenger.Client.ViewModels.Pages
                     // 3-2. 확실히 검증이 끝나면 데이터 할당하고 View 이동
                     _identityService.Token = response.Token;
                     _identityService.MyProfile = profile;
+                    if (!string.IsNullOrEmpty(response.Token))
+                        await _chatHubService.ConnectAsync(response.Token);
                     WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(MainShellViewModel)));
                 }
                 else

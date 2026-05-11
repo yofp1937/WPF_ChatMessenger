@@ -3,20 +3,58 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
-    
-    <Style x:Key="ChatList_ListBoxItem" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
-        <Setter Property="Height" Value="80"/>
-        <Setter Property="Padding" Value="0"/>
-    </Style>
 
-    <Style x:Key="ChatList_RoomListBox" TargetType="ListBox">
-        <Setter Property="ItemContainerStyle" Value="{StaticResource ChatList_ListBoxItem}"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
-        <Setter Property="materialDesign:ScrollViewerAssist.IsAutoHideEnabled" Value="false" />
-        <Setter Property="materialDesign:ListBoxAssist.IsToggle" Value="False" />
+    <!-- 검색 TextBox -->
+    <Style x:Key="ChatList_ChattingRoomSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBoxBase}">
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="Margin" Value="10"/>
+        <Setter Property="CaretBrush" Value="White"/>
+        <Setter Property="ToolTip" Value="채팅방 검색"/>
+        <Setter Property="materialDesign:HintAssist.Hint" Value="Chatting Room Search"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="true"/>
+        <Setter Property="HorizontalContentAlignment" Value="Right"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
+    
+    <!-- ListBox Template -->
+    <DataTemplate x:Key="ChatList_ChatRoomTemplate">
+        <Grid Margin="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <!-- 채팅방 Image 표시용 Grid -->
+            <Grid Style="{StaticResource Common_ProfileImageGridInListBox}">
+                <!-- Image를 원형으로 보이게해주는 Ellipse -->
+                <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
+                <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}"/>
+            </Grid>
+            <!-- 그외 정보 표시용 Grid -->
+            <Grid Grid.Column="1" Style="{StaticResource Common_InfoGridInListBox}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Vertical" Margin="0,10,0,5" VerticalAlignment="Center">
+                    <!-- 채팅방 제목, 참가 인원수, 마지막 채팅 표시용 StackPanel -->
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Title}" Style="{StaticResource Common_InfoGrid_MainTextBlock}"/>
+                        <TextBlock Text="{Binding ParticipiantCount}" FontSize="12" Margin="5,0" Foreground="Gold" VerticalAlignment="Center"
+                                    Visibility="{Binding IsGroupChat, Converter={StaticResource BoolToHidden}}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding LastMessage}" Style="{StaticResource Common_InfoGrid_LastMessage}" Margin="0,5"/>
+                </StackPanel>
+                <!-- 마지막으로 보낸 메세지 시간 표시용 StackPanel -->
+                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="0,10,5,5" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding LastMessageSentAt, StringFormat={}{0:tt h:mm}}"
+                                   Style="{StaticResource Common_InfoGrid_SubTextBlock}"/>
+                    <!-- 안읽은 메세지 수 표시용 Grid -->
+                    <Grid Margin="0,8,0,5" Visibility="{Binding UnreadCount, Converter={StaticResource ZeroToVisibilityConverter}, ConverterParameter='Collapsed'}">
+                        <Ellipse Fill="{DynamicResource MaterialDesign.Brush.Primary}" Width="25" Height="25"/>
+                        <TextBlock Text="{Binding UnreadCount}" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </DataTemplate>
 </ResourceDictionary>

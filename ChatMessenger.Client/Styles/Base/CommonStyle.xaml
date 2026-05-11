@@ -5,13 +5,76 @@
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
     <!-- 경고 메세지 TextBlock Style -->
     <Style x:Key="Common_WarningTextBlock" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="Crimson"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignValidationErrorBrush}"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Visibility" Value="{Binding Path=Text, RelativeSource={RelativeSource Self},
                                                          Converter={StaticResource StringToVisibilityConverter}}"/>
     </Style>
 
+    <!-- 경계선 Style -->
+    <Style x:Key="Common_Boundary" TargetType="Separator">
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="5,0"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignDivider}"/>
+    </Style>
+
+    <!-- FriendListView, ChatListView 공통 사용 Styles -->
+    <!-- ListBox 공통 Style -->
+    <Style x:Key="Common_ListBoxItem" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+        <Setter Property="Height" Value="80"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    </Style>
+    <Style x:Key="Common_ListViewsListBox" TargetType="ListBox">
+        <Setter Property="ItemContainerStyle" Value="{StaticResource Common_ListBoxItem}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+        <Setter Property="materialDesign:ScrollViewerAssist.IsAutoHideEnabled" Value="false" />
+        <Setter Property="materialDesign:ListBoxAssist.IsToggle" Value="False" />
+    </Style>
+    <!-- FriendListView, ChatListView의 ListBox 내부에서 ProfileImage 표시용 Grid의 Style -->
+    <Style x:Key="Common_ProfileImageGridInListBox" TargetType="Grid">
+        <Setter Property="Width" Value="45"/>
+        <Setter Property="Height" Value="45"/>
+        <Setter Property="Margin" Value="10"/>
+    </Style>
+    <!-- ProfileImage를 원형으로 만들어주는 Ellipse의 Style -->
+    <Style x:Key="Common_ProfileImageEllipse" TargetType="Ellipse">
+        <Setter Property="Fill" Value="{DynamicResource MaterialDesignCardBackground}"/>
+    </Style>
+    <!-- FriendListView, ChatListView의 ListBox 내부에서 간단한 정보 표시용 Grid의 Style -->
+    <Style x:Key="Common_InfoGridInListBox" TargetType="Grid">
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    <!-- Nickname, Title 표시용 TextBlock의 Style -->
+    <Style x:Key="Common_InfoGrid_MainTextBlock" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+    <!-- StatusMessage, LastMessage 표시용 TextBlock의 Style -->
+    <Style x:Key="Common_InfoGrid_SubTextBlock" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBodyLight}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Visibility" Value="{Binding Path=Text, RelativeSource={RelativeSource Self},
+                                                         Converter={StaticResource StringToVisibilityConverter}}"/>
+    </Style>
+    <!-- StatusMessage, LastMessage 표시용 TextBlock의 Style -->
+    <Style x:Key="Common_InfoGrid_LastMessage" TargetType="TextBlock" BasedOn="{StaticResource Common_InfoGrid_SubTextBlock}">
+        <Setter Property="TextWrapping" Value="NoWrap"/>
+    </Style>
+
+    
     <!-- 프로젝트 전역에서 ScrollBar를 슬림하게 만들어주는 Style -->
     <Style x:Key="SlimScrollBarThumb" TargetType="Thumb">
         <Setter Property="SnapsToDevicePixels" Value="True"/>

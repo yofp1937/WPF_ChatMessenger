@@ -16,8 +16,4 @@
     <ProjectReference Include="..\ChatMessenger.Shared\ChatMessenger.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Data\Views\" />
-  </ItemGroup>
-
 </Project>

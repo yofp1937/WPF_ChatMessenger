@@ -16,14 +16,14 @@ namespace ChatMessenger.Server.Data.Entities
         public string Password { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(16)]
+        [StringLength(12, MinimumLength = 4, ErrorMessage = "닉네임은 4~12자 사이여야 합니다.")]
         public string Nickname { get; set; } = string.Empty;
 
-        [MaxLength(25)]
+        [Required]
+        [StringLength(30, ErrorMessage = "상태 메세지는 30자 이내로 입력해주세요.")]
         public string StatusMessage { get; set; } = string.Empty;
 
-        [Required]
-        public string ProfileImageURL { get; set; } = string.Empty;
+        public string? ProfileImageURL { get; set; }
 
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

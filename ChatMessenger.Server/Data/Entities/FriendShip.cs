@@ -13,11 +13,13 @@ namespace ChatMessenger.Server.Data.Entities
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
+        // 추가한 주체(나)
         [Required]
         public string UserEmail { get; set; } = null!;
         [ForeignKey("UserEmail")]
         public virtual User User { get; set; } = null!;
 
+        // 추가된 상대
         [Required]
         public string FriendEmail { get; set; } = null!;
         [ForeignKey("FriendEmail")]

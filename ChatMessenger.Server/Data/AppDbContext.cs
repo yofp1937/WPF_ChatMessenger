@@ -79,6 +79,9 @@ namespace ChatMessenger.Server.Data
              * 
              * 이를 방지하는게 NEWSEQUENTIALID()인데 이건 값을 생성할때 항상 이전 값보다 큰 값을 생성하게하는 함수이다.
              * 항상 이전보다 큰 값을 생성하므로 데이터가 생성되면 중간을 비집고 들어가지않고 마지막 페이지의 끝에 데이터를 붙이게된다.
+             * 
+             * 하지만 NEWSEQUENTIALID()를 사용하면 데이터가 DB에 저장될때 Guid가 생성되므로,
+             * 값을 DB에 넣고 SaveChangesAsync() 메서드까지 호출해줘야 Guid가 생성된다.
              */
             modelBuilder.Entity<ChatRoom>()
                 .Property(x => x.Id)
@@ -122,7 +125,7 @@ namespace ChatMessenger.Server.Data
                       .WithMany()
                       .HasForeignKey(m => m.ChatRoomId)
                       .OnDelete(DeleteBehavior.Cascade); // 방이 삭제되면 메시지 전부 삭제
-                
+
                 // 데이터 검색시 방 식별번호로 필터링하고, 그 안에서 보낸 시간 순서로 인덱스를 정렬함
                 entity.HasIndex(m => new { m.ChatRoomId, m.SentAt });
             });

@@ -28,7 +28,7 @@
         <Setter Property="Width" Value="30"/>
         <Setter Property="Margin" Value="5,5"/>
         <Setter Property="Padding" Value="0"/>
-        <Setter Property="Content" Value="{StaticResource FriendDetail_SearchIcon}"/>
+        <Setter Property="Content" Value="{StaticResource MDStyle_FriendDetail_SearchIcon}"/>
     </Style>
     <!-- 친구 추가 나가기 Button Style -->
     <Style x:Key="FriendDetail_AddFriendCloseButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFloatingActionButton}">
@@ -36,7 +36,7 @@
         <Setter Property="Width" Value="30"/>
         <Setter Property="Height" Value="30"/>
         <Setter Property="Margin" Value="5,5"/>
-        <Setter Property="Content" Value="{StaticResource FriendDetail_CloseIcon}"/>
+        <Setter Property="Content" Value="{StaticResource MDStyle_FriendDetail_CloseIcon}"/>
     </Style>
     
     <!-- 프로필 우측 상단 더보기 버튼 -->
@@ -79,7 +79,7 @@
         <Setter Property="Margin" Value="0,10,10,0"/>
         <Setter Property="Visibility" Value="{Binding CurrentFriend.IsMe, Converter={StaticResource BoolToVis}}"/>
         <Setter Property="ToolTip" Value="이미지 변경"/>
-        <Setter Property="Content" Value="{StaticResource FriendDetail_ProfileChangeIcon}"/>
+        <Setter Property="Content" Value="{StaticResource MDStyle_FriendDetail_ProfileChangeIcon}"/>
     </Style>
 
     <!-- 친구 정보 표시 StackPanel Style-->
@@ -140,6 +140,11 @@
         <Setter Property="materialDesign:TextFieldAssist.CharacterCounterVisibility" Value="Visible"/>
         <Setter Property="Width" Value="150"/>
     </Style>
+    <!-- 수정 패널의 경고 메세지 Style -->
+    <Style x:Key="FriendEtail_Edit_WarningText" TargetType="TextBlock" BasedOn="{StaticResource Common_WarningTextBlock}">
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,100,5"/>
+    </Style>
     <!-- 상태 메세지 수정용 TextBox -->
     <Style x:Key="FriendDetail_Edit_StatusMessageTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignOutlinedTextBox}">
         <Setter Property="VerticalAlignment" Value="Center"/>
@@ -148,7 +153,7 @@
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
         <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
         <Setter Property="materialDesign:HintAssist.Hint" Value="Status Message"/>
-        <Setter Property="MaxLength" Value="50"/>
+        <Setter Property="MaxLength" Value="30"/>
         <Setter Property="materialDesign:TextFieldAssist.CharacterCounterVisibility" Value="Visible"/>
         <Setter Property="AcceptsReturn" Value="True"/>
         <Setter Property="Width" Value="350"/>

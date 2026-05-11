@@ -3,5 +3,207 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
-    <TextBlock Text="ChatRoomView 입니다."/>
+    
+    <Grid>
+        <!-- 배경 및 전체 구조 -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 메인 채팅 영역 -->
+        <!-- CurrentRoom이 null이면 보이지않음 -->
+        <Grid Grid.Column="0" Visibility="{Binding CurrentRoom, Converter={StaticResource NullToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            
+            <!-- Header -->
+            <Border Grid.Row="0" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="0,0,0,1">
+                <Grid>
+                    <!-- 채팅방 프로필 이미지 -->
+                    <StackPanel Orientation="Horizontal" Margin="0">
+                        <Grid Style="{StaticResource Common_ProfileImageGridInListBox}">
+                            <!-- Image를 원형으로 보이게해주는 Ellipse -->
+                            <!-- TODO: 그룹 채팅방이면 그룹채팅방 이미지 표시, 개인 채팅방이면 상대 프로필 이미지 표시 -->
+                            <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
+                            <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}"/>
+                        </Grid>
+                        <!-- 채팅방 제목, 인원수 표시용 Panel -->
+                        <StackPanel Orientation="Vertical" Margin="0,15,0,0">
+                            <TextBlock Text="{Binding CurrentRoom.Title}"/>
+                            <!-- 인원 아이콘과 숫자 표시용 Panel -->
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <materialDesign:PackIcon Kind="Account" Width="18" Height="18"/>
+                                <TextBlock Text="{Binding CurrentRoom.ParticipiantCount}" FontSize="15" VerticalAlignment="Center" Margin="0,1,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                    <!-- 더보기 버튼 -->
+                    <Button Width="30" Padding="1" Margin="15" Style="{StaticResource MaterialDesignFlatMidBgButton}"
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Command="{Binding ToggleSidePanelCommand}"
+                            Visibility="{Binding IsSidePanelVisible, Converter={StaticResource InvertedBoolToColl}}">
+                        <materialDesign:PackIcon Kind="Menu"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- 채팅 내역 ListBox -->
+            <ScrollViewer Grid.Row="1" HorizontalContentAlignment="Stretch"
+                               x:Name="ChatScrollViewer">
+                <ItemsControl ItemsSource="{Binding CurrentRoom.SortedMessages}" Padding="10,0,10,10"
+                                    x:Name="ChatItemsControl">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <!-- 메세지 전체를 감싸는 Grid -->
+                            <Grid Margin="0,3,0,3">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 상대방 프로필 이미지 표시용 Grid -->
+                                <Grid Style="{StaticResource Common_ProfileImageGridInListBox}" Margin="2,5"
+                                    Visibility="{Binding IsMine, Converter={StaticResource InvertedBoolToColl}}">
+                                    <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
+                                    <!-- TODO: Sender의 ProfileImage 표시 -->
+                                    <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}"/>
+                                </Grid>
+
+                                <!-- 메세지 작성자, 내용 표시용 StackPanel -->
+                                <Grid Grid.Column="1" HorizontalAlignment="{Binding IsMine, Converter={StaticResource BoolToAlignmentConverter}}">
+                                    <!-- 닉네임, 메세지 표시 -->
+                                    <Grid Margin="8,4,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <!-- 닉네임 -->
+                                        <TextBlock Text="{Binding Sender.Nickname}" FontSize="13"
+                                                       Visibility="{Binding IsMine, Converter={StaticResource InvertedBoolToColl}}"/>
+                                        <!-- 메세지, 보낸 시간, 안읽은 사람 수 표시용 Grid -->
+                                        <Grid Grid.Row="1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!-- A. 내 메시지 정보 (말풍선 왼쪽에 위치) -->
+                                            <StackPanel Orientation="Vertical" VerticalAlignment="Center" Margin="0,8,5,0"
+                                                             Visibility="{Binding IsMine, Converter={StaticResource BoolToVis}}">
+                                                <TextBlock Text="{Binding UnreadPeopleCount}" Foreground="#FFEB3B" FontSize="10"
+                                                               Visibility="{Binding UnreadPeopleCount, Converter={StaticResource ZeroToVisibilityConverter}}" HorizontalAlignment="Right"/>
+                                                <TextBlock Text="{Binding SentAt, StringFormat=t}" FontSize="10" Foreground="{DynamicResource MaterialDesignBody}"/>
+                                            </StackPanel>
+                                            <!-- 메세지 표시 Border -->
+                                            <Border Grid.Column="1" Background="{DynamicResource MaterialDesignBodyLight}"
+                                                       CornerRadius="10" Padding="10,8" MaxWidth="500">
+                                                <TextBlock Text="{Binding Content}" TextWrapping="Wrap"/>
+                                            </Border>
+                                            <!-- C. 상대 메시지 정보 (말풍선 오른쪽에 위치) -->
+                                            <StackPanel Grid.Column="2" Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="5,8,0,0"
+                                                             Visibility="{Binding IsMine, Converter={StaticResource InvertedBoolToColl}}">
+                                                <TextBlock Text="{Binding UnreadPeopleCount}" Foreground="#FFEB3B" FontSize="10" 
+                                                               Visibility="{Binding UnreadPeopleCount, Converter={StaticResource ZeroToVisibilityConverter}}" HorizontalAlignment="Left"/>
+                                                <TextBlock Text="{Binding SentAt, StringFormat=t}" FontSize="10" Foreground="{DynamicResource MaterialDesignBody}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Input Area -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button Command="{Binding CloseCurrentRoomCommand}" Width="30" Height="30" Padding="1" Margin="10">
+                    <materialDesign:PackIcon Kind="ArrowLeft"/>
+                </Button>
+                <TextBox Grid.Column="1" Text="{Binding InputMessage}" MinHeight="40" TextWrapping="Wrap" AcceptsReturn="True" 
+                              Margin="5,0,5,10" HorizontalContentAlignment="Right" VerticalContentAlignment="Center"/>
+                <Button Grid.Column="2" Width="60" Height="30" Margin="10" Command="{Binding SendMessageCommand}">
+                    <materialDesign:PackIcon Kind="Send"/>
+                </Button>
+            </Grid>
+        </Grid>
+
+        <!-- 사이드 패널 -->
+        <Border Grid.Column="1" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="1,0,0,0"
+            Width="250" 
+            Visibility="{Binding IsSidePanelVisible, Converter={StaticResource BoolToVis}}">
+            <!-- 실제론 바인딩 처리 -->
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <!-- 참여자 정보 표시용 Grid -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel LastChildFill="false" Margin="5">
+                        <TextBlock Text="참여자 목록" FontWeight="Bold"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Button Width="30" Height="30" Padding="1" Style="{StaticResource MaterialDesignFlatMidBgButton}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Top" DockPanel.Dock="Right"
+                                    Command="{Binding ToggleSidePanelCommand}">
+                            <materialDesign:PackIcon Kind="Close"/>
+                        </Button>
+                    </DockPanel>
+
+                    <StackPanel Grid.Row="1" Orientation="Vertical">
+                        <ScrollViewer>
+                            <ItemsControl ItemsSource="{Binding CurrentRoom.Participiants}">
+                                <!-- 참여자 한 명씩 그리는 템플릿 -->
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <!-- 프로필 이미지 표시용 Grid -->
+                                            <Grid Style="{StaticResource Common_ProfileImageGridInListBox}" HorizontalAlignment="Left">
+                                                <!-- Image를 원형으로 보이게해주는 Ellipse -->
+                                                <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
+                                                <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}"/>
+                                            </Grid>
+                                            <StackPanel Grid.Column="1" Orientation="Vertical" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Nickname}"/>
+                                                <TextBlock Text="{Binding Email, StringFormat='({0})'}" Margin="2,3,0,0" FontSize="12"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <Button Content="친구 초대" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 최하단 나가기 버튼 배치용 Grid -->
+                <Grid Grid.Row="1" Margin="0,5,0,0">
+                    <Button Width="30" Height="30" Padding="1" Foreground="Red" HorizontalAlignment="Right"
+                                Style="{StaticResource MaterialDesignFlatButton}">
+                        <materialDesign:PackIcon Kind="ExitToApp" Width="30" Height="30"/>
+                    </Button>
+                </Grid>
+
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

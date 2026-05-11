@@ -2,13 +2,13 @@
  * JWT 토큰 생성 기능을 담당하는 서비스 클래스입니다.
  */
 using ChatMessenger.Server.Data.Entities;
-using ChatMessenger.Server.Interfaces;
+using ChatMessenger.Server.Interfaces.Auth;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace ChatMessenger.Server.Services
+namespace ChatMessenger.Server.Services.Auth
 {
     public class TokenService : ITokenService
     {
@@ -30,10 +30,12 @@ namespace ChatMessenger.Server.Services
             // 토큰에 기본 정보 삽입
             List<Claim> claims = new()
             {
-                new Claim(ClaimTypes.Name, user.Email), // User.Identity.Name에 접근하면 User의 Email에 접근 가능
+                // 1. NameIdentifier에 이메일 삽입
+                new Claim(ClaimTypes.NameIdentifier, user.Email), 
+                // 2. Name에 Nickname 삽입
+                new Claim(ClaimTypes.Name, user.Nickname),
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email), // Sub: 토큰의 주인 (User의 Email)
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), // Jti: 토큰의 고유 번호
-                new Claim("Nickname", user.Nickname) // 커스텀 데이터 삽입
             };
 
             // 어떤 알고리즘(HmacHsa256)으로 key를 암호화해서 서명할것인지

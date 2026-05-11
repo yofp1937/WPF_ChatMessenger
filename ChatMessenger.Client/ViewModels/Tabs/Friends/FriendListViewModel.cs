@@ -6,6 +6,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows.Data;
 
 namespace ChatMessenger.Client.ViewModels.Tabs.Friends
 {
@@ -17,11 +19,11 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         // 로그인한 사용자의 프로필
         [ObservableProperty]
         private FriendModel _userProfile;
+
         // 로그인한 사용자가 추가한 친구 목록
-        private List<FriendModel> _friends = new();
-        // View에 Binding되어 보여질 친구 목록(검색, 정렬 값이 바뀔때마다 전환)
-        [ObservableProperty]
-        private ObservableCollection<FriendModel> _friendsList = new();
+        private ObservableCollection<FriendModel> _friends = new();
+        // View에 Binding되어 보여질 친구 목록
+        public ICollectionView FriendsList { get; }
 
         // 친구 검색과 Binding된 string
         [ObservableProperty]
@@ -39,6 +41,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             _identityService = identityService;
             _friendService = friendService;
 
+            // View와 Binding될 친구 목록 생성, 정렬과 필터 적용
+            FriendsList = CollectionViewSource.GetDefaultView(_friends);
+            InitializeFriendsListSetting();
+
             // 로그인에 성공했지만 Profile 정보가 존재하지않으면 강제 로그아웃
             if (_identityService.MyProfile == null)
             {
@@ -48,8 +54,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             }
             _userProfile = _identityService.MyProfile;
 
+            // View와 Binding될 친구 목록 생성
+
             // 친구 목록 불러오기
-            LoadFriendsCommand.Execute(null);
+            _ = LoadFriendsAsync();
         }
         #region RelayCommand
         /// <summary>
@@ -61,9 +69,9 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             List<FriendModel>? result = await _friendService.GetFriendsListAsync();
             if (result == null) return;
 
-            // DeferRefresh를 사용하여 using 블록 내에서는 필터 적용을 하지않고 종료할때 한번만 필터링함
-            _friends = result;
-            ApplyFilterAndSort();
+            _friends.Clear();
+            foreach (FriendModel friend in result)
+                _friends.Add(friend);
         }
         /// <summary>
         /// FriendDetailView에 친구 추가 Panel을 표시하라고 Messenger를 통해 전달합니다.
@@ -81,7 +89,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         /// <remarks>
         /// 0.35초간 데이터 입력이 없을때만 친구 목록 정렬을 명령합니다.
         /// </remarks>
-        /// <param name="value"></param>
         partial void OnSearchNicknameChanged(string? value)
         {
             // 기존 요청 취소
@@ -90,14 +97,14 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             CancellationToken token = _searchCts.Token;
 
             // 비동기로 0.35초 대기 후 실행 명령
-            Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 try
                 {
                     await Task.Delay(350, token);
-                    if (token.IsCancellationRequested) return;
+                    if (App.Current == null || token.IsCancellationRequested) return;
                     // 0.35초 지났으면 UI 스레드에서 필터 적용
-                    App.Current.Dispatcher.Invoke(() => ApplyFilterAndSort());
+                    await App.Current.Dispatcher.InvokeAsync(() => FriendsList.Refresh());
                 }
                 catch (TaskCanceledException) { /* Token 취소됐을때 실행 (무시) */ }
             });
@@ -130,7 +137,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                 if (_friends.Any(f => f.Email == m.friend.Email)) return;
                 // 2.원본 친구 리스트에 추가하고 정렬
                 _friends.Add(m.friend);
-                ApplyFilterAndSort();
             });
             WeakReferenceMessenger.Default.Register<FriendDeletedMessage>(this, (r, m) =>
             {
@@ -139,7 +145,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                 if (target == null) return;
                 // 2.있으면 삭제하고 정렬
                 _friends.Remove(target);
-                ApplyFilterAndSort();
             });
             WeakReferenceMessenger.Default.Register<FriendStatusChangeMessage>(this, (r, m) =>
             {
@@ -148,25 +153,28 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                 if (target == null) return;
                 // 있으면 상태 동기화하고 정렬
                 target.IsFavorite = m.friend.IsFavorite;
-                ApplyFilterAndSort();
+                FriendsList.Refresh();
             });
         }
         /// <summary>
-        /// 사용자가 직접 호출하는 필터링/정렬 메서드
+        /// 친구 목록에 정렬과 필터링을 설정합니다.
         /// </summary>
-        private void ApplyFilterAndSort()
+        private void InitializeFriendsListSetting()
         {
-            // LINQ를 사용하여 필터링과 정렬을 한 번에 처리
-            // 1.즐겨찾기 우선
-            // 2.닉네임 순
-            List<FriendModel> filtered = _friends.Where(f => string.IsNullOrWhiteSpace(SearchNickname) ||
-                                                                          f.Nickname.Contains(SearchNickname, StringComparison.OrdinalIgnoreCase))
-                                                                 .OrderByDescending(f => f.IsFavorite)
-                                                                 .ThenBy(f => f.Nickname)
-                                                                 .ToList();
-            // UI 갱신 (새로운 컬렉션으로 교체)
-            // Todo: 정렬할때마다 새로운 FriendList 생성 말고 더 좋은 방법 있는지 나중에 찾아보기
-            FriendsList = new ObservableCollection<FriendModel>(filtered);
+            // 1. 필터 조건 설정
+            FriendsList.Filter = friendObj =>
+            {
+                if (friendObj is not FriendModel friend) return false;
+                if (string.IsNullOrWhiteSpace(SearchNickname)) return true;
+
+                return friend.Nickname.Contains(SearchNickname, StringComparison.OrdinalIgnoreCase);
+            };
+            // 2. 정렬 조건 설정
+            FriendsList.SortDescriptions.Clear(); // 중복 추가 방지
+            // 우선순위 1: 즐겨찾기 기준 (최신순 - 내림차순)
+            FriendsList.SortDescriptions.Add(new SortDescription("IsFavorite", ListSortDirection.Descending));
+            // 우선순위 2: 즐겨찾기 내에선 닉네임 기준 (오름차순)
+            FriendsList.SortDescriptions.Add(new SortDescription("Nickname", ListSortDirection.Ascending));
         }
         #endregion
     }

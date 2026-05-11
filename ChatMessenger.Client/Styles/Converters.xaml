@@ -10,4 +10,6 @@
     <converters:InvertedBoolToHiddenConverter x:Key="InvertedBoolToHidden"/>
     <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
     <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+    <converters:BoolToAlignmentConverter x:Key="BoolToAlignmentConverter"/>
+    <converters:ZeroToVisibilityConverter x:Key="ZeroToVisibilityConverter"/>
 </ResourceDictionary>

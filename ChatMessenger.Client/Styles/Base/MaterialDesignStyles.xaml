@@ -12,28 +12,29 @@
     </Style>
     
     <!-- FriendList에서 사용되는 PackIcon -->
-    <materialDesign:PackIcon x:Key="FriendList_AddFriendIcon" Kind="AccountAdd" Width="24" Height="24"/>
-    <Style x:Key="FriendList_ProfileDefaultIcon" TargetType="materialDesign:PackIcon">
+    <materialDesign:PackIcon x:Key="MDStyle_FriendList_AddFriendIcon" Kind="AccountAdd" Width="24" Height="24"/>
+    <Style x:Key="MDStyle_FriendList_ProfileDefaultIcon" TargetType="materialDesign:PackIcon">
         <Setter Property="Kind" Value="Account"/>
         <Setter Property="Width" Value="28"/>
         <Setter Property="Height" Value="28"/>
         <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
     </Style>
-    <materialDesign:PackIcon x:Key="FriendDetail_ProfileChangeIcon" Kind="Pencil" Width="20" Height="20"/>
+    <materialDesign:PackIcon x:Key="MDStyle_FriendDetail_ProfileChangeIcon" Kind="Pencil" Width="20" Height="20"/>
 
     <!-- FriendDetail에서 사용되는 PackIcon -->
     <!-- 검색 Button 내부 Icon -->
-    <materialDesign:PackIcon x:Key="FriendDetail_SearchIcon" Kind="Search" Width="15" Height="15"/>
+    <materialDesign:PackIcon x:Key="MDStyle_FriendDetail_SearchIcon" Kind="Search" Width="15" Height="15"/>
     <!-- 검색 Panel Close Icon -->
-    <materialDesign:PackIcon x:Key="FriendDetail_CloseIcon" Kind="Close" Width="15" Height="15"/>
+    <materialDesign:PackIcon x:Key="MDStyle_FriendDetail_CloseIcon" Kind="Close" Width="15" Height="15"/>
     <!-- Profile 창 기본 Icon -->
-    <Style x:Key="FriendDetail_ProfileDefaultIcon" TargetType="materialDesign:PackIcon" BasedOn="{StaticResource FriendList_ProfileDefaultIcon}">
+    <Style x:Key="MDStyle_FriendDetail_ProfileDefaultIcon" TargetType="materialDesign:PackIcon" BasedOn="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}">
         <Setter Property="Width" Value="150"/>
         <Setter Property="Height" Value="150"/>
     </Style>
     <!-- Profile 창 기본 친구 표시 Icon -->
-    <Style x:Key="FriendDetail_FriendIcon" TargetType="materialDesign:PackIcon">
+    <Style x:Key="MDStyle_FriendDetail_FriendIcon" TargetType="materialDesign:PackIcon">
         <Setter Property="Kind" Value="AccountMultiple"/>
         <Setter Property="Width" Value="20"/>
         <Setter Property="Height" Value="20"/>
@@ -41,7 +42,7 @@
         <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
     </Style>
     <!-- Profile 창 기본 즐겨찾기 Icon -->
-    <Style x:Key="Friend_FavoriteIcon" TargetType="materialDesign:PackIcon">
+    <Style x:Key="MDStyle_Friend_FavoriteIcon" TargetType="materialDesign:PackIcon">
         <Setter Property="Kind" Value="Star"/>
         <Setter Property="Width" Value="20"/>
         <Setter Property="Height" Value="20"/>
@@ -49,7 +50,7 @@
         <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
     </Style>
     <!-- Profile 창 기본 차단 Icon -->
-    <Style x:Key="FriendDetail_BlockedIcon" TargetType="materialDesign:PackIcon">
+    <Style x:Key="MDStyle_FriendDetail_BlockedIcon" TargetType="materialDesign:PackIcon">
         <Setter Property="Kind" Value="BlockHelper"/>
         <Setter Property="Width" Value="20"/>
         <Setter Property="Height" Value="20"/>

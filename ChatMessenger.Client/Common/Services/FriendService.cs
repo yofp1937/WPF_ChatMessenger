@@ -26,7 +26,7 @@ namespace ChatMessenger.Client.Common.Services
             try
             {
                 // 1.서버에 친구 목록을 요청함 (토큰은 AuthHeaderHandler에서 자동으로 삽입해줌)
-                HttpResponseMessage response = await _httpClient.GetAsync("api/friend/list");
+                HttpResponseMessage response = await _httpClient.GetAsync("api/friend/getlist");
                 if (response.IsSuccessStatusCode)
                 {
                     // 2.요청이 성공적으로 처리됐으면 FriendResponse를 FriendModel로 변환하여 반환
@@ -74,7 +74,7 @@ namespace ChatMessenger.Client.Common.Services
                 // 1.Body에 실어 보낼 Request DTO 생성
                 AddorDeleteFriendRequest request = new() { Email = friendEmail };
                 // 2.email을 담아서 친구 추가 요청
-                HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/friend/add", request);
+                HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/friend/addfriend", request);
                 if (response.IsSuccessStatusCode)
                 {
                     // 성공시 추가한 친구의 FriendModel를 반환
@@ -100,7 +100,7 @@ namespace ChatMessenger.Client.Common.Services
                 // 1.Body에 실어 보낼 Request DTO 생성
                 AddorDeleteFriendRequest request = new() { Email = friendEmail };
                 // 2.email을 담아서 친구 삭제 요청
-                HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/friend/delete", request);
+                HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/friend/deletefriend", request);
                 if (response.IsSuccessStatusCode)
                 {
                     // 성공시 true 반환
@@ -125,7 +125,7 @@ namespace ChatMessenger.Client.Common.Services
                 // 1.Body에 실어 보낼 Request DTO 생성
                 FriendStatusRequest request = new() { Email = friendEmail, IsFavorite = isFavorite };
                 // 2.DTO 담아서 변경 요청
-                HttpResponseMessage response = await _httpClient.PatchAsJsonAsync("api/friend/favorite", request);
+                HttpResponseMessage response = await _httpClient.PatchAsJsonAsync("api/friend/changefavorite", request);
                 if (response.IsSuccessStatusCode)
                 {
                     return true;
@@ -149,7 +149,7 @@ namespace ChatMessenger.Client.Common.Services
                 // 1.Body에 실어 보낼 Request DTO 생성
                 FriendStatusRequest request = new() { Email = friendEmail, IsBlocked = isBlocked };
                 // 2.DTO 담아서 변경 요청
-                HttpResponseMessage response = await _httpClient.PatchAsJsonAsync("api/friend/block", request);
+                HttpResponseMessage response = await _httpClient.PatchAsJsonAsync("api/friend/changeblock", request);
                 if (response.IsSuccessStatusCode)
                 {
                     return true;
