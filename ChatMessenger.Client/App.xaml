@@ -17,12 +17,12 @@
                 <ResourceDictionary Source="/Styles/Windows/WindowCaptionStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/Pages/AuthStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/Pages/MainShellStyle.xaml"/>
-                <ResourceDictionary Source="/Styles/Tabs/ChatStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/Tabs/Friends/FriendListStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/Tabs/Friends/FriendDetailStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/Tabs/SettingStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/Tabs/Chats/ChatListStyles.xaml"/>
                 <ResourceDictionary Source="/Styles/Tabs/Chats/ChatRoomStyles.xaml"/>
+                <ResourceDictionary Source="/Styles/Tabs/Chats/CreateChatRoomStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

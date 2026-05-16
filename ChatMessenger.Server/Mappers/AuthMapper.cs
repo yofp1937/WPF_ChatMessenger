@@ -1,5 +1,5 @@
 ﻿using ChatMessenger.Server.Data.Entities;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Auth;
 
 namespace ChatMessenger.Server.Mappers
 {

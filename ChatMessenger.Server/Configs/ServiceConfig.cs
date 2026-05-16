@@ -2,6 +2,8 @@
  * Server에서 사용될 Service 등록을 담당하는 클래스
  * 컨트롤러의 생성자에서 자동으로 주입받아 사용할 각종 서비스 Class들을 DI Container에 등록합니다.
  */
+using ChatMessenger.Server.Common.Interfaces.Chats;
+using ChatMessenger.Server.Common.Services.Chats;
 using ChatMessenger.Server.Interfaces.Auth;
 using ChatMessenger.Server.Interfaces.Chat;
 using ChatMessenger.Server.Interfaces.Friend;
@@ -25,6 +27,9 @@ namespace ChatMessenger.Server.Configs
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IFriendService, FriendService>();
             services.AddScoped<IChatService, ChatService>();
+            services.AddScoped<IChatRoomService, ChatRoomService>();
+            services.AddScoped<IChatParticipantService, ChatParticipantService>();
+            services.AddScoped<IChatMessageService, ChatMessageService>();
 
             return services;
         }

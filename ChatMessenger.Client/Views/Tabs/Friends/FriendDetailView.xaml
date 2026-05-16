@@ -12,14 +12,6 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
-        <!-- 친구 추가 창 -->
-        <StackPanel Style="{StaticResource FriendDetail_AddFriendStackPanel}">
-            <TextBox Text="{Binding SearchEmail}" Style="{StaticResource FriendDetail_AddFriendTextBox}"/>
-            <Button Command="{Binding SearchFriendCommand}" Style="{StaticResource FriendDetail_AddFriendSearchButton}"/>
-            <Button Command="{Binding CloseAddFriendModeCommand}" Style="{StaticResource FriendDetail_AddFriendCloseButton}"/>
-            <TextBlock Text="{Binding AddFriendWarningText}" Style="{StaticResource Common_WarningTextBlock}"/>
-        </StackPanel>
-        
         <!-- 우측 상단 더보기 탭(즐겨찾기, 차단 전용) -->
         <materialDesign:PopupBox Style="{StaticResource FriendDetail_SeeMorePopupBox}">
             <!-- PopupBox 내부 Button 정렬용 Panel -->
@@ -51,12 +43,12 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <!-- 이미지 표시용 그리드 -->
-            <Grid Style="{StaticResource FriendDetail_ProfileGrid}">
+            <Grid Style="{StaticResource Common_BigProfileGrid}">
                 <!-- Image를 원형으로 보이게해주는 Ellipse -->
                 <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
                 <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendDetail_ProfileDefaultIcon}"/>
                 <!-- 프로필 이미지 수정 Button (CurrentFirend.IsMe가 true일 경우에만 표시) -->
-                <Button Style="{StaticResource FriendDetial_ProfileChangeButton}"/>
+                <Button Style="{StaticResource FriendDetail_ProfileChangeButton}"/>
             </Grid>
 
             <!-- 닉네임, 상태메세지 표시 Panel -->
@@ -76,7 +68,7 @@
             </StackPanel>
             
             <!-- 닉네임, 상태메세지 편집용 StackPanel -->
-            <StackPanel Grid.Row="1" Style="{StaticResource FriendDetail_Edit_StackPanel}">
+            <StackPanel Grid.Row="2" Style="{StaticResource FriendDetail_Edit_StackPanel}">
                 <StackPanel Style="{StaticResource FriendDetail_NicknameStackPanel}">
                     <materialDesign:PackIcon Style="{StaticResource MDStyle_Friend_FavoriteIcon}"
                                                       Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>

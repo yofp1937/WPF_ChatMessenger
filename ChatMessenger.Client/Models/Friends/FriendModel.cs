@@ -1,7 +1,7 @@
 ﻿/*
  * FriendView에서 표시될 친구의 정보를 담고있는 모델(내 정보도 포함)
  */
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ChatMessenger.Client.Models.Friends
@@ -16,7 +16,7 @@ namespace ChatMessenger.Client.Models.Friends
         [ObservableProperty]
         private string _statusMessage = string.Empty;
         [ObservableProperty]
-        private string _profileImageURL = string.Empty;
+        private string? _profileImageURL;
 
         [ObservableProperty]
         private bool _isMe;
@@ -26,6 +26,10 @@ namespace ChatMessenger.Client.Models.Friends
         private bool _isBlocked;
         [ObservableProperty]
         private bool _isFavorite;
+
+        // CreateChatRoomViewModel에서 사용
+        [ObservableProperty]
+        private bool _isSelected;
 
         public FriendModel() { }
         /// <summary>

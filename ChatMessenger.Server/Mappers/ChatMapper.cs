@@ -1,6 +1,8 @@
 ﻿using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Data.Projections;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Chat;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
+using ChatMessenger.Shared.Enums;
 
 namespace ChatMessenger.Server.Mappers
 {
@@ -31,6 +33,28 @@ namespace ChatMessenger.Server.Mappers
         }
 
         /// <summary>
+        /// 그룹 채팅방 최초 생성 시, 개설 정보와 시스템 메시지를 조합하여 최초 요약 Response DTO로 변환합니다. (오버로딩)
+        /// </summary>
+        /// <param name="room">생성된 채팅방 Entity</param>
+        /// <param name="systemMessage">방금 등록된 입장 시스템 메시지 Entity</param>
+        /// <param name="participantCount">방에 참가한 전체 인원 수</param>
+        /// <returns>그룹 채팅방 생성 직후 클라이언트에게 반환할 Response</returns>
+        public static ChatRoomSummaryResponse ToSummaryResponse(ChatRoom room, ChatMessage systemMessage, int participantCount)
+        {
+            return new ChatRoomSummaryResponse
+            {
+                RoomId = room.Id,
+                Title = room.Title ?? "그룹 채팅", // 지정된 타이틀이 없으면 기본값 설정
+                RoomProfileImageURL = room.RoomProfileImageURL,
+                ParticipantCount = participantCount,
+                LastMessage = systemMessage.Content, // 방금 생성된 "OOO님이 입장하셨습니다." 가 마지막 메시지
+                LastMessageSentAt = systemMessage.SentAt,
+                UnreadCount = 0, // 방금 생성되어 입장 메시지를 본 상태이므로 안 읽은 메시지는 0개
+                IsGroupChat = room.IsGroupChat
+            };
+        }
+
+        /// <summary>
         /// 방금 보낸 메세지 Entity와 전송자 정보, 안 읽은 사람 수를 조합하여 Response DTO로 변환합니다.
         /// </summary>
         /// <param name="message">전송할 메세지 Entity</param>
@@ -43,6 +67,7 @@ namespace ChatMessenger.Server.Mappers
             {
                 RoomId = message.ChatRoomId,
                 MessageId = message.Id,
+                MessageType = message.MessageType,
                 Sender = new FriendResponse
                 {
                     Email = sender.Email,
@@ -114,6 +139,7 @@ namespace ChatMessenger.Server.Mappers
             {
                 RoomId = roomId,
                 MessageId = m.Id,
+                MessageType = m.MessageType,
                 Content = m.Content,
                 SentAt = m.SentAt,
                 Sender = participants.FirstOrDefault(p => p.Email == m.SenderEmail) ?? GetUnknownUser(),
@@ -148,6 +174,39 @@ namespace ChatMessenger.Server.Mappers
                 UnreadCount = messages.Count(m => m.MessageId > myPartiEntity.LastReadMessageId),
                 LastReadMessageId = myPartiEntity.LastReadMessageId,
             };
+        }
+
+        /// <summary>
+        /// 시스템 메시지 전용 Response DTO를 생성합니다.
+        /// </summary>
+        public static ChatMessageResponse ToSystemMessageResponse(ChatMessage message)
+        {
+            return new ChatMessageResponse
+            {
+                RoomId = message.ChatRoomId,
+                MessageId = message.Id,
+                MessageType = message.MessageType,
+                Sender = null, // 시스템 메시지는 발신자가 없음
+                Content = message.Content,
+                SentAt = message.SentAt,
+                UnreadPeopleCount = 0
+            };
+        }
+
+        /// <summary>
+        /// 입장 또는 퇴장에 따른 시스템 메시지 문자열을 생성합니다.
+        /// </summary>
+        /// <param name="nicknames">대상자 닉네임</param>
+        /// <param name="isJoin">true면 입장, false면 퇴장</param>
+        public static string CreateSystemMessagesContent(IEnumerable<string> nicknames, bool isJoin)
+        {
+            if (nicknames == null || !nicknames.Any()) return string.Empty;
+
+            // 이름들 사이를 "철수, 영희, 민수" 같은 형태로 합치기
+            string combinedNames = string.Join(", ", nicknames);
+            return isJoin
+                ? $"{combinedNames}님이 입장하셨습니다."
+                : $"{combinedNames}님이 퇴장하셨습니다.";
         }
 
         private static FriendResponse GetUnknownUser() => new() { Email = "Unknown", Nickname = "알 수 없는 사용자" };

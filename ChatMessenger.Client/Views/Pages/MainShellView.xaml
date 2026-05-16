@@ -19,26 +19,41 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <ContentControl Content="{Binding CurrentViewModel.LeftContentViewModel}"/>
+                <ContentControl Content="{Binding ListPanelVM.CurrentVM}"/>
                 <!-- 하단 화면 네비게이션 -->
                 <materialDesign:ColorZone Grid.Row="1" Mode="Standard" Padding="0"
                                                 materialDesign:ElevationAssist.Elevation="Dp8">
                     <UniformGrid Columns="3">
                         <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}" Height="50" IsChecked="True"
                                            Content="{materialDesign:PackIcon Kind=AccountGroup}" ToolTip="친구 목록"
-                                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static enums:MainTabType.Friends}"/>
+                                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static enums:ListPanelType.Friend}"/>
                         <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}" Height="50"
                                            Content="{materialDesign:PackIcon Kind=Chat}" ToolTip="채팅 목록"
-                                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static enums:MainTabType.Chats}"/>
+                                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static enums:ListPanelType.Chat}"/>
                         <RadioButton Style="{StaticResource MaterialDesignTabRadioButton}" Height="50"
                                            Content="{materialDesign:PackIcon Kind=Settings}" ToolTip="설정"
-                                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static enums:MainTabType.Settings}"/>
+                                           Command="{Binding NavigateCommand}" CommandParameter="{x:Static enums:ListPanelType.Setting}"/>
                     </UniformGrid>
                 </materialDesign:ColorZone>
             </Grid>
         </Border>
 
         <!-- 오른쪽 화면 -->
-        <ContentControl Grid.Column="1" Content="{Binding CurrentViewModel.RightContentViewModel}"/>
+        <Grid Grid.Column="1" DataContext="{Binding ContentPanelVM}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- 친구 추가 창 -->
+            <StackPanel Style="{StaticResource MainShell_AddFriendStackPanel}">
+                <TextBox Text="{Binding SearchEmail}" Style="{StaticResource MainShell_AddFriendTextBox}"/>
+                <Button Command="{Binding SearchFriendCommand}" Style="{StaticResource MainShell_AddFriendSearchButton}"/>
+                <Button Command="{Binding CloseAddFriendModeCommand}" Style="{StaticResource MainShell_AddFriendCloseButton}"/>
+                <TextBlock Text="{Binding AddFriendWarningText}" Style="{StaticResource Common_WarningTextBlock}"/>
+            </StackPanel>
+            <!-- Content 표시 -->
+            <ContentControl Grid.Row="1" Content="{Binding CurrentVM}"/>
+        </Grid>
     </Grid>
 </UserControl>

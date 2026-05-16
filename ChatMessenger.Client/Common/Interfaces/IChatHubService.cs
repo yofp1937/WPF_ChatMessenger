@@ -1,4 +1,4 @@
-﻿using ChatMessenger.Shared.DTOs.Responses;
+﻿using ChatMessenger.Shared.DTOs.Responses.Chat;
 
 namespace ChatMessenger.Client.Common.Interfaces
 {

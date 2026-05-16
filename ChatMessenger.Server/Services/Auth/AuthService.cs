@@ -2,8 +2,8 @@
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces.Auth;
 using ChatMessenger.Server.Mappers;
-using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Requests.Auth;
+using ChatMessenger.Shared.DTOs.Responses.Auth;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChatMessenger.Server.Services.Auth

@@ -1,5 +1,5 @@
-﻿using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+﻿using ChatMessenger.Shared.DTOs.Requests.Auth;
+using ChatMessenger.Shared.DTOs.Responses.Auth;
 
 namespace ChatMessenger.Server.Interfaces.Auth
 {

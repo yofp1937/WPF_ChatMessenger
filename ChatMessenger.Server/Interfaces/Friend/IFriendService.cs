@@ -1,5 +1,5 @@
 ﻿using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
 
 namespace ChatMessenger.Server.Interfaces.Friend
 {

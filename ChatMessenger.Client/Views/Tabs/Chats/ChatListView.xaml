@@ -11,8 +11,9 @@
         </Grid.RowDefinitions>
         <!-- 검색 TextBox -->
         <DockPanel>
+            <Button Command="{Binding CreateChatRoomCommand}" Style="{StaticResource ChatList_CreateChatBtn}"/>
             <TextBox Text="{Binding SearchRoomText, UpdateSourceTrigger=PropertyChanged}"
-                         Style="{StaticResource ChatList_ChattingRoomSearchTextBox}"/>
+                         Style="{StaticResource ChatList_RoomSearchTextBox}"/>
         </DockPanel>
         
         <!-- 경계선 -->

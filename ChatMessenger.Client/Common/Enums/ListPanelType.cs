@@ -1,0 +1,12 @@
+﻿namespace ChatMessenger.Client.Common.Enums
+{
+    /// <summary>
+    /// MainShellView에서 ListPanel 영역에 ViewModel들을 교체하려할때 사용하는 enum입니다.
+    /// </summary>
+    public enum ListPanelType
+    {
+        Friend,
+        Chat,
+        Setting
+    }
+}

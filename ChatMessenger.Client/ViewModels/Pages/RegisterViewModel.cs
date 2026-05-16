@@ -1,5 +1,6 @@
-﻿using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Client.Common.Messages;
+﻿using ChatMessenger.Client.Common.Enums;
+using ChatMessenger.Client.Common.Interfaces;
+using ChatMessenger.Client.Common.Messages.Page;
 using ChatMessenger.Client.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -38,7 +39,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
         [RelayCommand]
         private void MoveToLogin()
         {
-            WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(LoginViewModel)));
+            WeakReferenceMessenger.Default.Send(new ChangePageMessage(AppPageType.Login));
         }
 
         /// <summary>

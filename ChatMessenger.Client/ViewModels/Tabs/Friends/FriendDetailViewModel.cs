@@ -1,5 +1,6 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Common.Messages.Tab.Friend;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,15 +13,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
     public partial class FriendDetailViewModel : BaseViewModel
     {
         private readonly IFriendService _friendService;
-
-        // 친구 추가 모드 여부
-        [ObservableProperty]
-        private bool _isAddFriendMode = false;
-        // 친구 추가 검색 Text
-        [ObservableProperty]
-        private string? _searchEmail = string.Empty;
-        [ObservableProperty]
-        private string? _addFriendWarningText = string.Empty;
 
         // 프로필 표시용
         [ObservableProperty]
@@ -48,51 +40,20 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                 return;
             }
             CurrentFriend = identityService.MyProfile;
-
-            SubscribeMessages();
         }
 
+        #region public Method
+        /// <summary>
+        /// View에 친구의 Profile을 표시합니다
+        /// </summary>
+        /// <param name="friend">View에 표시할 User의 정보가 들어있는 FriendModel</param>
+        public void SetFriendProfile(FriendModel friend)
+        {
+            CurrentFriend = friend;
+            IsEditMode = false;
+        }
+        #endregion
         #region RelayCommand
-        /// <summary>
-        /// 친구 검색 버튼을 눌렀을때 동작하는 Command
-        /// </summary>
-        /// <returns></returns>
-        [RelayCommand]
-        private async Task SearchFriendAsync()
-        {
-            AddFriendWarningText = string.Empty;
-            if (string.IsNullOrEmpty(SearchEmail))
-            {
-                AddFriendWarningText = "이메일을 입력해주세요.";
-                return;
-            }
-            try
-            {
-                // 1. 서버에 검색 요청
-                FriendModel? result = await _friendService.SearchFriendAsync(SearchEmail);
-                if (result == null) return;
-
-                // 2. 검색 성공 시 상세 정보 업데이트
-                OnFriendReceived(result);
-                SearchEmail = string.Empty;
-                // 3.FriendList의 ListBox 선택 상태 제거
-                WeakReferenceMessenger.Default.Send(new SelectedFriendResetMessage());
-            }
-            catch (Exception ex)
-            {
-                AddFriendWarningText = ex.Message;
-            }
-        }
-
-        /// <summary>
-        /// 친구 검색 Panel 닫기 Command
-        /// </summary>
-        [RelayCommand]
-        private void CloseAddFriendMode()
-        {
-            IsAddFriendMode = false;
-        }
-
         /// <summary>
         /// 내 프로필 수정 모드 변경 Command
         /// </summary>
@@ -224,21 +185,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
                 Debug.WriteLine($"[{GetType().Name}_UpdateBlockAsync]: {ex.Message}");
             }
         }
-
-        // TODO: 수정 완료 RelayCommand 만들때 닉네임이 4~12글자 사이인지 확인하는 유효성 검사 해야함
         #endregion
         #region OnChanged Method
-        /// <summary>
-        /// IsAddFriendMode가 false로 변하면 검색창에 입력된 데이터를 초기화합니다.
-        /// </summary>
-        partial void OnIsAddFriendModeChanged(bool value)
-        {
-            if (!value)
-            {
-                SearchEmail = string.Empty;
-                AddFriendWarningText = string.Empty;
-            }
-        }
         /// <summary>
         /// Nickname 입력 TextBox에 사용자가 값을 입력하면 상황에따라 경고 메세지를 띄워줍니다.
         /// </summary>
@@ -259,31 +207,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             {
                 EditProfileWarningText = string.Empty;
             }
-        }
-        #endregion
-        #region private Method
-        /// <summary>
-        /// 메세지를 구독합니다.
-        /// </summary>
-        private void SubscribeMessages()
-        {
-            WeakReferenceMessenger.Default.Register<FriendSelectionChangedMessage>(this, (r, m) =>
-            {
-                OnFriendReceived(m.friend);
-            });
-            WeakReferenceMessenger.Default.Register<AddFriendModeChangedMessage>(this, (r, m) =>
-            {
-                // IsAddFriendMode를 반전시킴
-                IsAddFriendMode = !IsAddFriendMode;
-            });
-        }
-        /// <summary>
-        /// 메신저를통해 데이터를 전달받으면 필드에 데이터를 할당합니다.
-        /// </summary>
-        private void OnFriendReceived(FriendModel friend)
-        {
-            CurrentFriend = friend;
-            IsEditMode = false;
         }
         #endregion
     }

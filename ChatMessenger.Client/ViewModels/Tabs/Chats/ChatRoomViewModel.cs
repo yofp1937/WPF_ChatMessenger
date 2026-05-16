@@ -1,9 +1,9 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Common.Messages.Tab.Chat;
 using ChatMessenger.Client.Models.Chats;
 using ChatMessenger.Client.ViewModels.Base;
-using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Requests.Chat;
+using ChatMessenger.Shared.DTOs.Responses.Chat;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -35,6 +35,29 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             _chatHubService = chatHubService;
 
             SubscribeEvents();
+        }
+
+        /// <summary>
+        /// 화면을 roomId 채팅방 화면으로 변경하고 입장합니다.
+        /// </summary>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        public async void SetChatRoom(Guid roomId)
+        {
+            await LoadRoomDetailAsync(roomId);
+        }
+
+        /// <summary>
+        /// ChatHub 이벤트 연결을 해제합니다.
+        /// </summary>
+        /// <remarks>
+        /// ChatHub 이벤트 구독도 해제합니다.
+        /// </remarks>
+        public override void CleanUp()
+        {
+            base.CleanUp();
+            _chatHubService.MessageReceivedEvent -= OnMessageReceived;
+            _chatHubService.ReadStatusUpdatedEvent -= OnReadStatusUpdated;
+            CurrentRoom = null;
         }
 
         #region RelayCommand
@@ -71,11 +94,36 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             // TextBox 비우기
             InputMessage = string.Empty;
             // Server에 메세지 전송 요청
-            // 서버에 메세지가 성공적으로 전송되면 OnMessageReceived를 통해 내가 전송한 메세지가 도착함!
+            // 서버에 메세지가 성공적으로 전송되면 OnMessageReceived를 통해 내가 전송한 메세지가 도착
             _ = await _chatService.SendMessageAsync(request);
+        }
+        [RelayCommand]
+        private async Task LeaveRoom()
+        {
+            if (CurrentRoom == null) return;
+
+            // 1. TODO: 진짜 채팅방 나갈것인지 확인 입력 받아야함
+
+            // 2. Service에 현재 방 탈퇴 메세지 요청
+            bool result = await _chatService.LeaveRoomAsync(CurrentRoom.RoomId);
+            if (!result) return;
+
+            Guid leftRoomId = CurrentRoom.RoomId;
+            CurrentRoom = null;
+
+            // 3. TODO: ChatListView에게 현재 입장한 방이 삭제됐음을 알려야 함 (ChatHub 탈퇴도 List에서 해야할듯)
         }
         #endregion
         #region OnChanged
+        /// <summary>
+        /// CurrentRoom이 변경되면 호출합니다.
+        /// </summary>
+        /// <param name="value">변경 값</param>
+        partial void OnCurrentRoomChanged(ChatRoomDetailModel? value)
+        {
+            if (value == null) return;
+            IsSidePanelVisible = false;
+        }
         /// <summary>
         /// CurrentRoom이 변경되기 직전에 호출됩니다.
         /// </summary>
@@ -83,7 +131,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         partial void OnCurrentRoomChanging(ChatRoomDetailModel? value)
         {
             if (value == null) return;
-            Debug.WriteLine("OnCurrentRoomChanging 호출");
             _ = Task.Run(async () => await _chatHubService.LeaveRoomAsync(value.RoomId));
         }
         /// <summary>
@@ -92,7 +139,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// <param name="response"></param>
         private void OnMessageReceived(ChatMessageResponse response)
         {
-            Debug.WriteLine($"메세지 도착함 id:{response.MessageId}\n안읽은 사람 수:{response.UnreadPeopleCount}");
             // 1. 현재 방의 메시지인지 확인
             if (response == null || _identityService.MyProfile == null
                 || CurrentRoom == null || CurrentRoom.RoomId != response.RoomId)
@@ -133,10 +179,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// </summary>
         private void SubscribeEvents()
         {
-            WeakReferenceMessenger.Default.Register<ChatRoomSelectionChangedMessage>(this, async (r, m) =>
-            {
-                await LoadRoomDetailAsync(m.roomId);
-            });
             // Server가 ChatHubService에게 신호를 보내면 ViewModel이 감지하여 특정 메서드를 실행하게 합니다.
             _chatHubService.MessageReceivedEvent += OnMessageReceived;
             _chatHubService.ReadStatusUpdatedEvent += OnReadStatusUpdated;
@@ -147,8 +189,9 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// <param name="roomId">채팅방의 식별 번호</param>
         private async Task LoadRoomDetailAsync(Guid roomId)
         {
+            if (_identityService.MyProfile == null) return;
             // 1. 입장하려는 방의 상세 정보를 가져옵니다.
-            ChatRoomDetailModel? response = await _chatService.GetChatRoomDetailAsync(roomId);
+            ChatRoomDetailModel? response = await _chatService.GetChatRoomDetailAsync(roomId, _identityService.MyProfile.Email);
             if (response == null) return;
             CurrentRoom = response;
 
@@ -177,7 +220,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// <param name="messageId">읽은 메세지의 식별 번호</param>
         private async Task UpdateLastReadedMessage(Guid roomId, long messageId)
         {
-            Debug.WriteLine($"{_identityService.MyProfile?.Email} 화면의 {messageId} 메세지 읽음 처리 호출");
             // 1. 마지막으로 읽은 메세지 Update 요청용 request 객체 생성
             UpdateLastReadedMessageRequest request = new()
             {

@@ -2,7 +2,7 @@
  * ChatRoomView에서 표시될 채팅방의 상세한 정보를 담고있는 모델
  */
 using ChatMessenger.Client.Models.Friends;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Chat;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -24,10 +24,10 @@ namespace ChatMessenger.Client.Models.Chats
 
         // 참가자 수
         [ObservableProperty]
-        private int _participiantCount;
+        private int _participantCount;
         // 실제 참여자 상세 정보 목록
         [ObservableProperty]
-        private ObservableCollection<FriendModel> _participiants = new();
+        private ObservableCollection<FriendModel> _participants = new();
 
         // 채팅 내역
         private ObservableCollection<ChatMessageModel> _messages = new();
@@ -75,10 +75,10 @@ namespace ChatMessenger.Client.Models.Chats
             this.RoomId = dto.RoomId;
             this.Title = dto.Title;
             this.RoomProfileImageURL = dto.RoomProfileImageURL;
-            this.ParticipiantCount = dto.ParticipantCount;
+            this.ParticipantCount = dto.ParticipantCount;
             this.IsGroupChat = dto.IsGroupChat;
 
-            this.Participiants = new(dto.Participants.Select(p => new FriendModel(p)));
+            this.Participants = new(dto.Participants.Select(p => new FriendModel(p)));
 
             _messages.Clear();
             bool isFirstUnreadFound = false;

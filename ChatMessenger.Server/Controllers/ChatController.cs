@@ -5,8 +5,8 @@ using ChatMessenger.Server.Controllers.Base;
 using ChatMessenger.Server.Hubs;
 using ChatMessenger.Server.Interfaces.Chat;
 using ChatMessenger.Shared.Constants;
-using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Requests.Chat;
+using ChatMessenger.Shared.DTOs.Responses.Chat;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
@@ -30,7 +30,7 @@ namespace ChatMessenger.Server.Controllers
         /// </summary>
         /// <returns>사용자가 참여한 모든 채팅방 데이터</returns>
         [HttpGet("getchatroomlist")]
-        public async Task<IActionResult> GetMyChatRooms()
+        public async Task<IActionResult> GetMyChatRoomsAsync()
         {
             if (string.IsNullOrEmpty(CurrentUserEmail)) return Unauthorized();
 
@@ -47,15 +47,17 @@ namespace ChatMessenger.Server.Controllers
         /// <param name="request">Client측에서 보내준 정보 묶음</param>
         /// <returns>찾았거나 생성한 방의 식별 번호</returns>
         [HttpPost("searchorcreateroom")]
-        public async Task<IActionResult> CreatePrivateChatRoom([FromBody] CreatePrivateChatRequest request)
+        public async Task<IActionResult> SearchOrCreatePrivateChatRoomAsync([FromBody] CreatePrivateChatRequest request)
         {
             if (string.IsNullOrEmpty(CurrentUserEmail)) return Unauthorized();
             string? targetEmail = request.TargetEmail;
             if (string.IsNullOrEmpty(targetEmail)) return BadRequest("대상이 존재하지 않습니다.");
 
             // 1. 방을 찾아서 반환(없으면 생성)
-            Guid roomId = await _chatService.SearchOrCreatePrivateChatRoomAsync(CurrentUserEmail, targetEmail);
-            return Ok(roomId);
+            ChatRoomSummaryResponse? response = await _chatService.GetOrCreatePrivateChatRoomAsync(CurrentUserEmail, targetEmail);
+            if (response == null) return BadRequest("방을 생성하지 못했습니다.");
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -81,7 +83,7 @@ namespace ChatMessenger.Server.Controllers
         /// </summary>
         /// <param name="request">메세지 정보가 담긴 Request DTO</param>
         [HttpPost("sendmessage")]
-        public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
+        public async Task<IActionResult> SendMessageAsync([FromBody] SendMessageRequest request)
         {
             if (string.IsNullOrEmpty(CurrentUserEmail)) return Unauthorized();
 
@@ -90,7 +92,7 @@ namespace ChatMessenger.Server.Controllers
             if (messageResponse == null) return BadRequest("메세지를 전송하지 못했습니다.");
 
             // 2. 메세지 전송을 위해 채팅방의 모든 참가자 Email List 요청
-            List<string>? participantEmails = await _chatService.GetParticipantEmailsAsync(CurrentUserEmail, request.RoomId);
+            List<string>? participantEmails = await _chatService.GetParticipantEmailsAsync(request.RoomId);
             // 3. 해당방의 모든 참여자에게 메세지 전송
             if (participantEmails == null) return BadRequest("채팅방 참여자 정보를 받아오지못했습니다.");
             foreach (string email in participantEmails)
@@ -107,13 +109,13 @@ namespace ChatMessenger.Server.Controllers
         /// <param name="request"></param>
         /// <returns></returns>
         [HttpPost("readmessage")]
-        public async Task<IActionResult> UpdateLastReadedMessage([FromBody] UpdateLastReadedMessageRequest request)
+        public async Task<IActionResult> UpdateLastReadedMessageAsync([FromBody] UpdateLastReadedMessageRequest request)
         {
             if (string.IsNullOrEmpty(CurrentUserEmail)) return Unauthorized();
 
             try
             {
-                // 1. 해당 방의 참여지인지 검사
+                // 1. 마지막으로 읽은 메세지 번호 업데이트
                 UserReadUpdateResponse? response = await _chatService.UpdateReadStatusAsync(CurrentUserEmail, request);
                 if (response == null) return NotFound("해당 채팅방에 접근 권한이 없습니다.");
 
@@ -127,6 +129,55 @@ namespace ChatMessenger.Server.Controllers
             {
                 return BadRequest("메세지 읽음 처리 실패");
             }
+        }
+
+        [HttpPost("leave/{roomId}")]
+        public async Task<IActionResult> LeaveRoomAsync(Guid roomId)
+        {
+            if(string.IsNullOrEmpty(CurrentUserEmail)) return Unauthorized();
+
+            // 1. 방에서 퇴장 처리하고 메세지 생성
+            ChatMessageResponse? result = await _chatService.DeleteParticipantAsync(roomId, CurrentUserEmail);
+            // result가 null이면 1대1 채팅방이였거나 이미 방이 삭제된 경우이므로 종료
+            if (result == null) return Ok();
+
+            // 2. 방에 남아있는 참가자들의 Email 가져오기
+            List<string>? participantEmails = await _chatService.GetParticipantEmailsAsync(roomId);
+            if (participantEmails != null)
+            {
+                // 3. 남은 참가자들에게 퇴장 메세지 전송
+                foreach(string email in participantEmails)
+                {
+                    await _chatHubContext.Clients.Group(email)
+                        .SendAsync(ChatHubEvents.ChatHubResponseEvent.ReceiveMessage, result);
+                }
+            }
+            return Ok();
+        }
+
+        
+        [HttpPost("creategroupchat")]
+        public async Task<IActionResult> CreateGroupChatAsync([FromBody] CreateGroupChatRequest request)
+        {
+            if (string.IsNullOrEmpty(CurrentUserEmail)) return Unauthorized();
+
+            if (request.TargetEmails == null || request.TargetEmails.Count == 0)
+                return BadRequest("초대할 대상이 없습니다.");
+
+            // 1. 나를 포함하여 방을 생성해야하므로 내 이메일도 리스트에 추가
+            List<string> allEmails = new(request.TargetEmails) { CurrentUserEmail };
+
+            // 2. 서비스 호출 (방 생성, 참가자 등록, 입장 메세지 시스템 생성)
+            ChatRoomSummaryResponse? response = await _chatService.CreateChatRoomAsync(CurrentUserEmail, allEmails, request);
+            if (response == null) return BadRequest("방 생성에 실패했습니다.");
+
+            // 3. 모든 참가자에게 입장 메세지 전송
+            foreach(string email in allEmails)
+            {
+                await _chatHubContext.Clients.Group(email)
+                    .SendAsync(ChatHubEvents.ChatHubResponseEvent.ReceiveMessage, response);
+            }
+            return Ok(response);
         }
         #endregion
     }

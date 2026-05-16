@@ -1,9 +1,12 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Common.Messages.Tab.Chat;
 using ChatMessenger.Client.Models.Chats;
 using ChatMessenger.Client.ViewModels.Base;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Chat;
+using ChatMessenger.Shared.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -42,6 +45,18 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
 
             // 채팅방 목록 불러오기
             _ = GetMyChatRoomsAsync();
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// ChatHub 이벤트 구독도 해제합니다.
+        /// </remarks>
+        public override void CleanUp()
+        {
+            base.CleanUp();
+            _chatHubService.MessageReceivedEvent -= OnMessageReceived;
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
         }
 
         #region OnChanged Method
@@ -102,7 +117,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
                 {
                     room.LastMessage = response.Content;
                     room.LastMessageSentAt = response.SentAt.ToLocalTime();
-                    if (SelectedRoom?.RoomId != response.RoomId)
+                    if (SelectedRoom?.RoomId != response.RoomId && response.MessageType != ChatMessageType.System)
                     {
                         room.UnreadCount++;
                     }
@@ -111,7 +126,13 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             }
         }
         #endregion
-
+        #region RelayCommand
+        [RelayCommand]
+        private void CreateChatRoom()
+        {
+            WeakReferenceMessenger.Default.Send(new OpenCreateChatRoomRequestMessage());
+        }
+        #endregion
         #region private Method
         /// <summary>
         /// 메세지 혹은 이벤트를 구독합니다.
@@ -134,6 +155,11 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
                     room.UnreadCount = 0;
                     ChatRooms.Refresh();
                 });
+            });
+            // 새로운 채팅방이 만들어졌을때 _rooms에 등록시키기 위함
+            WeakReferenceMessenger.Default.Register<NewChatRoomCreatedMessage>(this, (r, m) =>
+            {
+
             });
             _chatHubService.MessageReceivedEvent += OnMessageReceived;
         }

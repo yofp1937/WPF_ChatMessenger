@@ -1,8 +1,9 @@
-﻿using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Client.Common.Messages;
+﻿using ChatMessenger.Client.Common.Enums;
+using ChatMessenger.Client.Common.Interfaces;
+using ChatMessenger.Client.Common.Messages.Page;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Auth;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -42,7 +43,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
         [RelayCommand]
         private void MoveToRegister()
         {
-            WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(RegisterViewModel)));
+            WeakReferenceMessenger.Default.Send(new ChangePageMessage(AppPageType.Register));
         }
         /// <summary>
         /// 입력된 Data를 기반으로 Server에 인증을 요청합니다.
@@ -87,7 +88,7 @@ namespace ChatMessenger.Client.ViewModels.Pages
                     _identityService.MyProfile = profile;
                     if (!string.IsNullOrEmpty(response.Token))
                         await _chatHubService.ConnectAsync(response.Token);
-                    WeakReferenceMessenger.Default.Send(new NavigationMessage(typeof(MainShellViewModel)));
+                    WeakReferenceMessenger.Default.Send(new ChangePageMessage(AppPageType.MainShell));
                 }
                 else
                 {

@@ -1,10 +1,14 @@
-﻿using ChatMessenger.Server.Data;
+﻿using Azure.Core;
+using ChatMessenger.Server.Common.Interfaces.Chats;
+using ChatMessenger.Server.Data;
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Data.Projections;
 using ChatMessenger.Server.Interfaces.Chat;
 using ChatMessenger.Server.Mappers;
-using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Requests.Chat;
+using ChatMessenger.Shared.DTOs.Responses.Chat;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
+using ChatMessenger.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -15,71 +19,80 @@ namespace ChatMessenger.Server.Services.Chat
     /// </summary>
     public class ChatService : IChatService
     {
-        private readonly AppDbContext _context;
+        private AppDbContext _context;
+        private IChatRoomService _chatRoomService;
+        private IChatParticipantService _chatParticipantService;
+        private IChatMessageService _chatMessageService;
 
-        public ChatService(AppDbContext context)
+        public ChatService(AppDbContext context, IChatRoomService chatRoomService, IChatParticipantService chatParticipantService,
+            IChatMessageService chatMessageService)
         {
             _context = context;
+            _chatRoomService = chatRoomService;
+            _chatParticipantService = chatParticipantService;
+            _chatMessageService = chatMessageService;
         }
 
         #region public Method
         /// <inheritdoc/>
         public async Task<List<ChatRoomSummaryResponse>> GetChatRoomListAsync(string myEmail)
         {
-            // 1. ChatRoomSummaryResponse 생성에 필요한 DTO 추출
-            List<ChatRoomSummaryDTO> rawData = await FetchChatRoomSummaryAsync(myEmail);
-            // 2. Mapper를 사용해 DTO로 Response로 변환하고 List화하여 반환
-            return rawData.Select(ChatMapper.ToSummaryResponse).ToList();
+            // 1. Response 생성에 필요한 DTO 추출
+            List<ChatRoomSummaryDTO> dtoList = await _chatRoomService.GetChatRoomSummaryDTOListAsync(myEmail);
+            // 2. Mapper를 사용해 DTO를 Response로 변환하고 List화하여 반환
+            return dtoList.Select(ChatMapper.ToSummaryResponse).ToList();
         }
-
         /// <inheritdoc/>
-        public async Task<Guid> SearchOrCreatePrivateChatRoomAsync(string myEmail, string targetEmail)
+        public async Task<ChatRoomSummaryResponse?> GetOrCreatePrivateChatRoomAsync(string myEmail, string targetEmail)
         {
             // 1. myEmail과 targetEmail간의 1대1 채팅방이 존재하는지 검색
-            Guid existingRoomId = await SearchPrivateChatRoomAsync(myEmail, targetEmail);
-            // 2. 방이 존재하면 해당 방의 Guid 반환
-            if (existingRoomId != Guid.Empty)
-                return existingRoomId;
-
-            // 3. 방이 없으면 생성
-            Guid newRoomId = await CreateNewChatRoomAndParticipantsAsync(new[] { myEmail, targetEmail }, null, false);
-            if (newRoomId == Guid.Empty)
-                return Guid.Empty;
-            return newRoomId;
+            ChatRoom? chatRoom = await _chatRoomService.GetPrivateChatRoomAsync(myEmail, targetEmail);
+            // 2. 채팅방이 존재하지않으면 1대1 채팅방 생성
+            if (chatRoom == null)
+            {
+                List<string> participants = new() { myEmail, targetEmail };
+                chatRoom = await CreateChatRoomAndRegisterParticipantsAsync(participants, null, false);
+                if (chatRoom == null) return null;
+            }
+            // 3. ChatRoom Entity로 ChatRoomSummaryDTO 추출
+            ChatRoomSummaryDTO? dto = await _chatRoomService.GetChatRoomSummaryDTOAsync(myEmail, chatRoom.Id);
+            if (dto == null) return null;
+            // 4. ChatRoomSummaryResponse로 변환해서 반환
+            return ChatMapper.ToSummaryResponse(dto);
         }
-
         /// <inheritdoc/>
         public async Task<ChatRoomDetailResponse?> GetChatRoomDetailAsync(Guid roomId, string myEmail)
         {
             // 1. 실제 해당 채팅방의 참가자인지 보안 검사
-            if (await GetParticipantEntityAsync(roomId, myEmail) == null)
-                return null;
+            ChatParticipant? myParticipant = await _chatParticipantService.GetParticipantEntityAsync(roomId, myEmail);
+            if (myParticipant == null) return null;
 
-            return await FetchChatRoomDetailAsync(roomId, myEmail);
+            // 2. 채팅방의 상세 정보 추출하여 반환
+            return await GetChatRoomDetailResponseInternalAsync(roomId, myEmail, myParticipant);
         }
-
         /// <inheritdoc/>
         public async Task<ChatMessageResponse?> SendMessageAsync(string myEmail, SendMessageRequest request)
         {
             // 1. 실제 해당 채팅방의 참가자인지 보안 검사
-            if (await GetParticipantEntityAsync(request.RoomId, myEmail) == null)
-                return null;
+            ChatParticipant? myParticipant = await _chatParticipantService.GetParticipantEntityAsync(request.RoomId, myEmail);
+            if (myParticipant == null) return null;
 
             try
             {
-                // 1. 사용자 요청에따라 Db에 메세지 등록
-                ChatMessage? newMessage = await SendMessageAndUpdateAsync(myEmail, request.RoomId, request.Content);
+                // 2. 메세지 전송하고 나의 LastReadedMessageId 업데이트
+                ChatMessage? newMessage = await AddMessageAndUpdateLastReadedInternalAsync(myEmail, request, myParticipant);
                 if (newMessage == null) return null;
 
-                // 2. Response에 발신자 정보를 포함하기위해 User 정보 조회
-                User? user = await SearchUserByEmail(myEmail);
-                if (user == null) return null;
+                // 3. Response에 발신자 정보를 포함하기위해 User 정보 조회
+                List<User>? users = await SearchUserByEmailsAsync(new[] { myEmail });
+                if (users == null || users.Count == 0) return null;
+                User user = users.First();
 
-                // 3. 안 읽은 사람 수 계산 (전체 참여자 수 - 1)(내 LastReadMessageId를 갱신하기때문에 -1 해주면 됨)
-                int participantCount = await _context.ChatParticipants.CountAsync(cp => cp.ChatRoomId == request.RoomId);
+                // 4. 안 읽은 사람 수 계산 (전체 참여자 수 - 1)(내 LastReadMessageId를 갱신하기때문에 -1 해주면 됨)
+                int participantCount = await _chatParticipantService.GetParticipantCountAsync(request.RoomId);
                 int unreadPeopleCount = participantCount - 1;
 
-                // 4. Mapper를 사용하여 Response 반환
+                // 5. Mapper를 사용하여 Response 반환
                 return ChatMapper.ToMessageResponse(newMessage, user, unreadPeopleCount);
             }
             catch (Exception ex)
@@ -88,31 +101,24 @@ namespace ChatMessenger.Server.Services.Chat
                 return null;
             }
         }
-
         /// <inheritdoc/>
-        public async Task<List<string>?> GetParticipantEmailsAsync(string myEmail, Guid roomId)
+        public async Task<List<string>?> GetParticipantEmailsAsync(Guid roomId)
         {
-            // 1. 실제 해당 채팅방의 참가자인지 보안 검사
-            if (await GetParticipantEntityAsync(roomId, myEmail) == null)
-                return null;
-
-            return await GetParticipantEmailsInternalAsync(roomId);
+            return await _chatParticipantService.GetParticipantEmailsAsync(roomId);
         }
-
         /// <inheritdoc/>
         public async Task<UserReadUpdateResponse?> UpdateReadStatusAsync(string myEmail, UpdateLastReadedMessageRequest request)
         {
             // 1. 실제 해당 채팅방의 참가자인지 보안 검사
-            ChatParticipant? participant = await GetParticipantEntityAsync(request.RoomId, myEmail);
-            if (participant == null) return null;
-            long previouseId = participant.LastReadMessageId;
+            ChatParticipant? myParticipant = await _chatParticipantService.GetParticipantEntityAsync(request.RoomId, myEmail);
+            if (myParticipant == null) return null;
+            long previouseId = myParticipant.LastReadMessageId;
 
             try
             {
                 // 2. 채팅방에서 내가 마지막으로 읽은 메세지 갱신
-                // UpdateLastReadMessage를 사용할 수 있지만 사용하면 DB 조회를 두번 하는꼴이라 해당 메서드 내에서 직접 수정
-                participant.LastReadMessageId = request.LastReadMessageId;
-                await _context.SaveChangesAsync();
+                myParticipant.LastReadMessageId = request.LastReadMessageId;
+                bool isSuccess = await _chatParticipantService.UpdateParticipantAsync(myParticipant);
 
                 // 3. Mapper를 사용하여 Response 반환
                 return ChatMapper.ToReadUpdateResponse(request.RoomId, myEmail, request.LastReadMessageId, previouseId);
@@ -123,179 +129,227 @@ namespace ChatMessenger.Server.Services.Chat
                 return null;
             }
         }
+        /// <inheritdoc/>
+        public async Task<ChatMessageResponse?> DeleteParticipantAsync(Guid roomId, string myEmail)
+        {
+            // 1. 실제 해당 채팅방의 참가자인지 보안 검사
+            ChatParticipant? myParticipant = await _chatParticipantService.GetParticipantEntityAsync(roomId, myEmail);
+            if (myParticipant == null) return null;
+            string myNickname = myParticipant.User.Nickname;
+
+            try
+            {
+                // 2. 채팅방 참가 정보 제거
+                bool isSuccess = await _chatParticipantService.RemoveParticipantAsync(myParticipant);
+                if (!isSuccess) return null;
+
+                // 3. 누군가가 채팅방 나갔으면 채팅방 삭제 시도
+                bool isRoomDeleted = await RemoveChatRoom(roomId);
+                if (isRoomDeleted) return null; // 방이 지워졌으면 SystemMessage 전달할 필요 없으니 return
+
+                // 4. 채팅방 남아있는지, 그룹 채팅인지 확인
+                ChatRoom? room = await _chatRoomService.GetChatRoomAsync(roomId);
+                if (room == null || !room.IsGroupChat) return null;
+
+                // 5. 채팅방이 남아있고 그룹 채팅이면 채팅방에 퇴장 SystemMessage 생성
+                SendMessageRequest tempReq = new()
+                {
+                    RoomId = room.Id,
+                    MessageType = ChatMessageType.System,
+                    Content = ChatMapper.CreateSystemMessagesContent(new[] { myNickname }, false)
+                };
+
+                // 6. 메세지 전송
+                ChatMessage? message = await AddSystemMessageInternalAsync(tempReq);
+                if (message == null) return null;
+
+                // 7. Response로 변환하여 반환
+                return ChatMapper.ToSystemMessageResponse(message);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{nameof(ChatService)}_{nameof(DeleteParticipantAsync)}]: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<ChatRoomSummaryResponse?> CreateChatRoomAsync(string myEmail, IEnumerable<string> participantEmails
+            , CreateGroupChatRequest request)
+        {
+            // 1. 방 생성 및 참가자 등록
+            ChatRoom? newRoom = await CreateChatRoomAndRegisterParticipantsAsync(participantEmails, request.Title, true);
+            if (newRoom == null) return null;
+            // 2. 방 정보 업데이트
+            bool result = await UpdateGroupChatEntityAsync(newRoom.Id, request.Title, request.ProfileImageURL);
+            if (!result) return null;
+
+            try
+            {
+                // 3. 채팅방 참가자들의 Nickname 추출
+                List<User>? users = await SearchUserByEmailsAsync(participantEmails);
+                if (users == null || users.Count == 0) return null;
+                List<string> nicknames = users.Select(u => u.Nickname).ToList();
+
+                // 4. 입장 SystemMessage 객체 생성
+                SendMessageRequest tempReq = new()
+                {
+                    RoomId = newRoom.Id,
+                    MessageType = ChatMessageType.System,
+                    Content = ChatMapper.CreateSystemMessagesContent(nicknames, true)
+                };
+
+                // 5. 메세지 Db에 등록
+                ChatMessage? message = await AddSystemMessageInternalAsync(tempReq);
+                if (message == null) return null;
+
+                // 6. Response 형태로 반환
+                return ChatMapper.ToSummaryResponse(newRoom, message, users.Count);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[{nameof(ChatService)}_{nameof(CreateChatRoomAsync)}]: {ex.Message}");
+                return null;
+            }
+        }
         #endregion public Method
         #region private Method
         /// <summary>
-        /// 두 유저 사이의 1대1 채팅방을 찾습니다.
+        /// 새로운 채팅방을 생성하고 참가자들을 등록합니다..
         /// </summary>
-        /// <param name="myEmail">로그인한 User의 Email</param>
-        /// <param name="targetEmail">채팅 상대 User의 Email</param>
-        /// <returns>방 존재 시 해당 방의 Guid, 방 없으면 Guid.Empty</returns>
-        private async Task<Guid> SearchPrivateChatRoomAsync(string myEmail, string targetEmail)
-        {
-            return await _context.ChatParticipants
-                .Where(p => p.UserEmail == myEmail)                                                                 // 1. ChatParticipant에서 myEmail과 UserEmail 컬럼 값이 같은 모든 튜플 추출
-                .Join(_context.ChatParticipants.Where(p => p.UserEmail == targetEmail),                      // 2. ChatParticipant에서 targetEamil과 UserEmail 컬럼 값이 같은 모든 튜플 추출
-                        me => me.ChatRoomId,
-                        other => other.ChatRoomId,                                                                       // 3. 1번에서 얻은 결과를 me로 선언, 2번에서 얻은 결과를 other로 선언
-                        (me, other) => me.ChatRoomId)                                                                  // 4. me와 other의 ChatRoomId가 같은 튜플만 골라서 me에서 ChatRoomId 추출
-                .Where(roomId => _context.ChatRooms.Any(r => r.Id == roomId && !r.IsGroupChat))    // 5. ChatRoom 테이블에서 추출한 ChatRoomId와 RoomId가 같고 그룹채팅이 아닌 방 추출
-                .FirstOrDefaultAsync();                                                                                       // 6. 그중 첫번째 데이터의 roomId를 내보낸다.
-        }
-
-        /// <summary>
-        /// 새로운 채팅방을 생성하고 참가자들을 등록해줍니다.
-        /// </summary>
-        /// <param name="myEmail">로그인한 User의 Email</param>
-        /// <param name="targetEmail">채팅 상대 User의 Email</param>
-        /// <returns>새로 생성한 방의 Guid</returns>
-        private async Task<Guid> CreateNewChatRoomAndParticipantsAsync(IEnumerable<string> emails, string? title, bool isGroupChat)
+        /// <param name="emails">참가자로 등록할 User들의 Email List</param>
+        /// <param name="title">채팅방 제목</param>
+        /// <param name="isGroupChat">그룹 채팅인지 여부</param>
+        /// <returns>새로 생성한 채팅방 Entity</returns>
+        private async Task<ChatRoom?> CreateChatRoomAndRegisterParticipantsAsync(IEnumerable<string> emails, string? title, bool isGroupChat)
         {
             using IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 // 1. 방 생성 (실패 시 throw)
-                ChatRoom newRoom = await CreateChatRoomEntityAsync(title, isGroupChat);
+                ChatRoom? newRoom = await _chatRoomService.CreateChatRoomAsync(title, isGroupChat);
+                if (newRoom == null) return null;
                 // 2. 참가자 추가 (실패 시 throw)
-                await AddParticipantsToRoomAsync(newRoom.Id, emails);
+                bool isSuccess = await _chatParticipantService.AddParticipantsToRoomAsync(newRoom.Id, emails);
+                if (!isSuccess) return null;
 
                 // 3. 임시 저장 상태인걸 실제 DB에 적용
                 await transaction.CommitAsync();
-                return newRoom.Id;
+                return newRoom;
             }
             catch (Exception ex)
             {
                 // 4. 에러 발생시 임시 저장 상태를 롤백
                 await transaction.RollbackAsync();
-                Console.WriteLine($"[{nameof(ChatService)}_{nameof(CreateNewChatRoomAndParticipantsAsync)}]: {ex.Message}");
+                Console.WriteLine($"[{nameof(ChatService)}_{nameof(CreateChatRoomAndRegisterParticipantsAsync)}]: {ex.Message}");
                 throw;
             }
         }
-
         /// <summary>
-        /// 새로운 채팅방을 생성합니다. 방 생성에 실패하면 throw 신호를 보냅니다.
+        /// 채팅방의 상세 정보 Response를 생성해서 반환해줍니다.
         /// </summary>
-        /// <param name="title">생성하려는 채팅방의 Title</param>
-        /// <param name="isGroupChat">생성하려는 채팅방이 그룹 채팅인지 여부</param>
-        /// <returns>새로 생성한 채팅방 Entity</returns>
-        private async Task<ChatRoom> CreateChatRoomEntityAsync(string? title, bool isGroupChat)
+        /// <remarks>
+        /// 하위 Service들에서 정보를 취합한 뒤 ChatRoomDetailResponse를 생성하여 반환해줍니다.
+        /// </remarks>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        /// <param name="myEmail">로그인한 User의 Email</param>
+        /// <param name="myParticipant">나의 채팅방 참가 정보</param>
+        /// <returns>채팅방의 ChatRoomDetailResponse DTO</returns>
+        private async Task<ChatRoomDetailResponse?> GetChatRoomDetailResponseInternalAsync(Guid roomId, string myEmail, ChatParticipant myParticipant)
         {
-            ChatRoom newRoom = new() { Title = title, IsGroupChat = isGroupChat };
-            _context.ChatRooms.Add(newRoom);
-            if (await _context.SaveChangesAsync() <= 0)
-                throw new Exception("채팅방 생성에 실패했습니다.");
-            return newRoom;
-        }
-
-        /// <summary>
-        /// 채팅방에 참가자들을 등록합니다. 참가자 등록에 실패하면 throw 신호를 보냅니다.
-        /// </summary>
-        /// <param name="roomId">참가자를 등록하려는 채팅방</param>
-        /// <param name="emails">추가하려는 참가자 List</param>
-        /// <returns>참가자 등록 성공 시 true 반환, 등록 실패 시 false 반환</returns>
-        private async Task AddParticipantsToRoomAsync(Guid roomId, IEnumerable<string> emails)
-        {
-            IEnumerable<ChatParticipant> participants = emails.Select(email => new ChatParticipant
+            // 1. Response 생성을 위한 채팅방 DTO 추출
+            ChatRoomDetailDTO? dto = await _chatRoomService.GetChatRoomDetailDTOAsync(roomId, myEmail);
+            if (dto == null) return null;
+            // 2. 친구 관계 데이터 수집
+            List<string> participantEmails = dto.Participants.Select(p => p.User.Email).ToList();
+            Dictionary<string, Friendship> friendships = await GetFriendshipsAsync(myEmail, participantEmails);
+            // 3. 매퍼들을 활용하여 Response에 필요한 Data들 생성
+            List<FriendResponse> participantList = FriendMapper.ToFriendResponseList(myEmail, dto.Participants, friendships);
+            List<ChatMessageResponse> messageList = ChatMapper.ToMessageResponseList(roomId, participantList, dto.Messages, dto.Participants);
+            string displayTitle = ChatMapper.DetermineRoomTitle(dto.Room, myParticipant, participantList, myEmail);
+            string? originalTitle = null;
+            // 4. 사용자가 방 제목을 수정했으면 originalTitle 설정
+            if (!string.IsNullOrEmpty(myParticipant.RenamedRoomName))
             {
-                ChatRoomId = roomId,
-                UserEmail = email
-            });
-            _context.ChatParticipants.AddRange(participants);
-            if (await _context.SaveChangesAsync() <= 0)
-                throw new Exception("참가자 등록에 실패했습니다.");
+                ChatParticipant temp = new() { RenamedRoomName = null };
+                originalTitle = ChatMapper.DetermineRoomTitle(dto.Room, temp, participantList, myEmail);
+            }
+            // 5. Response 생성하여 반환
+            return ChatMapper.ToChatRoomDetailResponse(dto.Room, myParticipant, participantList, messageList, displayTitle, originalTitle);
         }
-
         /// <summary>
-        /// User가 해당 방의 실제 참가자인지 확인하고 Entity를 반환합니다.
+        /// 메세지를 Db에 등록하고, 작성자의 LastReadedMessageId를 신규 메세지 Id로 변경합니다.
         /// </summary>
-        /// <param name="roomId">채팅방 식별 번호</param>
-        /// <param name="myEmail">참가여부 확인할 User의 Email</param>
-        /// <returns>ChatParticipant Entity</returns>
-        private async Task<ChatParticipant?> GetParticipantEntityAsync(Guid roomId, string myEmail)
+        /// <param name="myEmail">메세지 작성자의 Email</param>
+        /// <param name="request">메세지 정보가 담긴 Request</param>
+        /// <param name="myParticipant">메세지 작성자의 ChatParticipant Entity</param>
+        /// <returns>등록한 ChatMessage 객체</returns>
+        private async Task<ChatMessage?> AddMessageAndUpdateLastReadedInternalAsync(string myEmail, SendMessageRequest request,
+            ChatParticipant myParticipant)
         {
-            return await _context.ChatParticipants.FirstOrDefaultAsync(cp => cp.ChatRoomId == roomId && cp.UserEmail == myEmail);
-        }
-
-        /// <summary>
-        /// 메세지를 Db에 등록합니다.
-        /// </summary>
-        /// <param name="myEmail">메세지를 전송한 User의 Email</param>
-        /// <param name="roomId">채팅방 식별 번호</param>
-        /// <param name="content">메세지 내용</param>
-        private async Task<ChatMessage?> SendMessageAndUpdateAsync(string myEmail, Guid roomId, string content)
-        {
-            using IDbContextTransaction transaction = await _context.Database.BeginTransactionAsync();
+            using IDbContextTransaction? transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                ChatMessage newMessage = new()
-                {
-                    ChatRoomId = roomId,
-                    SenderEmail = myEmail,
-                    Content = content
-                };
-                _context.ChatMessages.Add(newMessage);
-                if (0 >= await _context.SaveChangesAsync())
-                    throw new Exception("메세지 등록에 실패했습니다.");
+                // 1. 사용자 요청에따라 Db에 메세지 등록
+                ChatMessage? newMessage = await _chatMessageService.AddMessageAsnyc(myEmail, request);
+                if (newMessage == null) return null;
 
-                // 메세지를 전송하면 자신의 LastReadMessagId를 업데이트해줘야함
-                await UpdateLastReadMessage(myEmail, roomId, newMessage.Id);
-                // 임시 저장 상태인걸 실제 DB에 적용
+                // 2. 메세지가 성공적으로 등록됐으면 LastReadMessagId를 업데이트해줘야함
+                myParticipant.LastReadMessageId = newMessage.Id;
+                bool isSuccess = await _chatParticipantService.UpdateParticipantAsync(myParticipant);
+                if (!isSuccess) return null;
+
+                // 3. 임시 저장된 메세지 등록, ChatParticipant 업데이트 상황을 Db에 저장 
                 await transaction.CommitAsync();
                 return newMessage;
             }
             catch (Exception ex)
             {
+                // 4. 에러 발생시 임시 저장 상태를 롤백
                 await transaction.RollbackAsync();
-                Console.WriteLine($"[{nameof(ChatService)}_{nameof(SendMessageAndUpdateAsync)}]: {ex.Message}");
-                throw;
+                Console.WriteLine($"[{nameof(ChatService)}_{nameof(AddMessageAndUpdateLastReadedInternalAsync)}]: {ex.Message}");
+                return null;
             }
         }
-
         /// <summary>
-        /// 채팅방에서 자신이 마지막으로 읽은 메세지 번호를 갱신합니다. 갱신에 실패하면 throw 신호를 보냅니다.
+        /// 이메일 목록으로 해당하는 유저 정보들을 조회합니다.
         /// </summary>
-        /// <param name="myEmail">마지막 읽은 메세지를 갱신할 User의 Email</param>
-        /// <param name="roomId">채팅방 식별 번호</param>
-        /// <param name="lastReadMessageId">메세지 식별 번호</param>
-        /// <returns>갱신 성공 시 true 반환, 갱신 실패시 false 반환</returns>
-        private async Task UpdateLastReadMessage(string myEmail, Guid roomId, long lastReadMessageId)
-        {
-            ChatParticipant? myParticipantData = await _context.ChatParticipants
-                .FirstOrDefaultAsync(cp => cp.ChatRoomId == roomId && cp.UserEmail == myEmail);
-
-            if (myParticipantData == null)
-                throw new Exception($"{myEmail}님의 {roomId}에 대한 정보를 찾을 수 업습니다.");
-
-            myParticipantData.LastReadMessageId = lastReadMessageId;
-            if (await _context.SaveChangesAsync() <= 0)
-                throw new Exception("마지막으로 읽은 메세지 갱신에 실패했습니다.");
-        }
-
-        /// <summary>
-        /// 이메일로 유저 정보를 찾아줍니다.
-        /// </summary>
-        /// <param name="email">찾을 User의 Email</param>
-        /// <returns>User의 정보(수정 불가능)</returns>
-        private async Task<User?> SearchUserByEmail(string email)
+        /// <param name="emails">조회할 유저들의 이메일 리스트</param>
+        /// <returns>조회된 User 엔티티 리스트 (없거나 에러 발생 시 null)</returns>
+        private async Task<List<User>?> SearchUserByEmailsAsync(IEnumerable<string> emails)
         {
             return await _context.Users
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Email == email);
-        }
-
-        /// <summary>
-        /// 특정 채팅방의 모든 참여자 Email을 찾아줍니다.
-        /// </summary>
-        /// <param name="roomId">채팅방 식별 번호</param>
-        /// <returns>채팅방 참여자들의 Email List</returns>
-        private async Task<List<string>> GetParticipantEmailsInternalAsync(Guid roomId)
-        {
-            return await _context.ChatParticipants
-                .Where(cp => cp.ChatRoomId == roomId)
-                .Select(cp => cp.UserEmail)
+                .AsNoTracking() // 읽기 전용 최적화
+                .Where(u => emails.Contains(u.Email))
                 .ToListAsync();
         }
+        /// <summary>
+        /// 채팅방에 시스템 메시지(입장/퇴장 등)를 등록합니다.
+        /// </summary>
+        /// <param name="request">시스템 메시지 정보가 담긴 Request</param>
+        /// <returns>등록된 ChatMessage 객체, 실패 시 null</returns>
+        private async Task<ChatMessage?> AddSystemMessageInternalAsync(SendMessageRequest request)
+        {
+            // 시스템 메시지는 발신자가 없으므로 주입할 이메일을 null로 전달
+            return await _chatMessageService.AddMessageAsnyc(null, request);
+        }
+        /// <summary>
+        /// 모든 User가 채팅방을 나갔으면 방 정보를 제거합니다.
+        /// </summary>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        /// <returns>유저가 전부 나가서 채팅방 삭제에 성공했으면 true, 조건 부적합으로 실패하면 false</returns>
+        private async Task<bool> RemoveChatRoom(Guid roomId)
+        {
+            // 1. 채팅방에 남은 유저가 있는지 확인
+            bool hasParticipants = await _chatParticipantService.HasAnyParticipantsAsync(roomId);
+            if (hasParticipants) return false;
 
+            // 2. 남은 유저가 없으면 채팅방 삭제
+            bool isSuccess = await _chatRoomService.RemoveChatRoomAsync(roomId);
+            if (!isSuccess) return false;
+
+            return true;
+        }
         /// <summary>
         /// User와 채팅방 참가자들간의 친구 관계를 가져옵니다.
         /// </summary>
@@ -308,135 +362,24 @@ namespace ChatMessenger.Server.Services.Chat
                 .Where(f => f.UserEmail == myEmail && participantEmails.Contains(f.FriendEmail))
                 .ToDictionaryAsync(f => f.FriendEmail);
         }
-        #region Projection
         /// <summary>
-        /// Db에서 ChatRoomSummaryResponse DTO 생성에 필요한 Data를 최적화된 Sql 쿼리로 추출합니다.<br/>
+        /// 그룹 채팅방을 찾아서 제목, 프로필 이미지를 업데이트합니다.
         /// </summary>
-        /// <remarks>
-        /// * Db에서 정렬까지해서 반환해주므로 서버에서는 DTO로 변환하여 Client에게 전송해주면 됩니다. <br/>
-        /// 1. 프로젝션(Select)을 사용하여 필요한 컬럼만 SQL 수준에서 선별적으로 추출 <br/>
-        /// 2. 익명 객체 프로젝션을 통해 테이블 중복 조회 방지 <br/>
-        /// 3. 1차적으로 전송시간 기준 내림차순, 2차적으론 방 ID 기준 정렬까지 수행하여 외부에서 정렬 작업 불필요
-        /// </remarks>
-        /// <param name="myEmail">채팅방 목록을 조회할 사용자 Email</param>
-        /// <returns>ChatRoomSummaryResponse DTO 생성에 필요한 Data</returns>
-        private async Task<List<ChatRoomSummaryDTO>> FetchChatRoomSummaryAsync(string myEmail)
+        /// <param name="roomId">그룹 채팅방 식별 번호</param>
+        /// <param name="title">바꾸려는 제목</param>
+        /// <param name="profileIMGURL">바꾸려는 프로필 이미지</param>
+        /// <returns></returns>
+        private async Task<bool> UpdateGroupChatEntityAsync(Guid roomId, string? title, string? profileIMGURL)
         {
-            return await _context.ChatParticipants
-                .AsNoTracking() // 데이터를 읽어오기만하고 수정하진 않을거라 데이터 추적 프로세스는 건너뜀
-                .Where(p => p.UserEmail == myEmail)
-                .Select(p => new
-                {
-                    Participant = p,
-                    Room = p.ChatRoom,
-                    // 임시로 최신 메시지 정보를 하나의 익명 객체로 추출
-                    LatestMessage = _context.ChatMessages
-                        .Where(m => m.ChatRoomId == p.ChatRoomId)
-                        .OrderByDescending(m => m.Id)
-                        .Select(m => new { m.Content, m.SentAt })
-                        .FirstOrDefault(),
-                    // 채팅방의 참여자가 몇명인지 카운트
-                    ParticipantCount = _context.ChatParticipants.Count(cp => cp.ChatRoomId == p.ChatRoomId),
-                    // 안읽은 메세지 수
-                    UnreadCount = _context.ChatMessages.Count(m =>
-                        m.ChatRoomId == p.ChatRoomId &&
-                        m.Id > p.LastReadMessageId &&
-                        m.SenderEmail != myEmail)
-                })
-                .Select(x => new ChatRoomSummaryDTO
-                {
-                    // 1. 기본 정보 설정
-                    ChatRoomId = x.Participant.ChatRoomId,
-                    ChatRoom = x.Room,
-                    IsGroupChat = x.Room.IsGroupChat,
+            // 1. 방 찾기
+            ChatRoom? room = await _chatRoomService.GetChatRoomAsync(roomId);
+            if (room == null) return false;
 
-                    // 2. Title 정하는 로직
-                    // 기준 1. RenamedRoomName이 존재하면 그걸 Title로 설정
-                    // 기준 2. (그룹 채팅일 경우)방을 생성할때 방장이 정한 Title
-                    // 기준 3. (1대1 채팅일 경우)상대방의 닉네임
-                    Title = x.Participant.RenamedRoomName
-                        ?? (x.Room.IsGroupChat
-                            ? x.Room.Title
-                            : _context.ChatParticipants
-                                .Where(cp => cp.ChatRoomId == x.Participant.ChatRoomId && cp.UserEmail != myEmail)
-                                .Select(cp => cp.User.Nickname)
-                                .FirstOrDefault()) ?? "알 수 없는 사용자",
-
-                    // 3. 마지막 메세지, 참가자 수, 안읽은 메세지 수
-                    LastMessage = x.LatestMessage != null ? x.LatestMessage.Content : string.Empty,
-                    LastMessageSentAt = x.LatestMessage != null ? x.LatestMessage.SentAt : null,
-                    LastReadMessageId = x.Participant.LastReadMessageId,
-                    ParticipantCount = x.ParticipantCount,
-                    UnreadCount = x.UnreadCount,
-                })
-                .OrderByDescending(x => x.LastMessageSentAt ?? x.ChatRoom.CreatedAt)
-                .ToListAsync();
+            // 2. 업데이트
+            room.Title = title;
+            room.RoomProfileImageURL = profileIMGURL;
+            return await _chatRoomService.UpdateChatRoomAsync(room);
         }
-
-        /// <summary>
-        /// Db에서 ChatRoomDetailResponse DTO 생성에 필요한 Data를 최적화된 Sql 쿼리로 추출합니다.<br/>
-        /// Db에서 정렬까지해서 반환해주고, 그 데이터들로 Service에서 Response로 변환합니다.
-        /// </summary>
-        /// <remarks>
-        /// 1.해당 방의 참가자인게 확인되면 정보를 추출
-        /// </remarks>
-        /// <param name="roomId">조회할 채팅방 식별 번호</param>
-        /// <param name="myEmail">조회할 사용자 Email</param>
-        /// <returns>채팅방의 상세 정보를 담고있는 Response DTO</returns>
-        private async Task<ChatRoomDetailResponse?> FetchChatRoomDetailAsync(Guid roomId, string myEmail)
-        {
-            // roomId 방의 기본 정보, 참여자 정보, 메세지 정보를 한번의 쿼리로 가져옴
-            var rawData = await _context.ChatRooms
-                .AsNoTracking() // 데이터를 읽어오기만하고 수정하진 않을거라 데이터 추적 프로세스는 건너뜀
-                .Where(r => r.Id == roomId && _context.ChatParticipants
-                                                                .Any(cp => cp.ChatRoomId == roomId && cp.UserEmail == myEmail))
-                .Select(r => new
-                {
-                    Room = r,
-                    Participants = _context.ChatParticipants
-                        .Where(cp => cp.ChatRoomId == roomId)
-                        .Select(cp => new ChatParticipantProjection
-                        {
-                            User = cp.User,
-                            LastReadMessageId = cp.LastReadMessageId,
-                            RenamedRoomName = cp.UserEmail == myEmail ? cp.RenamedRoomName : null,
-                        }).ToList(),
-                    Messages = _context.ChatMessages
-                        .Where(m => m.ChatRoomId == roomId)
-                        .OrderByDescending(m => m.Id)
-                        .Take(50)
-                        .ToList(),
-                })
-                .FirstOrDefaultAsync();
-            if (rawData == null) return null;
-            // 5번 Title 결정을 위해 필요한 내 정보
-            ChatParticipant? myInfo = await GetParticipantEntityAsync(roomId, myEmail);
-            if (myInfo == null) return null;
-
-            // 2. 친구 관계 데이터는 별도로 가져오기
-            List<string>? participantEmails = rawData.Participants.Select(p => p.User.Email).ToList();
-            // 내 이메일을 기준으로 participantEmails에 등록된 사람들과의 Friendships 튜플들을 가져옴
-            Dictionary<string, Friendship> friendships = await GetFriendshipsAsync(myEmail, participantEmails);
-
-            // 3. FriendResponse 객체 생성
-            List<FriendResponse> participantsResponses = FriendMapper.ToFriendResponseList(myEmail, rawData.Participants, friendships);
-
-            // 4. MessageResponse 객체 생성
-            List<ChatMessageResponse> messageResponses = ChatMapper.ToMessageResponseList(roomId, participantsResponses, rawData.Messages, rawData.Participants);
-
-            // 5. Title 결정
-            string displayTitle = ChatMapper.DetermineRoomTitle(rawData.Room, myInfo, participantsResponses, myEmail);
-            string? originalTitle = null;
-            // 6. 내가 설정한 채팅방 이름이 존재하면 OrigianlTitle 설정해야함
-            if (!string.IsNullOrEmpty(myInfo.RenamedRoomName))
-            {
-                ChatParticipant temp = new() { RenamedRoomName = null };
-                originalTitle = ChatMapper.DetermineRoomTitle(rawData.Room, temp, participantsResponses, myEmail);
-            }
-
-            return ChatMapper.ToChatRoomDetailResponse(rawData.Room, myInfo, participantsResponses, messageResponses, displayTitle, originalTitle);
-        }
-        #endregion Projection
         #endregion private Method
     }
 }

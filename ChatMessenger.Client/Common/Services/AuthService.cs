@@ -3,8 +3,8 @@
  * 서버와 통신하여 JWT 토큰을 발급받거나 계정 생성을 요청합니다.
  */
 using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Requests.Auth;
+using ChatMessenger.Shared.DTOs.Responses.Auth;
 using System.Net.Http;
 using System.Net.Http.Json;
 

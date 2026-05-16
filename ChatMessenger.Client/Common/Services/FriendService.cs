@@ -4,7 +4,8 @@
 using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Requests.Friend;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Json;

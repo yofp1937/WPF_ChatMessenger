@@ -1,7 +1,7 @@
 ﻿using ChatMessenger.Server.Controllers.Base;
 using ChatMessenger.Server.Interfaces.Auth;
-using ChatMessenger.Shared.DTOs.Requests;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Requests.Auth;
+using ChatMessenger.Shared.DTOs.Responses.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ChatMessenger.Server.Controllers

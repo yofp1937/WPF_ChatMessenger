@@ -12,8 +12,18 @@ namespace ChatMessenger.Client.Common.Converters
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            // 텍스트가 있으면 Visible, null이면 Collapsed
-            return !string.IsNullOrEmpty(value as string) ? Visibility.Visible : Visibility.Collapsed;
+            // 1. 텍스트가 존재하면 Visible
+            if(!string.IsNullOrEmpty(value as string))
+            {
+                return Visibility.Visible;
+            }
+            // 2. 텍스트가 없고, 파라미터가 Hidden이면 Hidden
+            if (parameter?.ToString() == "Hidden")
+            {
+                return Visibility.Hidden;
+            }
+            // 3. 그 외엔 Collapsed
+            return Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

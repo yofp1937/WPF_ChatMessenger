@@ -1,5 +1,5 @@
 ﻿using ChatMessenger.Client.Models.Friends;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Chat;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ChatMessenger.Client.Models.Chats

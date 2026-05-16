@@ -8,8 +8,9 @@
         <Setter Property="Foreground" Value="{DynamicResource MaterialDesignValidationErrorBrush}"/>
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
         <Setter Property="Visibility" Value="{Binding Path=Text, RelativeSource={RelativeSource Self},
-                                                         Converter={StaticResource StringToVisibilityConverter}}"/>
+            Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='Hidden'}"/>
     </Style>
 
     <!-- 경계선 Style -->
@@ -74,7 +75,31 @@
         <Setter Property="TextWrapping" Value="NoWrap"/>
     </Style>
 
-    
+    <!-- FriendDetailView, CreateChatRoomView 두 곳에서 사용되는 Style -->
+    <!-- ProfileImage 표시용 Grid -->
+    <Style x:Key="Common_BigProfileGrid" TargetType="Grid">
+        <Setter Property="Width" Value="200"/>
+        <Setter Property="Height" Value="200"/>
+        <Setter Property="Margin" Value="0,20,0,20"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+    </Style>
+    <!-- ProfileImage 변경용 Button -->
+    <Style x:Key="Common_ProfileChangeButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFloatingActionMiniButton}">
+        <Setter Property="Width" Value="35"/>
+        <Setter Property="Height" Value="35"/>
+        <Setter Property="HorizontalAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Top"/>
+        <Setter Property="Margin" Value="0,10,10,0"/>
+        <Setter Property="ToolTip" Value="이미지 변경"/>
+        <Setter Property="Content">
+            <Setter.Value>
+                <materialDesign:PackIcon Kind="Pencil" Width="20" Height="20"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+
     <!-- 프로젝트 전역에서 ScrollBar를 슬림하게 만들어주는 Style -->
     <Style x:Key="SlimScrollBarThumb" TargetType="Thumb">
         <Setter Property="SnapsToDevicePixels" Value="True"/>

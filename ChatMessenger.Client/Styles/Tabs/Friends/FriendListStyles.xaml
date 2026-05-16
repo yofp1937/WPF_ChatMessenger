@@ -42,7 +42,7 @@
             <Grid Style="{StaticResource Common_ProfileImageGridInListBox}">
                 <!-- Image를 원형으로 보이게해주는 Ellipse -->
                 <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
-                <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}"/>
+                <materialDesign:PackIcon Style="{StaticResource MDStyle_DefaultProfileIcon}"/>
             </Grid>
             <!-- 그외 정보 표시용 Grid -->
             <Grid Grid.Column="1" Style="{StaticResource Common_InfoGridInListBox}">

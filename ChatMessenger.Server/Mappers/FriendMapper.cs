@@ -3,7 +3,7 @@
  */
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Data.Projections;
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChatMessenger.Server.Mappers

@@ -1,4 +1,5 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using ChatMessenger.Shared.DTOs.Responses.Chat;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ChatMessenger.Client.Models.Chats
 {
@@ -28,10 +29,10 @@ namespace ChatMessenger.Client.Models.Chats
 
         // 마지막 메세지
         [ObservableProperty]
-        private string _lastMessage = string.Empty;
+        private string? _lastMessage = string.Empty;
         // 마지막 메세지 전송 시간
         [ObservableProperty]
-        private DateTime _lastMessageSentAt;
+        private DateTime? _lastMessageSentAt;
 
         // 읽지 않은 메세지 수
         [ObservableProperty]
@@ -41,5 +42,27 @@ namespace ChatMessenger.Client.Models.Chats
 
         [ObservableProperty]
         private bool _isGroupChat;
+
+        public ChatRoomSummaryModel() { }
+
+        public ChatRoomSummaryModel(ChatRoomSummaryResponse dto)
+        {
+            UpdateFromDTO(dto);
+        }
+
+        /// <summary>
+        /// 입력받은 DTO를 바탕으로 모델 데이터를 갱신합니다.
+        /// </summary>
+        private void UpdateFromDTO(ChatRoomSummaryResponse dto)
+        {
+            RoomId = dto.RoomId;
+            Title = dto.Title;
+            RoomProfileImageURL = dto.RoomProfileImageURL;
+            ParticipiantCount = dto.ParticipantCount;
+            LastMessage = dto.LastMessage;
+            LastMessageSentAt = dto.LastMessageSentAt?.ToLocalTime();
+            UnreadCount = dto.UnreadCount;
+            IsGroupChat = dto.IsGroupChat;
+        }
     }
 }

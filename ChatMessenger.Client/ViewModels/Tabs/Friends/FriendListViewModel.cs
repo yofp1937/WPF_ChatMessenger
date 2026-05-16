@@ -1,5 +1,6 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Common.Messages.Tab.Friend;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,7 +19,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
 
         // 로그인한 사용자의 프로필
         [ObservableProperty]
-        private FriendModel _userProfile;
+        private FriendModel? _userProfile;
 
         // 로그인한 사용자가 추가한 친구 목록
         private ObservableCollection<FriendModel> _friends = new();
@@ -48,16 +49,20 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             // 로그인에 성공했지만 Profile 정보가 존재하지않으면 강제 로그아웃
             if (_identityService.MyProfile == null)
             {
-                _userProfile = new FriendModel();
                 WeakReferenceMessenger.Default.Send(new ForceLogoutMessage());
                 return;
             }
             _userProfile = _identityService.MyProfile;
 
-            // View와 Binding될 친구 목록 생성
-
             // 친구 목록 불러오기
             _ = LoadFriendsAsync();
+        }
+        /// <inheritdoc/>
+        public override void CleanUp()
+        {
+            base.CleanUp();
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
         }
         #region RelayCommand
         /// <summary>
@@ -67,7 +72,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         private async Task LoadFriendsAsync()
         {
             List<FriendModel>? result = await _friendService.GetFriendsListAsync();
-            if (result == null) return;
+            if (result == null || result.Count == 0) return;
 
             _friends.Clear();
             foreach (FriendModel friend in result)

@@ -11,9 +11,8 @@
         <Setter Property="UniformCornerRadius" Value="15"/>
     </Style>
     
-    <!-- FriendList에서 사용되는 PackIcon -->
-    <materialDesign:PackIcon x:Key="MDStyle_FriendList_AddFriendIcon" Kind="AccountAdd" Width="24" Height="24"/>
-    <Style x:Key="MDStyle_FriendList_ProfileDefaultIcon" TargetType="materialDesign:PackIcon">
+    <!-- Profile Image 표시에 사용되는 기본 Icon -->
+    <Style x:Key="MDStyle_DefaultProfileIcon" TargetType="materialDesign:PackIcon">
         <Setter Property="Kind" Value="Account"/>
         <Setter Property="Width" Value="28"/>
         <Setter Property="Height" Value="28"/>
@@ -21,7 +20,10 @@
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
     </Style>
-    <materialDesign:PackIcon x:Key="MDStyle_FriendDetail_ProfileChangeIcon" Kind="Pencil" Width="20" Height="20"/>
+
+    <!-- FriendList에서 사용되는 PackIcon -->
+    <!-- 친구 추가 Button 내부 Icon -->
+    <materialDesign:PackIcon x:Key="MDStyle_FriendList_AddFriendIcon" Kind="AccountAdd" Width="24" Height="24"/>
 
     <!-- FriendDetail에서 사용되는 PackIcon -->
     <!-- 검색 Button 내부 Icon -->
@@ -29,21 +31,13 @@
     <!-- 검색 Panel Close Icon -->
     <materialDesign:PackIcon x:Key="MDStyle_FriendDetail_CloseIcon" Kind="Close" Width="15" Height="15"/>
     <!-- Profile 창 기본 Icon -->
-    <Style x:Key="MDStyle_FriendDetail_ProfileDefaultIcon" TargetType="materialDesign:PackIcon" BasedOn="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}">
+    <Style x:Key="MDStyle_FriendDetail_ProfileDefaultIcon" TargetType="materialDesign:PackIcon" BasedOn="{StaticResource MDStyle_DefaultProfileIcon}">
         <Setter Property="Width" Value="150"/>
         <Setter Property="Height" Value="150"/>
     </Style>
     <!-- Profile 창 기본 친구 표시 Icon -->
     <Style x:Key="MDStyle_FriendDetail_FriendIcon" TargetType="materialDesign:PackIcon">
         <Setter Property="Kind" Value="AccountMultiple"/>
-        <Setter Property="Width" Value="20"/>
-        <Setter Property="Height" Value="20"/>
-        <Setter Property="Margin" Value="0,0,2,0"/>
-        <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
-    </Style>
-    <!-- Profile 창 기본 즐겨찾기 Icon -->
-    <Style x:Key="MDStyle_Friend_FavoriteIcon" TargetType="materialDesign:PackIcon">
-        <Setter Property="Kind" Value="Star"/>
         <Setter Property="Width" Value="20"/>
         <Setter Property="Height" Value="20"/>
         <Setter Property="Margin" Value="0,0,2,0"/>
@@ -56,5 +50,50 @@
         <Setter Property="Height" Value="20"/>
         <Setter Property="Margin" Value="0,0,2,0"/>
         <Setter Property="Foreground" Value="Crimson"/>
+    </Style>
+    
+    <!-- Profile 창 기본 즐겨찾기 Icon -->
+    <Style x:Key="MDStyle_Friend_FavoriteIcon" TargetType="materialDesign:PackIcon">
+        <Setter Property="Kind" Value="Star"/>
+        <Setter Property="Width" Value="20"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Margin" Value="0,0,2,0"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
+    </Style>
+
+    <!-- ChatList에서 사용되는 PackIcon -->
+    <!-- ChatList에서 그룹채팅 표시에 사용되는 기본 Icon -->
+    <Style x:Key="MDStyle_Chat_GroupChatDefaultIcon" TargetType="materialDesign:PackIcon">
+        <Setter Property="Kind" Value="AccountGroup"/>
+        <Setter Property="Width" Value="28"/>
+        <Setter Property="Height" Value="28"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+    </Style>
+    <!-- ChatList에서 채팅방 생성 Icon -->
+    <materialDesign:PackIcon x:Key="MDStyle_Chat_CreateChatIcon" Kind="ChatAdd" Width="24" Height="24"/>
+
+    <!-- ChatRoomView에서 사용되는 PackIcon -->
+    <Style x:Key="MDStyle_ChatRoom_DefaultIcon" TargetType="materialDesign:PackIcon">
+        <Setter Property="Kind" Value="Account"/>
+        <Setter Property="Width" Value="18"/>
+        <Setter Property="Height" Value="18"/>
+    </Style>
+    <!-- SeeMore Button 내부 Icon-->
+    <materialDesign:PackIcon x:Key="MDStyle_ChatRoom_MenuIcon" Kind="Menu"/>
+    <!-- 채팅방 닫기 Button 내부 Icon -->
+    <materialDesign:PackIcon x:Key="MDStyle_ChatRoom_CloseRoomIcon" Kind="ArrowLeft"/>
+    <!-- 메세지 전송 Button 내부 Icon -->
+    <materialDesign:PackIcon x:Key="MDStyle_ChatRoom_SendMessageIcon" Kind="Send"/>
+    <!-- 더보기 Panel 닫기 Button 내부 Icon -->
+    <materialDesign:PackIcon x:Key="MDStyle_ChatRoom_CloseSidePanelIcon" Kind="Close"/>
+    <!-- 채팅방 나가기 Button 내부 Icon -->
+    <materialDesign:PackIcon x:Key="MDStyle_ChatRoom_ExitIcon" Kind="ExitToApp" Width="30" Height="30"/>
+    
+    <!-- CreateChatRoom에서 사용되는 PackIcon -->
+    <Style x:Key="MDStyle_Chat_BigGroupChatIcon" TargetType="materialDesign:PackIcon" BasedOn="{StaticResource MDStyle_Chat_GroupChatDefaultIcon}">
+        <Setter Property="Width" Value="140"/>
+        <Setter Property="Height" Value="140"/>
     </Style>
 </ResourceDictionary>

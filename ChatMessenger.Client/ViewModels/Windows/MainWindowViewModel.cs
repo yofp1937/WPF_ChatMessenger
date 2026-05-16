@@ -5,8 +5,10 @@
  * 기능
  * 1.기존 LoginView에서 RegisterView, MainShellView로 이동 가능
  */
+using ChatMessenger.Client.Common.Enums;
 using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Common.Messages.Page;
 using ChatMessenger.Client.ViewModels.Base;
 using ChatMessenger.Client.ViewModels.Pages;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -36,17 +38,41 @@ namespace ChatMessenger.Client.ViewModels.Windows
 
         private void SubscribeMessages()
         {
-            WeakReferenceMessenger.Default.Register<NavigationMessage>(this, (r, m) =>
+            WeakReferenceMessenger.Default.Register<ChangePageMessage>(this, (r, m) =>
             {
                 // 받은 메시지에 담긴 타입으로 서비스를 가져와서 화면을 교체합니다.
-                CurrentViewModel = (PageViewModelBase)_serviceProvider.GetRequiredService(m.ViewModelType);
+                CurrentViewModel = m.type switch
+                {
+                    AppPageType.Login => _serviceProvider.GetRequiredService<LoginViewModel>(),
+                    AppPageType.Register => _serviceProvider.GetRequiredService<RegisterViewModel>(),
+                    AppPageType.MainShell => _serviceProvider.GetRequiredService<MainShellViewModel>(),
+                    _ => _serviceProvider.GetRequiredService<LoginViewModel>()
+                };
             });
-            WeakReferenceMessenger.Default.Register<ForceLogoutMessage>(this, (r, m) =>
+            // 로그아웃 신호 들어오면 로그아웃 진행
+            WeakReferenceMessenger.Default.Register<ForceLogoutMessage>(this, async (r, m) =>
             {
-                // 1.서비스 계층의 토큰과 프로필 정보 삭제
-                IIdentityService identityService = _serviceProvider.GetRequiredService<IIdentityService>();
-                identityService.Logout();
-                // 2.화면을 LoginView로 교체
+                await ExecuteLogoutAsync();
+            });
+        }
+        /// <summary>
+        /// 강제 로그아웃을 실행합니다.
+        /// </summary>
+        private async Task ExecuteLogoutAsync()
+        {
+            // 로그인 상태였었으면 내부 자원 정리
+            if(CurrentViewModel is MainShellViewModel mainShell)
+            {
+                mainShell.CleanUp();
+            }
+            IChatHubService chatHubService = _serviceProvider.GetRequiredService<IChatHubService>();
+            IIdentityService identityService = _serviceProvider.GetRequiredService<IIdentityService>();
+
+            await chatHubService.DisconnectAsync();
+            identityService.Logout();
+
+            App.Current.Dispatcher.Invoke(() =>
+            {
                 CurrentViewModel = _serviceProvider.GetRequiredService<LoginViewModel>();
             });
         }

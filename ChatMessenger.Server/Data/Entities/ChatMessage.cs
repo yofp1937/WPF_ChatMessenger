@@ -1,6 +1,7 @@
 ﻿/*
  * 유저들이 주고받은 대화 내용을 저장하는 테이블의 구조입니다.
  */
+using ChatMessenger.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -21,17 +22,19 @@ namespace ChatMessenger.Server.Data.Entities
         [ForeignKey("ChatRoomId")]
         public virtual ChatRoom ChatRoom { get; set; } = null!;
 
-        // 1.실제로 DB 컬럼에 저장될 값 (채팅 전송자)
+        // 메세지 타입 (기본은 일반 메세지)
         [Required]
-        public string SenderEmail { get; set; } = null!;
+        public ChatMessageType MessageType { get; set; } = ChatMessageType.Text;
+        // 1.실제로 DB 컬럼에 저장될 값 (채팅 전송자)
+        // MessageType이 System일 경우 null로 넣어야함
+        public string? SenderEmail { get; set; }
         // 2.SenderEmail에 데이터를 가져올 객체
         [ForeignKey("SenderEmail")]
-        public virtual User Sender { get; set; } = null!;
+        public virtual User? Sender { get; set; }
 
         // 채팅 내용
         [Required]
         public string Content { get; set; } = string.Empty;
-
         // 채팅 보낸 시간
         [Required]
         public DateTime SentAt { get; set; } = DateTime.UtcNow;

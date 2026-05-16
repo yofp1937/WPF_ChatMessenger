@@ -1,7 +1,7 @@
 ﻿/*
  * DB와 통신하여 로그인 인증을 담당 하는 Class가 구현해야할 Interface
  */
-using ChatMessenger.Shared.DTOs.Responses;
+using ChatMessenger.Shared.DTOs.Responses.Auth;
 
 namespace ChatMessenger.Client.Common.Interfaces
 {

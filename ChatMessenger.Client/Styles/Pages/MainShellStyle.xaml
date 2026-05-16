@@ -24,6 +24,9 @@
     <DataTemplate DataType="{x:Type chatVms:ChatRoomViewModel}">
         <chatViews:ChatRoomView/>
     </DataTemplate>
+    <DataTemplate DataType="{x:Type chatVms:CreateChatRoomViewModel}">
+        <chatViews:CreateChatRoomView/>
+    </DataTemplate>
 
     <DataTemplate DataType="{x:Type settingVms:SettingListViewModel}">
         <settingsViews:SettingListView/>
@@ -31,5 +34,40 @@
     <DataTemplate DataType="{x:Type settingVms:SettingDetailViewModel}">
         <settingsViews:SettingDetailView/>
     </DataTemplate>
+
+    <!-- 친구 추가 패널 -->
+    <!-- 친구 추가 StackPanel Style -->
+    <Style x:Key="MainShell_AddFriendStackPanel" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Horizontal"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="5,5"/>
+        <Setter Property="Visibility" Value="{Binding IsAddFriendMode, Converter={StaticResource BoolToVis}}"/>
+    </Style>
+    <!-- 친구 추가 TextBox Style -->
+    <Style x:Key="MainShell_AddFriendTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBox}">
+        <Setter Property="materialDesign:HintAssist.Hint" Value="Enter Email to add friend"/>
+        <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+        <Setter Property="HorizontalContentAlignment" Value="Right"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="CaretBrush" Value="{DynamicResource MaterialDesignBody}"/>
+        <Setter Property="Margin" Value="5,5"/>
+        <Setter Property="Width" Value="180"/>
+    </Style>
+    <!-- 친구 추가 검색 Button Style -->
+    <Style x:Key="MainShell_AddFriendSearchButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatMidBgButton}">
+        <Setter Property="Width" Value="30"/>
+        <Setter Property="Margin" Value="5,5"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Content" Value="{StaticResource MDStyle_FriendDetail_SearchIcon}"/>
+    </Style>
+    <!-- 친구 추가 나가기 Button Style -->
+    <Style x:Key="MainShell_AddFriendCloseButton" TargetType="Button" BasedOn="{StaticResource MaterialDesignFloatingActionButton}">
+        <Setter Property="materialDesign:ElevationAssist.Elevation" Value="Dp0"/>
+        <Setter Property="Width" Value="30"/>
+        <Setter Property="Height" Value="30"/>
+        <Setter Property="Margin" Value="5,5"/>
+        <Setter Property="Content" Value="{StaticResource MDStyle_FriendDetail_CloseIcon}"/>
+    </Style>
 
 </ResourceDictionary>

@@ -4,16 +4,53 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
 
+    <!-- 채팅방 생성 Button -->
+    <Style x:Key="ChatList_CreateChatBtn" TargetType="Button" BasedOn="{StaticResource MaterialDesignIconForegroundButton}">
+        <Setter Property="Margin" Value="5,0,0,0"/>
+        <Setter Property="Width" Value="40"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="ToolTip" Value="채팅방 생성"/>
+        <Setter Property="Content" Value="{StaticResource MDStyle_Chat_CreateChatIcon}"/>
+    </Style>
     <!-- 검색 TextBox -->
-    <Style x:Key="ChatList_ChattingRoomSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBoxBase}">
+    <Style x:Key="ChatList_RoomSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource MaterialDesignTextBoxBase}">
         <Setter Property="Padding" Value="5"/>
-        <Setter Property="Margin" Value="10"/>
+        <Setter Property="Margin" Value="5,10,10,10"/>
         <Setter Property="CaretBrush" Value="White"/>
         <Setter Property="ToolTip" Value="채팅방 검색"/>
         <Setter Property="materialDesign:HintAssist.Hint" Value="Chatting Room Search"/>
         <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="true"/>
         <Setter Property="HorizontalContentAlignment" Value="Right"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+
+    <!-- 그룹 채팅일 경우 인원수 표시해주는 TextBlock -->
+    <Style x:Key="ChatList_PeopleCountTB" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Margin" Value="5,0"/>
+        <Setter Property="Foreground" Value="Gold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Visibility" Value="{Binding IsGroupChat, Converter={StaticResource BoolToHidden}}"/>
+    </Style>
+
+    <!-- 채팅방 제목, 마지막 메시지 표시용 StackPanel -->
+    <Style x:Key="ChatList_VerticalStackPanel" TargetType="StackPanel">
+        <Setter Property="Orientation" Value="Vertical"/>
+        <Setter Property="Margin" Value="0,10,5,5"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- 안읽은 메세지 수 표시용 Style -->
+    <Style x:Key="ChatList_UnreadCountEllipse" TargetType="Ellipse">
+        <Setter Property="Fill" Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
+        <Setter Property="Width" Value="25"/>
+        <Setter Property="Height" Value="25"/>
+    </Style>
+    <Style x:Key="ChatList_UnreadCountTB" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
     </Style>
     
     <!-- ListBox Template -->
@@ -27,7 +64,7 @@
             <Grid Style="{StaticResource Common_ProfileImageGridInListBox}">
                 <!-- Image를 원형으로 보이게해주는 Ellipse -->
                 <Ellipse Style="{StaticResource Common_ProfileImageEllipse}"/>
-                <materialDesign:PackIcon Style="{StaticResource MDStyle_FriendList_ProfileDefaultIcon}"/>
+                <materialDesign:PackIcon Style="{StaticResource MDStyle_DefaultProfileIcon}"/>
             </Grid>
             <!-- 그외 정보 표시용 Grid -->
             <Grid Grid.Column="1" Style="{StaticResource Common_InfoGridInListBox}">
@@ -35,23 +72,22 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Vertical" Margin="0,10,0,5" VerticalAlignment="Center">
+                <StackPanel Style="{StaticResource ChatList_VerticalStackPanel}">
                     <!-- 채팅방 제목, 참가 인원수, 마지막 채팅 표시용 StackPanel -->
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{Binding Title}" Style="{StaticResource Common_InfoGrid_MainTextBlock}"/>
-                        <TextBlock Text="{Binding ParticipiantCount}" FontSize="12" Margin="5,0" Foreground="Gold" VerticalAlignment="Center"
-                                    Visibility="{Binding IsGroupChat, Converter={StaticResource BoolToHidden}}"/>
+                        <TextBlock Text="{Binding ParticipiantCount}" Style="{StaticResource ChatList_PeopleCountTB}"/>
                     </StackPanel>
                     <TextBlock Text="{Binding LastMessage}" Style="{StaticResource Common_InfoGrid_LastMessage}" Margin="0,5"/>
                 </StackPanel>
                 <!-- 마지막으로 보낸 메세지 시간 표시용 StackPanel -->
-                <StackPanel Grid.Column="1" Orientation="Vertical" Margin="0,10,5,5" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Style="{StaticResource ChatList_VerticalStackPanel}">
                     <TextBlock Text="{Binding LastMessageSentAt, StringFormat={}{0:tt h:mm}}"
                                    Style="{StaticResource Common_InfoGrid_SubTextBlock}"/>
                     <!-- 안읽은 메세지 수 표시용 Grid -->
                     <Grid Margin="0,8,0,5" Visibility="{Binding UnreadCount, Converter={StaticResource ZeroToVisibilityConverter}, ConverterParameter='Collapsed'}">
-                        <Ellipse Fill="{DynamicResource MaterialDesign.Brush.Primary}" Width="25" Height="25"/>
-                        <TextBlock Text="{Binding UnreadCount}" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        <Ellipse Style="{StaticResource ChatList_UnreadCountEllipse}"/>
+                        <TextBlock Text="{Binding UnreadCount}" Style="{StaticResource ChatList_UnreadCountTB}"/>
                     </Grid>
                 </StackPanel>
             </Grid>
