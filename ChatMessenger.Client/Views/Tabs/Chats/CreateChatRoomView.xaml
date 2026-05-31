@@ -32,19 +32,24 @@
                 <StackPanel Grid.Row="1">
                     <TextBox Text="{Binding RoomTitle, UpdateSourceTrigger=PropertyChanged}"
                                  Style="{StaticResource CreateChatRoom_TitleTextBox}"/>
-                    <TextBlock Text="{Binding WarningText}" Style="{StaticResource Common_WarningTextBlock}"
+                    <TextBlock Text="{Binding TitleWarningText}" Style="{StaticResource Common_WarningTextBlock}"
                                    Margin="0,20,0,0"/>
                 </StackPanel>
             </Grid>
             
             <!-- 오른쪽 초대할 친구 List Panel -->
             <Grid Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="15">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <ListBox ItemsSource="{Binding FriendList}" Background="Transparent" BorderThickness="0"
                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionMode="Multiple">
                     <!-- 핵심: ListBoxItem(박스 전체)의 선택 상태를 모델의 IsSelected와 연결 -->
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
                             <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                            <Setter Property="IsEnabled" Value="{Binding IsCheckBoxEnabled}"/>
                             <Setter Property="Padding" Value="10"/>
                             <Setter Property="Cursor" Value="Hand"/>
                         </Style>
@@ -73,6 +78,15 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
+                <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <TextBlock Text="( " Style="{StaticResource CreateChatRoom_InviteCountTB}"/>
+                        <TextBlock Text="{Binding TotalSelectedCount}" Style="{StaticResource CreateChatRoom_InviteCountTB}"/>
+                        <TextBlock Text=" / 99 )" Style="{StaticResource CreateChatRoom_InviteCountTB}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding InviteWarningText}" Style="{StaticResource Common_WarningTextBlock}"
+                                    Visibility="{Binding InviteWarningText, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='Hidden'}"/>
+                </StackPanel>
             </Grid>
         </Grid>
         
@@ -80,7 +94,7 @@
         <Grid Grid.Row="1">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,20">
                 <Button Command="{Binding CreateChatRoomCommand}" Content="초대" Margin="10"/>
-                <Button Content="취소" Margin="10"/>
+                <Button Command="{Binding CloseViewCommand}" Content="취소" Margin="10"/>
             </StackPanel>
         </Grid>
     </Grid>

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ChatMessenger.Shared.Enums
+﻿namespace ChatMessenger.Shared.Enums
 {
     /// <summary>
     /// 메세지의 타입을 결정하는 enum

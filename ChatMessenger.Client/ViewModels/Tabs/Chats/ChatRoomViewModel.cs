@@ -1,13 +1,14 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages.Tab.Chat;
+using ChatMessenger.Client.Common.Messages.Tab.Chat.Room;
 using ChatMessenger.Client.Models.Chats;
 using ChatMessenger.Client.ViewModels.Base;
+using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Requests.Chat;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using System.Diagnostics;
 
 namespace ChatMessenger.Client.ViewModels.Tabs.Chats
 {
@@ -28,29 +29,25 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         [ObservableProperty]
         private string _inputMessage = string.Empty;
 
+        #region 생성자, override
         public ChatRoomViewModel(IIdentityService identityService, IChatService chatService, IChatHubService chatHubService)
         {
             _identityService = identityService;
             _chatService = chatService;
             _chatHubService = chatHubService;
 
-            SubscribeEvents();
+            Subscribe();
         }
-
-        /// <summary>
-        /// 화면을 roomId 채팅방 화면으로 변경하고 입장합니다.
-        /// </summary>
-        /// <param name="roomId">채팅방 식별 번호</param>
-        public async void SetChatRoom(Guid roomId)
+        /// <inheritdoc/>
+        protected override void Subscribe()
         {
-            await LoadRoomDetailAsync(roomId);
+            // Server가 ChatHubService에게 신호를 보내면 ViewModel이 감지하여 특정 메서드를 실행하게 합니다.
+            _chatHubService.MessageReceivedEvent += OnMessageReceived;
+            _chatHubService.ReadStatusUpdatedEvent += OnReadStatusUpdated;
         }
-
-        /// <summary>
-        /// ChatHub 이벤트 연결을 해제합니다.
-        /// </summary>
+        /// <inheritdoc/>
         /// <remarks>
-        /// ChatHub 이벤트 구독도 해제합니다.
+        /// ChatHubService의 Action이벤트 구독을 해제합니다.
         /// </remarks>
         public override void CleanUp()
         {
@@ -59,13 +56,29 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             _chatHubService.ReadStatusUpdatedEvent -= OnReadStatusUpdated;
             CurrentRoom = null;
         }
-
+        #endregion 생성자, override
+        #region public Method
+        /// <summary>
+        /// 화면을 roomId 채팅방 화면으로 변경하고 입장합니다.
+        /// </summary>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        public async void SetChatRoom(Guid roomId)
+        {
+            await LoadRoomDetailAsync(roomId);
+        }
+        #endregion public Method
         #region RelayCommand
+        /// <summary>
+        /// 채팅방 오른쪽 정보 창을 열거나 닫습니다.
+        /// </summary>
         [RelayCommand]
         private void ToggleSidePanel()
         {
             IsSidePanelVisible = !IsSidePanelVisible;
         }
+        /// <summary>
+        /// 현재 채팅방 화면을 닫습니다.
+        /// </summary>
         [RelayCommand]
         private void CloseCurrentRoom()
         {
@@ -75,11 +88,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             WeakReferenceMessenger.Default.Send(new ChatRoomClosedMessage());
         }
         /// <summary>
-        /// 메세지 전송 버튼과 연결된 RelayCommand
-        /// </summary>
-        /// <remarks>
         /// InputMessage TextBox에 입력된 내용을 채팅방에 전송합니다.
-        /// </remarks>
+        /// </summary>
         [RelayCommand]
         private async Task SendMessage()
         {
@@ -98,6 +108,24 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             _ = await _chatService.SendMessageAsync(request);
         }
         [RelayCommand]
+        private void InviteFriend()
+        {
+            if (CurrentRoom == null) return;
+            // 내 친구의 Eamil과 채팅방 참여자의 Email이 일치하면 해당 친구 초대 불가능하게 만들기위해 추출
+            List<string> existingEmails = CurrentRoom.Participants.Select(p => p.Email).ToList();
+            // 1. 그룹 채팅일때 친구 초대하면 참가자 정보 포함해서 Message 전송
+            if (CurrentRoom.IsGroupChat)
+            {
+                WeakReferenceMessenger.Default.Send(new OpenCreateChatRoomRequestMessage(CurrentRoom.RoomId, CurrentRoom.Title, CurrentRoom.RoomProfileImageURL, existingEmails));
+            }
+            // 2. 1대1 채팅이면 기본 그룹
+            else
+            {
+                // 신규 그룹채팅 생성이므로 RoomId는 null로 Message 전송
+                WeakReferenceMessenger.Default.Send(new OpenCreateChatRoomRequestMessage(null, null, null, existingEmails));
+            }
+        }
+        [RelayCommand]
         private async Task LeaveRoom()
         {
             if (CurrentRoom == null) return;
@@ -105,15 +133,16 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             // 1. TODO: 진짜 채팅방 나갈것인지 확인 입력 받아야함
 
             // 2. Service에 현재 방 탈퇴 메세지 요청
-            bool result = await _chatService.LeaveRoomAsync(CurrentRoom.RoomId);
-            if (!result) return;
+            ServiceResult<bool> result = await _chatService.LeaveRoomAsync(CurrentRoom.RoomId);
+            if (!result.IsSuccess) return;
 
             Guid leftRoomId = CurrentRoom.RoomId;
             CurrentRoom = null;
 
-            // 3. TODO: ChatListView에게 현재 입장한 방이 삭제됐음을 알려야 함 (ChatHub 탈퇴도 List에서 해야할듯)
+            // 3. ChatListView에게 현재 입장한 방이 삭제됐음을 알림
+            WeakReferenceMessenger.Default.Send(new LeaveChatRoomMessage(leftRoomId));
         }
-        #endregion
+        #endregion RelayCommand
         #region OnChanged
         /// <summary>
         /// CurrentRoom이 변경되면 호출합니다.
@@ -133,6 +162,9 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             if (value == null) return;
             _ = Task.Run(async () => await _chatHubService.LeaveRoomAsync(value.RoomId));
         }
+        #endregion OnChanged
+        #region private Method
+        #region ChatHub Action Event와 연결된 Method
         /// <summary>
         /// 서버로부터 현재 접속중인 방에 새로운 메세지가 도착했을때 실행되는 메서드
         /// </summary>
@@ -140,8 +172,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         private void OnMessageReceived(ChatMessageResponse response)
         {
             // 1. 현재 방의 메시지인지 확인
-            if (response == null || _identityService.MyProfile == null
-                || CurrentRoom == null || CurrentRoom.RoomId != response.RoomId)
+            if (response == null || CurrentRoom == null || CurrentRoom.RoomId != response.RoomId)
                 return;
 
             // 2. Message List에 추가
@@ -150,10 +181,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
                 ChatMessageModel newMessage = new(response, _identityService.MyProfile.Email);
                 CurrentRoom.AddMessage(newMessage);
 
-                // 3. 내가 보낸 메세지가 아니면 읽음 처리 호출
+                // 3. 내가 보낸 메세지가 아니면 읽음 처리 호출 (내가 메세지를 전송하면 나의 lastReadedMessagId는 자동으로 전송한 MessageId로 업데이트됨)
                 if (!newMessage.IsMine)
                 {
-                    await UpdateLastReadedMessage(response.RoomId, response.MessageId);
+                    await UpdateLastReadedMessageAsync(response.RoomId, response.MessageId);
                 }
             });
         }
@@ -168,21 +199,12 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         {
             // 1. 현재 방인지 확인
             if (CurrentRoom == null || CurrentRoom.RoomId != response.RoomId) return;
-            if (_identityService.MyProfile?.Email == response.UserEmail) return;
+            // 2. 내가 보낸 메세지는 전송 이후 처리했기때문에 return
+            if (_identityService.MyProfile.Email == response.UserEmail) return;
             // 2. 해당 ID 이하의 메시지들 카운트 감소
-            UpdateMessagesReadStatus(response.LastReadMessageId, response.PreviousLastReadMessageId);
+            DecrementUnreadCounts(response.LastReadMessageId, response.PreviousLastReadMessageId);
         }
-        #endregion
-        #region private Method
-        /// <summary>
-        /// 메세지 혹은 이벤트들을 구독합니다
-        /// </summary>
-        private void SubscribeEvents()
-        {
-            // Server가 ChatHubService에게 신호를 보내면 ViewModel이 감지하여 특정 메서드를 실행하게 합니다.
-            _chatHubService.MessageReceivedEvent += OnMessageReceived;
-            _chatHubService.ReadStatusUpdatedEvent += OnReadStatusUpdated;
-        }
+        #endregion ChatHub Action Event와 연결된 Method
         /// <summary>
         /// 채팅방의 상세 정보를 읽어오고, 실시간 채팅자로 입장합니다.
         /// </summary>
@@ -191,19 +213,19 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         {
             if (_identityService.MyProfile == null) return;
             // 1. 입장하려는 방의 상세 정보를 가져옵니다.
-            ChatRoomDetailModel? response = await _chatService.GetChatRoomDetailAsync(roomId, _identityService.MyProfile.Email);
-            if (response == null) return;
-            CurrentRoom = response;
+            ServiceResult<ChatRoomDetailModel> response = await _chatService.GetChatRoomDetailModelAsync(roomId, _identityService.MyProfile.Email);
+            if (!response.IsSuccess) return;
+            CurrentRoom = response.Data;
 
             // 2. 현재 방에 메세지가 하나라도 있으면 마지막 메세지를 가져옵니다.
-            ChatMessageModel? lastMessage = CurrentRoom.SortedMessages.Cast<ChatMessageModel>().LastOrDefault();
+            ChatMessageModel? lastMessage = CurrentRoom.Messages.LastOrDefault();
             if (lastMessage == null) return;
 
             // 3. 채팅방 정보에 등록된 LastReadMessageId가 실제 마지막 메세지의 Id보다 값이 작으면
             // 메세지를 수신했다고 서버에 신호를 보냅니다.
             if (lastMessage.MessageId > CurrentRoom.LastReadMessageId)
             {
-                await UpdateLastReadedMessage(roomId, lastMessage.MessageId);
+                await UpdateLastReadedMessageAsync(roomId, lastMessage.MessageId);
             }
 
             // 4. 채팅방에 입장해 정보를 실시간으로 받아옵니다.
@@ -218,7 +240,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// </remarks>
         /// <param name="roomId">메세지를 읽은 방의 식별 번호</param>
         /// <param name="messageId">읽은 메세지의 식별 번호</param>
-        private async Task UpdateLastReadedMessage(Guid roomId, long messageId)
+        private async Task UpdateLastReadedMessageAsync(Guid roomId, long messageId)
         {
             // 1. 마지막으로 읽은 메세지 Update 요청용 request 객체 생성
             UpdateLastReadedMessageRequest request = new()
@@ -227,21 +249,29 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
                 LastReadMessageId = messageId
             };
             // 2. 마지막으로 읽은 메세지 Update 요청
-            bool result = await _chatService.UpdateLastReadedMessageAsync(request);
-            if (!result || CurrentRoom == null) return;
+            ServiceResult<bool> result = await _chatService.UpdateLastReadedMessageAsync(request);
+            if (!result.IsSuccess || CurrentRoom == null) return;
             // 3. 서버로부터의 반환값이 true면 메모리 값 수정
-            UpdateMessagesReadStatus(messageId, CurrentRoom.LastReadMessageId);
-            CurrentRoom.LastReadMessageId = messageId;
-            CurrentRoom.UnreadCount = 0;
-            // 4. ChatListViewModel에게도 현재 방의 UnreadCount를 0으로 변경하라고 신호 전송
+            DecrementUnreadCounts(messageId, CurrentRoom.LastReadMessageId);
+            // 4. CurrentRoom messageId까지 읽음 처리
+            CurrentRoom.MarkAsRead(messageId);
+            // 5. ChatListViewModel에게도 현재 방의 UnreadCount를 0으로 변경하라고 신호 전송
             WeakReferenceMessenger.Default.Send(new ChatRoomReadMarkedMessage(roomId));
         }
-        private void UpdateMessagesReadStatus(long lastMessageId, long previousLastMessageId)
+        /// <summary>
+        /// 특정 메세지의 UnreadPeopleCount를 1만큼 감소시킵니다
+        /// </summary>
+        /// <remarks>
+        /// lastMessageId와 previouseLastMessageId 사이에 존재하는 메세지들의 UnreadPeopleCount를 1씩 감소시킵니다.
+        /// </remarks>
+        /// <param name="lastMessageId">UnreadPeopleCount를 감소시키기 시작할 메세지의 Id</param>
+        /// <param name="previousLastMessageId">UnreadPeopleCount를 감소시키고 메서드 종료할 메세지의 Id</param>
+        private void DecrementUnreadCounts(long lastMessageId, long previousLastMessageId)
         {
             App.Current.Dispatcher.Invoke(() =>
             {
                 // 최근 메세지부터 조회하기위해 메세지들을 역순으로 가져옴
-                IEnumerable<ChatMessageModel>? messages = CurrentRoom?.SortedMessages.Cast<ChatMessageModel>().Reverse();
+                IEnumerable<ChatMessageModel>? messages = CurrentRoom?.Messages.Reverse();
                 if (messages == null) return;
 
                 foreach (ChatMessageModel message in messages)

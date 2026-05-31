@@ -72,29 +72,25 @@ namespace ChatMessenger.Client.ViewModels.Pages
 
                 // 3. _authService를 이용해 서버에 인증 요청
                 LoginResponse? response = await _authService.SignInAsync(Email, pwd);
-
-                if (response != null && response.IsSuccess)
+                if (response == null || response.Token == null || !response.IsSuccess)
                 {
-                    // 3-1. 로그인 성공하면 profile 생성 시도
-                    FriendModel? profile = response.UserProfile != null ? new FriendModel(response.UserProfile) : null;
-                    // profile 생성 실패하면 return
-                    if (profile == null)
-                    {
-                        WarningText = "사용자 정보를 불러오는데 실패했습니다. 다시 시도해주세요";
-                        return;
-                    }
-                    // 3-2. 확실히 검증이 끝나면 데이터 할당하고 View 이동
-                    _identityService.Token = response.Token;
-                    _identityService.MyProfile = profile;
-                    if (!string.IsNullOrEmpty(response.Token))
-                        await _chatHubService.ConnectAsync(response.Token);
-                    WeakReferenceMessenger.Default.Send(new ChangePageMessage(AppPageType.MainShell));
-                }
-                else
-                {
-                    // 3-2. 로그인 실패
                     WarningText = "이메일 혹은 비밀번호가 일치하지 않습니다.";
+                    return;
                 }
+
+                // 4. 로그인 성공하면 profile 생성 시도
+                FriendModel? profile = response.UserProfile != null ? new FriendModel(response.UserProfile) : null;
+                // profile 생성 실패하면 return
+                if (profile == null)
+                {
+                    WarningText = "사용자 정보를 불러오는데 실패했습니다. 다시 시도해주세요";
+                    return;
+                }
+                // 5. 확실히 검증이 끝나면 데이터 할당하고 View 이동
+                _identityService.Initialize(response.Token, profile);
+                if (!string.IsNullOrEmpty(response.Token))
+                    await _chatHubService.ConnectAsync(response.Token);
+                WeakReferenceMessenger.Default.Send(new ChangePageMessage(AppPageType.MainShell));
             }
             catch (Exception ex)
             {

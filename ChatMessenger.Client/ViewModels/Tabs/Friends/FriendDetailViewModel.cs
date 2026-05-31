@@ -3,6 +3,7 @@ using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.Common.Messages.Tab.Friend;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
+using ChatMessenger.Shared.Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -62,40 +63,30 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         {
             if (!IsEditMode)
             {
-                IsEditMode = true;
                 EditNickname = CurrentFriend?.Nickname;
                 EditStatusMessage = CurrentFriend?.StatusMessage;
             }
-            else
-            {
-                IsEditMode = false;
-            }
+            IsEditMode = !IsEditMode;
         }
-
         /// <summary>
         /// 친구 추가 버튼을 눌렀을때 동작하는 Command
         /// </summary>
         [RelayCommand]
         private async Task AddFriendAsync()
         {
-            if (CurrentFriend == null) return;
-            try
-            {
-                // 1. 현재 화면에 표시되는 유저를 친구 추가 요청
-                FriendModel? result = await _friendService.AddFriendAsync(CurrentFriend.Email);
-                if (result == null) return;
+            if (CurrentFriend == null)
+                return;
 
-                // 2. 친구 추가 완료되면 CurrentFriend 갱신하여 화면 갱신
-                CurrentFriend = result;
-                // 3. FriendList도 갱신하라고 알림
-                WeakReferenceMessenger.Default.Send(new FriendAddedMessage(result));
-            }
-            catch
-            {
-                Debug.WriteLine($"[{GetType().Name}_AddFriendAsync]: 친구 추가 실패");
-            }
+            // 1. 현재 화면에 표시되는 유저를 친구 추가 요청
+            ServiceResult<FriendModel> response = await _friendService.AddFriendAsync(CurrentFriend.Email);
+            if (!response.IsSuccess)
+                return;
+
+            // 2. 친구 추가 완료되면 CurrentFriend 갱신하여 화면 갱신
+            CurrentFriend = response.Data;
+            // 3. FriendList도 갱신하라고 알림
+            WeakReferenceMessenger.Default.Send(new FriendAddedMessage(response.Data));
         }
-
         /// <summary>
         /// 친구 삭제 버튼 눌렀을때 동작하는 Command
         /// </summary>
@@ -103,24 +94,17 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         private async Task DeleteFriendAsync()
         {
             if (CurrentFriend == null) return;
-            try
-            {
-                // 1. 현재 화면에 표시되는 유저를 친구 삭제 요청
-                bool result = await _friendService.DeleteFriendAsync(CurrentFriend.Email);
-                if (!result) return;
+            // 1. 현재 화면에 표시되는 유저를 친구 삭제 요청
+            ServiceResult<bool> response = await _friendService.DeleteFriendAsync(CurrentFriend.Email);
+            if (!response.IsSuccess)
+                return;
 
-                // 2. 친구 삭제 성공하면 CurrentFriend 
-                CurrentFriend.IsAdded = false;
-                CurrentFriend.IsFavorite = false;
-                // 3. FriendList도 갱신하라고 알림
-                WeakReferenceMessenger.Default.Send(new FriendDeletedMessage(CurrentFriend));
-            }
-            catch
-            {
-                Debug.WriteLine($"[{GetType().Name}_DeleteFriendAsync]: 친구 삭제 실패");
-            }
+            // 2. 친구 삭제 성공하면 CurrentFriend 
+            CurrentFriend.IsAdded = false;
+            CurrentFriend.IsFavorite = false;
+            // 3. FriendList도 갱신하라고 알림
+            WeakReferenceMessenger.Default.Send(new FriendDeletedMessage(CurrentFriend));
         }
-
         /// <summary>
         /// 즐겨찾기 등록, 해제 버튼 눌렀을때 동작하는 Command
         /// </summary>
@@ -128,24 +112,17 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         private async Task UpdateFavorite()
         {
             if (CurrentFriend == null) return;
-            try
-            {
-                // 업데이트하려는 값은 항상 현재 상태의 반대값
-                bool targetStatus = !CurrentFriend.IsFavorite;
-                bool result = await _friendService.UpdateFavoriteAsync(CurrentFriend.Email, targetStatus);
-                if (!result) return;
+            Debug.WriteLine($"현재 favorite: {CurrentFriend.IsFavorite}, 변경 요청 값: {!CurrentFriend.IsFavorite}");
 
-                // 변경 성공시 로컬 데이터 갱신
-                CurrentFriend.IsFavorite = targetStatus;
-                // 친구 목록 즐겨찾기 아이콘 갱신
-                WeakReferenceMessenger.Default.Send(new FriendStatusChangeMessage(CurrentFriend));
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[{GetType().Name}_UpdateFavoriteAsync]: {ex.Message}");
-            }
+            ServiceResult<bool> response = await _friendService.UpdateFavoriteAsync(CurrentFriend.Email, !CurrentFriend.IsFavorite);
+            if (!response.IsSuccess)
+                return;
+
+            // 변경 성공시 로컬 데이터 갱신
+            CurrentFriend.IsFavorite = !CurrentFriend.IsFavorite;
+            // 친구 목록 즐겨찾기 아이콘 갱신
+            WeakReferenceMessenger.Default.Send(new FriendStatusChangeMessage(CurrentFriend));
         }
-
         /// <summary>
         /// 차단, 차단 해제 버튼 눌렀을때 동작하는 Command
         /// </summary>
@@ -153,37 +130,21 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         private async Task UpdateBlocked()
         {
             if (CurrentFriend == null) return;
-            try
-            {
-                // 업데이트하려는 값은 항상 현재 상태의 반대값
-                bool targetStatus = !CurrentFriend.IsBlocked;
-                bool result = await _friendService.UpdateBlockAsync(CurrentFriend.Email, targetStatus);
-                // 변경 실패시 return
-                if (!result) return;
+            Debug.WriteLine($"현재 Blocked: {CurrentFriend.IsBlocked}, 변경 요청 값: {!CurrentFriend.IsBlocked}");
 
-                // 변경 성공시 로컬 데이터 갱신
-                CurrentFriend.IsBlocked = targetStatus;
-                // 1.차단 성공시
-                if (targetStatus)
-                {
-                    // 서버 로직과 동일하게 차단했을시 즐겨찾기 해제
-                    CurrentFriend.IsAdded = false;
-                    CurrentFriend.IsFavorite = false;
-                    // 추가돼있던 친구일수있으니 FriendList에서 제거 요청
-                    WeakReferenceMessenger.Default.Send(new FriendDeletedMessage(CurrentFriend));
-                }
-                // 2.차단 해제시
-                else
-                {
-                    // 상태 초기화
-                    CurrentFriend.IsAdded = false;
-                    CurrentFriend.IsFavorite = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[{GetType().Name}_UpdateBlockAsync]: {ex.Message}");
-            }
+            // 1. 차단 상태 변경 요청
+            bool nextState = !CurrentFriend.IsBlocked;
+            ServiceResult<bool> response = await _friendService.UpdateBlockAsync(CurrentFriend.Email, nextState);
+            if (!response.IsSuccess)
+                return;
+
+            // 2. 차단, 차단해제 성공시 메모리 값 수정
+            CurrentFriend.IsBlocked = nextState;
+            CurrentFriend.IsAdded = false;
+            CurrentFriend.IsFavorite = false;
+            // 3. 차단한거면 친구 목록에서 삭제 요청
+            if (nextState)
+                WeakReferenceMessenger.Default.Send(new FriendDeletedMessage(CurrentFriend));
         }
         #endregion
         #region OnChanged Method

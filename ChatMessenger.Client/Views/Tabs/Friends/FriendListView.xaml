@@ -13,7 +13,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 내 프로필: FriendResponse 형식의단일 데이터를 Binding 하고있기때문에 Content를 설정 -->
+        <!-- 내 프로필: FriendResponse 형식의 단일 데이터를 Binding 하고있기때문에 Content를 설정 -->
         <ListBox x:Name="MyProfileListBox" Style="{StaticResource Common_ListViewsListBox}"
                     SelectedValue="{Binding SelectedFriend, Mode=TwoWay}" SelectedValuePath="Content"
                     PreviewMouseLeftButtonDown="ListBox_PreviewMouseLeftButtonDown">

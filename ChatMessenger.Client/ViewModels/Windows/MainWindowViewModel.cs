@@ -61,7 +61,7 @@ namespace ChatMessenger.Client.ViewModels.Windows
         private async Task ExecuteLogoutAsync()
         {
             // 로그인 상태였었으면 내부 자원 정리
-            if(CurrentViewModel is MainShellViewModel mainShell)
+            if (CurrentViewModel is MainShellViewModel mainShell)
             {
                 mainShell.CleanUp();
             }

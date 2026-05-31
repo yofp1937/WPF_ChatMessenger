@@ -9,15 +9,28 @@ namespace ChatMessenger.Client.Common.Services
 {
     public class IdentityService : IIdentityService
     {
-        public string? Token { get; set; }
-        public FriendModel? MyProfile { get; set; }
-        public bool IsLoggedIn => !string.IsNullOrEmpty(Token);
+        private string? _token;
+        private FriendModel? _myProfile;
+
+        public string Token => _token! ??
+            throw new InvalidOperationException("인증 토큰이 초기화되지 않았습니다. 로그인이 필요합니다.");
+        public FriendModel MyProfile => _myProfile! ??
+            throw new InvalidOperationException("사용자 프로필 정보가 초기화되지 않았습니다. 로그인이 필요합니다.");
+        public bool IsLoggedIn => !string.IsNullOrEmpty(_token);
+
+        /// <inheritdoc/>
+        public void Initialize(string token, FriendModel myProfile)
+        {
+            // null이면 throw
+            _token = token ?? throw new ArgumentNullException(nameof(token));
+            _myProfile = myProfile ?? throw new ArgumentNullException(nameof(myProfile));
+        }
 
         /// <inheritdoc/>
         public void Logout()
         {
-            Token = null;
-            MyProfile = null;
+            _token = null;
+            _myProfile = null;
         }
     }
 }

@@ -30,6 +30,9 @@ namespace ChatMessenger.Client.Models.Friends
         // CreateChatRoomViewModel에서 사용
         [ObservableProperty]
         private bool _isSelected;
+        // CreateChatRoomViewModel에서 사용 (따로 설정안하면 접근 가능하게 ture)
+        [ObservableProperty]
+        private bool _isCheckBoxEnabled = true;
 
         public FriendModel() { }
         /// <summary>

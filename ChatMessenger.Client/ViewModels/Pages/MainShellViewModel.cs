@@ -1,5 +1,4 @@
 ﻿using ChatMessenger.Client.Common.Enums;
-using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.ViewModels.Base;
 using ChatMessenger.Client.ViewModels.Tabs;

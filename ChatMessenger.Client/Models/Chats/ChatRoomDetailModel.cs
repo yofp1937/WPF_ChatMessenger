@@ -31,6 +31,7 @@ namespace ChatMessenger.Client.Models.Chats
 
         // 채팅 내역
         private ObservableCollection<ChatMessageModel> _messages = new();
+        public IReadOnlyList<ChatMessageModel> Messages => _messages;
         public ICollectionView SortedMessages { get; }
 
         // 읽지 않은 메세지 수
@@ -109,6 +110,18 @@ namespace ChatMessenger.Client.Models.Chats
         {
             _messages.Add(msg);
             SortedMessages.Refresh();
+        }
+
+        /// <summary>
+        /// 현재 방의 마지막으로 읽은 메세지 번호와 안읽은 메세지 개수를 갱신합니다.
+        /// </summary>
+        /// <param name="lastMessageId">마지막으로 읽은 메세지 식별 번호</param>
+        public void MarkAsRead(long lastMessageId)
+        {
+            // 1. 현재 채팅방의 마지막으로 읽은 메세지 번호 갱신
+            LastReadMessageId = lastMessageId;
+            // 2. UnreadCount를 lastMessageId보다 큰 Message의 개수 값으로 변경 (보통의 상황에서 lastMessageId보다 Id가 큰 메세지는 존재하지않음)  
+            UnreadCount = _messages.Count(msg => msg.MessageId > LastReadMessageId);
         }
     }
 }

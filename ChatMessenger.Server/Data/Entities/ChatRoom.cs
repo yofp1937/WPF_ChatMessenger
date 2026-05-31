@@ -27,5 +27,9 @@ namespace ChatMessenger.Server.Data.Entities
         // 1대1 채팅인지, 그룹 채팅인지 여부
         [Required]
         public bool IsGroupChat { get; set; }
+
+        // 역방향 탐색 속성
+        public virtual ICollection<ChatParticipant> Participants { get; set; } = new List<ChatParticipant>();
+        public virtual ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
     }
 }

@@ -3,6 +3,7 @@ using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.Common.Messages.Tab.Friend;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
+using ChatMessenger.Shared.Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -35,10 +36,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [ObservableProperty]
         private FriendModel? _selectedFriend = null;
 
-
+        #region 생성자, override
         public FriendListViewModel(IIdentityService identityService, IFriendService friendService)
         {
-            SubscribeMessages();
+            Subscribe();
             _identityService = identityService;
             _friendService = friendService;
 
@@ -57,6 +58,37 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             // 친구 목록 불러오기
             _ = LoadFriendsAsync();
         }
+        protected override void Subscribe()
+        {
+            WeakReferenceMessenger.Default.Register<SelectedFriendResetMessage>(this, (r, m) =>
+            {
+                SelectedFriend = null;
+            });
+            WeakReferenceMessenger.Default.Register<FriendAddedMessage>(this, (r, m) =>
+            {
+                // 1.중복 데이터가 존재하면 추가 안함
+                if (_friends.Any(f => f.Email == m.friend.Email)) return;
+                // 2.원본 친구 리스트에 추가하고 정렬
+                _friends.Add(m.friend);
+            });
+            WeakReferenceMessenger.Default.Register<FriendDeletedMessage>(this, (r, m) =>
+            {
+                // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
+                FriendModel? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
+                if (target == null) return;
+                // 2.있으면 삭제하고 정렬
+                _friends.Remove(target);
+            });
+            WeakReferenceMessenger.Default.Register<FriendStatusChangeMessage>(this, (r, m) =>
+            {
+                // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
+                FriendModel? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
+                if (target == null) return;
+                // 있으면 상태 동기화하고 정렬
+                target.IsFavorite = m.friend.IsFavorite;
+                FriendsList.Refresh();
+            });
+        }
         /// <inheritdoc/>
         public override void CleanUp()
         {
@@ -64,6 +96,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             _searchCts?.Cancel();
             _searchCts?.Dispose();
         }
+        #endregion 생성자, override
         #region RelayCommand
         /// <summary>
         /// 서버로부터 친구 목록을 불러와 Friends Property에 채웁니다.
@@ -71,15 +104,16 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [RelayCommand] // 나중에 친구 목록 새로고침 기능이 추가될수있으니 RelayCommand로 선언해둠
         private async Task LoadFriendsAsync()
         {
-            List<FriendModel>? result = await _friendService.GetFriendsListAsync();
-            if (result == null || result.Count == 0) return;
+            ServiceResult<List<FriendModel>> response = await _friendService.GetFriendsListAsync();
+            if (!response.IsSuccess)
+                return;
 
             _friends.Clear();
-            foreach (FriendModel friend in result)
+            foreach (FriendModel friend in response.Data)
                 _friends.Add(friend);
         }
         /// <summary>
-        /// FriendDetailView에 친구 추가 Panel을 표시하라고 Messenger를 통해 전달합니다.
+        /// ContentPanel에 친구 추가 Panel을 표시하라고 Messenger를 통해 전달합니다.
         /// </summary>
         [RelayCommand]
         private void ChangeAddFriendMode()
@@ -130,37 +164,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         }
         #endregion
         #region private Method
-        private void SubscribeMessages()
-        {
-            WeakReferenceMessenger.Default.Register<SelectedFriendResetMessage>(this, (r, m) =>
-            {
-                SelectedFriend = null;
-            });
-            WeakReferenceMessenger.Default.Register<FriendAddedMessage>(this, (r, m) =>
-            {
-                // 1.중복 데이터가 존재하면 추가 안함
-                if (_friends.Any(f => f.Email == m.friend.Email)) return;
-                // 2.원본 친구 리스트에 추가하고 정렬
-                _friends.Add(m.friend);
-            });
-            WeakReferenceMessenger.Default.Register<FriendDeletedMessage>(this, (r, m) =>
-            {
-                // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
-                FriendModel? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
-                if (target == null) return;
-                // 2.있으면 삭제하고 정렬
-                _friends.Remove(target);
-            });
-            WeakReferenceMessenger.Default.Register<FriendStatusChangeMessage>(this, (r, m) =>
-            {
-                // 1.친구 목록에 전달받은 Email의 친구 있는지 확인
-                FriendModel? target = _friends.FirstOrDefault(f => f.Email == m.friend.Email);
-                if (target == null) return;
-                // 있으면 상태 동기화하고 정렬
-                target.IsFavorite = m.friend.IsFavorite;
-                FriendsList.Refresh();
-            });
-        }
         /// <summary>
         /// 친구 목록에 정렬과 필터링을 설정합니다.
         /// </summary>

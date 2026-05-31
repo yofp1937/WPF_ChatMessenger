@@ -1,4 +1,5 @@
-﻿using System.Windows.Controls;
+﻿using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace ChatMessenger.Client.Views.Tabs.Friends
@@ -19,17 +20,31 @@ namespace ChatMessenger.Client.Views.Tabs.Friends
         /// </remarks>
         private void ListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            var clickedListBox = sender as ListBox;
+            ListBox? clickedListBox = sender as ListBox;
+            if (clickedListBox == null) return;
 
-            if (clickedListBox == MyProfileListBox)
+            // 1. 현재 클릭한 Element의 객체를 반환받습니다.(글자를 클릭했으면 TextBlock, 이미지를 클릭했으면 Image)
+            DependencyObject dep = (DependencyObject)e.OriginalSource;
+            // 2. Element가 ListBoxItem이 될때까지 부모 트리로 올라가서 확인합니다.
+            while(dep != null && dep is not ListBoxItem)
             {
-                // 내 프로필을 눌렀으니 친구 목록 선택 해제
-                FriendsListBox.SelectedIndex = -1;
+                dep = System.Windows.Media.VisualTreeHelper.GetParent(dep);
             }
-            else if (clickedListBox == FriendsListBox)
+            // 3. 찾아낸 Element가 ListBoxItem일 경우에만 동작합니다.
+            if(dep is ListBoxItem clickedItem)
             {
-                // 친구 목록을 눌렀으니 내 프로필 선택 해제
-                MyProfileListBox.SelectedIndex = -1;
+                if (clickedListBox == MyProfileListBox)
+                {
+                    // 내 프로필을 눌렀으니 친구 목록 선택 해제
+                    FriendsListBox.SelectedIndex = -1;
+                    MyProfileListBox.SelectedItem = clickedItem;
+                }
+                else if (clickedListBox == FriendsListBox)
+                {
+                    // 친구 목록을 눌렀으니 내 프로필 선택 해제
+                    MyProfileListBox.SelectedIndex = -1;
+                    FriendsListBox.SelectedItem = clickedItem.DataContext;
+                }
             }
         }
     }

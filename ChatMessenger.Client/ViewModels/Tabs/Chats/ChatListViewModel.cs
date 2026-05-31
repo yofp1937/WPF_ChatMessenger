@@ -1,8 +1,9 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.Common.Messages.Tab.Chat;
+using ChatMessenger.Client.Common.Messages.Tab.Chat.Room;
 using ChatMessenger.Client.Models.Chats;
 using ChatMessenger.Client.ViewModels.Base;
+using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
 using ChatMessenger.Shared.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -32,11 +33,14 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         [ObservableProperty]
         private ChatRoomSummaryModel? _selectedRoom;
 
+
+        #region 생성자, override
         public ChatListViewModel(IChatService chatService, IChatHubService chatHubService)
         {
             _chatService = chatService;
             _chatHubService = chatHubService;
 
+            // 메세지와 이벤트 구독
             Subscribe();
 
             // View와 Binding될 채팅방 목록 생성, 정렬과 필터 적용
@@ -44,9 +48,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             InitializeChatRoomsSetting();
 
             // 채팅방 목록 불러오기
-            _ = GetMyChatRoomsAsync();
+            _ = GetChatRoomSummaryModelListAsync();
         }
-
         /// <inheritdoc/>
         /// <remarks>
         /// ChatHub 이벤트 구독도 해제합니다.
@@ -58,6 +61,45 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             _searchCts?.Cancel();
             _searchCts?.Dispose();
         }
+        protected override void Subscribe()
+        {
+            // ChatRoomViewModel의 CurrentRoom이 닫힐때 SelectedRoom도 null로 동기화 시키기위함
+            WeakReferenceMessenger.Default.Register<ChatRoomClosedMessage>(this, (r, m) =>
+            {
+                SelectedRoom = null;
+            });
+            // ChatRoomViewModel에서 메세지를 수신해서 읽었으면 해당 방의 UnreadCount도 동기화 시키기위함
+            WeakReferenceMessenger.Default.Register<ChatRoomReadMarkedMessage>(this, (r, m) =>
+            {
+                ChatRoomSummaryModel? room = _rooms.FirstOrDefault(x => x.RoomId == m.roomId);
+                if (room == null) return;
+
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    room.ClearUnreadCount();
+                    ChatRooms.Refresh();
+                });
+            });
+            // ChatRoomViewModel에서 채팅방을 나갔으면 List도 동기화 시키기위함
+            WeakReferenceMessenger.Default.Register<LeaveChatRoomMessage>(this, (r, m) =>
+            {
+                // 1. 내 채팅방 목록에서 나간 채팅방이 존재하는지 찾음
+                ChatRoomSummaryModel? room = _rooms.FirstOrDefault(r => r.RoomId == m.roomId);
+                if (room == null) return;
+
+                // 2. 선택된 채팅방이 해당 채팅방이면 선택 해제, 채팅방 목록에서 해당 채팅방 삭제
+                App.Current.Dispatcher.Invoke(() =>
+                {
+                    // SelectedRoomId와 나간 채팅방 RoomId가 일치하면 SelectedRoom 선택 해제
+                    if (SelectedRoom?.RoomId == m.roomId)
+                        SelectedRoom = null;
+                    _rooms.Remove(room);
+                    ChatRooms.Refresh();
+                });
+            });
+            _chatHubService.MessageReceivedEvent += OnMessageReceived;
+        }
+        #endregion 생성자, override
 
         #region OnChanged Method
         /// <summary>
@@ -91,7 +133,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// 사용자가 ListBox에서 채팅방을 선택하면 호출됩니다.
         /// </summary>
         /// <remarks>
-        /// 채팅방이 선택되면 채팅방의 RoomId를 ChatRoomViewModel로 넘기고 ChatRoomViewModel에서 해당 방의 상세 정보를 읽어옵니다.
+        /// 채팅방이 선택되면 채팅방의 RoomId를 메세지에 담아 전송합니다.
         /// </remarks>
         /// <param name="value"></param>
         partial void OnSelectedRoomChanged(ChatRoomSummaryModel? value)
@@ -109,18 +151,17 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             if (room == null)
             {
                 // 목록에 없는 방에서 메세지가 도착했다면 신규 방에 초대된것
-                _ = GetMyChatRoomsAsync();
+                _ = GetChatRoomSummaryModelAsync(response.RoomId);
             }
             else
             {
                 App.Current.Dispatcher.Invoke(() =>
                 {
-                    room.LastMessage = response.Content;
-                    room.LastMessageSentAt = response.SentAt.ToLocalTime();
-                    if (SelectedRoom?.RoomId != response.RoomId && response.MessageType != ChatMessageType.System)
-                    {
-                        room.UnreadCount++;
-                    }
+                    // 1. 현재 접속한 방의 식별 번호와 도착한 메세지의 방 식별 번호가 다르고, SystemMessage가 아니면 true
+                    bool changeUnreadCount = SelectedRoom?.RoomId != response.RoomId && response.MessageType != ChatMessageType.System;
+                    // 2. 방의 마지막 메세지 업데이트
+                    room.UpdateLastMessage(response.Content, response.SentAt, changeUnreadCount);
+                    // 3. 정렬 갱신
                     ChatRooms.Refresh();
                 });
             }
@@ -130,64 +171,60 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         [RelayCommand]
         private void CreateChatRoom()
         {
+            // 그룹 채팅방 생성 화면을 띄웁니다.
             WeakReferenceMessenger.Default.Send(new OpenCreateChatRoomRequestMessage());
         }
         #endregion
         #region private Method
         /// <summary>
-        /// 메세지 혹은 이벤트를 구독합니다.
+        /// 특정 채팅방의 정보를 가져와서 채팅방 목록에 추가합니다.
         /// </summary>
-        private void Subscribe()
+        /// <param name="roomId">정보를 가져올 채팅방의 식별 번호</param>
+        private async Task GetChatRoomSummaryModelAsync(Guid roomId)
         {
-            // ChatRoomViewModel의 CurrentRoom이 닫힐때 SelectedRoom도 null로 동기화 시키기위함
-            WeakReferenceMessenger.Default.Register<ChatRoomClosedMessage>(this, (r, m) =>
+            try
             {
-                SelectedRoom = null;
-            });
-            // ChatRoomViewModel에서 메세지를 수신해서 읽었으면 해당 방의 UnreadCount도 동기화 시키기위함
-            WeakReferenceMessenger.Default.Register<ChatRoomReadMarkedMessage>(this, (r, m) =>
-            {
-                ChatRoomSummaryModel? room = _rooms.FirstOrDefault(x => x.RoomId == m.roomId);
-                if (room == null) return;
+                ServiceResult<ChatRoomSummaryModel> result = await _chatService.GetChatRoomSummaryModelAsync(roomId);
+                // 실패시 return
+                if (!result.IsSuccess)
+                    return;
 
                 App.Current.Dispatcher.Invoke(() =>
                 {
-                    room.UnreadCount = 0;
+                    // 채팅방 목록에 등록하고 UI 업데이트 요청
+                    _rooms.Add(result.Data);
                     ChatRooms.Refresh();
                 });
-            });
-            // 새로운 채팅방이 만들어졌을때 _rooms에 등록시키기 위함
-            WeakReferenceMessenger.Default.Register<NewChatRoomCreatedMessage>(this, (r, m) =>
+            }
+            catch (Exception ex)
             {
-
-            });
-            _chatHubService.MessageReceivedEvent += OnMessageReceived;
+                Debug.WriteLine($"[{nameof(ChatListViewModel)} - {nameof(GetChatRoomSummaryModelAsync)}]: 초기 로드 실패: {ex.Message}");
+            }
         }
         /// <summary>
         /// 사용자의 채팅방 목록을 불러옵니다.
         /// </summary>
-        private async Task GetMyChatRoomsAsync()
+        private async Task GetChatRoomSummaryModelListAsync()
         {
             try
             {
-                List<ChatRoomSummaryModel>? chatRoomList = await _chatService.GetMyChatRoomsAsync();
-                if (chatRoomList == null) return;
+                ServiceResult<List<ChatRoomSummaryModel>> result = await _chatService.GetChatRoomSummaryModelListAsync();
+                if (!result.IsSuccess) return;
 
                 // UI 스레드에서 room 리스트 업데이트
                 await App.Current.Dispatcher.InvokeAsync(() =>
                 {
                     _rooms.Clear();
-                    foreach (ChatRoomSummaryModel room in chatRoomList)
+                    foreach (ChatRoomSummaryModel room in result.Data)
                         _rooms.Add(room);
                     ChatRooms.Refresh();
                 });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[{GetType().ToString()} - GetMyChatRoomsAsync]: 초기 로드 실패: {ex.Message}");
+                Debug.WriteLine($"[{nameof(ChatListViewModel)} - {nameof(GetChatRoomSummaryModelListAsync)}]: 초기 로드 실패: {ex.Message}");
             }
         }
-
         /// <summary>
         /// 채팅방 목록에 정렬과 필터링을 설정합니다.
         /// </summary>

@@ -13,7 +13,12 @@ namespace ChatMessenger.Client.ViewModels.Base
     public abstract partial class BaseViewModel : ObservableObject
     {
         /// <summary>
-        /// ViewModel이 파괴되거나 사용이 중지될때 자원을 정리합니다.
+        /// 메신저 구독, Action 이벤트를 등록할때 생성자에서 호출하여 사용합니다.
+        /// </summary>
+        protected virtual void Subscribe() { }
+        /// <summary>
+        /// ViewModel이 파괴되거나 사용이 중지될때 자원을 정리합니다.<br/>
+        /// 자식 클래스에서 override할땐 반드시 base.CleanUp()을 호출해야합니다.
         /// </summary>
         public virtual void CleanUp()
         {

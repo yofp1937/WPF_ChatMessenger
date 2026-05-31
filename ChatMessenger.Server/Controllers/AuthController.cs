@@ -1,5 +1,6 @@
 ﻿using ChatMessenger.Server.Controllers.Base;
-using ChatMessenger.Server.Interfaces.Auth;
+using ChatMessenger.Server.Interfaces.Services;
+using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Requests.Auth;
 using ChatMessenger.Shared.DTOs.Responses.Auth;
 using Microsoft.AspNetCore.Mvc;
@@ -27,19 +28,11 @@ namespace ChatMessenger.Server.Controllers
         /// 로그인 실패 시: HTTP 응답 코드 401(Unauthorized)과 함께 에러 메세지 반환
         /// </remarks>
         [HttpPost("login")] // Post 형식이므로 주소창에 정보가 노출되지 않음
-        public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            /* 반환타입 ActionResult<LoginResponse> - HTTP 상태코드와 함께 LoginResponse 데이터를 전송하겠다.
-               매개변수 [FromBody] LoginRequest requst - Client가 전송한 Json 본문(Body)을 LoginRequest로 역직렬화하여 받겠다. */
-
             // 1. authService를 통해 로그인을 시도하고 결과값 전달받음
-            LoginResponse response = await _authService.LoginAsync(request);
-
-            // 2. 로그인 성공하면 OK 신호 전송
-            if (response.IsSuccess)
-                return Ok(response);
-            // 3. 실패하면 Unauthorized 신호 전송
-            return Unauthorized(response);
+            ServiceResult<LoginResponse> response = await _authService.LoginAsync(request);
+            return ContextResponse(response);
         }
 
         /// <summary>
@@ -50,16 +43,11 @@ namespace ChatMessenger.Server.Controllers
         /// 로그인 실패 시: HTTP 응답 코드 400(BadRequest)과 함께 에러 메세지 반환
         /// </remarks>
         [HttpPost("register")]
-        public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterRequest request)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             // 1. authService를 통해 회원가입을 시도하고 결과값 전달받음
-            RegisterResponse response = await _authService.RegisterAsync(request);
-
-            // 2. 회원가입 성공하면 OK 신호 전송
-            if (response.IsSuccess)
-                return Ok(response);
-            // 3. 실패하면 BadRequest 신호 전송
-            return BadRequest(response);
+            ServiceResult<RegisterResponse> response = await _authService.RegisterAsync(request);
+            return ContextResponse(response);
         }
     }
 }

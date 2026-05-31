@@ -1,14 +1,14 @@
 ﻿using ChatMessenger.Client.Common.Enums;
 using ChatMessenger.Client.Common.Interfaces;
-using ChatMessenger.Client.Common.Messages;
 using ChatMessenger.Client.Common.Messages.Tab;
-using ChatMessenger.Client.Common.Messages.Tab.Chat;
+using ChatMessenger.Client.Common.Messages.Tab.Chat.Room;
 using ChatMessenger.Client.Common.Messages.Tab.Friend;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
 using ChatMessenger.Client.ViewModels.Tabs.Chats;
 using ChatMessenger.Client.ViewModels.Tabs.Friends;
 using ChatMessenger.Client.ViewModels.Tabs.Settings;
+using ChatMessenger.Shared.Common;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -49,7 +49,44 @@ namespace ChatMessenger.Client.ViewModels.Tabs
 
             Subscribe();
         }
-
+        protected override void Subscribe()
+        {
+            // ConetentPanel의 화면을 변경해야할때 호출되는 메세지를 구독합니다.
+            WeakReferenceMessenger.Default.Register<ChangeContentMessage>(this, (r, m) =>
+            {
+                CurrentVM = m.type switch
+                {
+                    ContentPanelType.Friend => _friendDetailVM,
+                    ContentPanelType.Chat => _chatRoomVM,
+                    ContentPanelType.Setting => _settingDetailVM,
+                    _ => null
+                };
+            });
+            // ContentPanel 화면을 메세지에 포함된 User의 Profile 화면으로 교체합니다. 
+            WeakReferenceMessenger.Default.Register<FriendSelectionChangedMessage>(this, (r, m) =>
+            {
+                CurrentVM = _friendDetailVM;
+                _friendDetailVM.SetFriendProfile(m.friend);
+            });
+            // AddFriendMode 신호가 오면 반대 값으로 변경합니다.
+            WeakReferenceMessenger.Default.Register<AddFriendModeChangedMessage>(this, (r, m) =>
+            {
+                IsAddFriendMode = !IsAddFriendMode;
+            });
+            // ContentPanel 화면을 메세지에 포함된 roomId 채팅방 화면으로 교체합니다.
+            WeakReferenceMessenger.Default.Register<ChatRoomSelectionChangedMessage>(this, (r, m) =>
+            {
+                CurrentVM = _chatRoomVM;
+                _chatRoomVM.SetChatRoom(m.roomId);
+            });
+            // ContentPanel 화면을 CreateChatRoomView로 변경합니다.
+            WeakReferenceMessenger.Default.Register<OpenCreateChatRoomRequestMessage>(this, (r, m) =>
+            {
+                if (CurrentVM == _createChatRoomVM) return;
+                CurrentVM = _createChatRoomVM;
+                _ = _createChatRoomVM.InitCreateChatVMAsync(m);
+            });
+        }
         /// <inheritdoc/>
         /// <remarks>
         /// 하위 ViewModel들의 CleanUp도 호출합니다.
@@ -77,25 +114,20 @@ namespace ChatMessenger.Client.ViewModels.Tabs
                 AddFriendWarningText = "이메일을 입력해주세요.";
                 return;
             }
-            try
-            {
-                // 1. 서버에 검색 요청
-                FriendModel? result = await _friendService.SearchFriendAsync(SearchEmail);
-                if (result == null) return;
+            
+            // 1. 서버에 유저 검색 요청
+            ServiceResult<FriendModel> response = await _friendService.SearchFriendAsync(SearchEmail);
+            if (!response.IsSuccess)
+                return;
 
-                // 2. 검색 성공 시 상세 정보 업데이트
-                CurrentVM = _friendDetailVM;
-                _friendDetailVM.SetFriendProfile(result);
-                SearchEmail = string.Empty;
-                // 3.FriendList의 ListBox 선택 상태 제거
-                WeakReferenceMessenger.Default.Send(new SelectedFriendResetMessage());
-            }
-            catch (Exception ex)
-            {
-                AddFriendWarningText = ex.Message;
-            }
+            // 2. 검색 성공 시 상세 정보 업데이트
+            CurrentVM = _friendDetailVM;
+            _friendDetailVM.SetFriendProfile(response.Data);
+            SearchEmail = string.Empty;
+
+            // 3.FriendList의 ListBox 선택 상태 제거
+            WeakReferenceMessenger.Default.Send(new SelectedFriendResetMessage());
         }
-
         /// <summary>
         /// 친구 검색 Panel 닫기 Command
         /// </summary>
@@ -105,7 +137,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs
             IsAddFriendMode = false;
         }
         #endregion RelayCommand
-
         #region OnChanged
         /// <summary>
         /// IsAddFriendMode가 false로 변하면 검색창에 입력된 데이터를 초기화합니다.
@@ -119,49 +150,5 @@ namespace ChatMessenger.Client.ViewModels.Tabs
             }
         }
         #endregion OnChanged
-
-        #region private Method
-        /// <summary>
-        /// 메세지나 이벤트를 구독합니다.
-        /// </summary>
-        private void Subscribe()
-        {
-            // ConetentPanel의 화면을 변경해야할때 호출되는 메세지를 구독합니다.
-            WeakReferenceMessenger.Default.Register<ChangeContentMessage>(this, (r, m) =>
-            {
-                CurrentVM = m.type switch
-                {
-                    ContentPanelType.Friend => _friendDetailVM,
-                    ContentPanelType.Chat => _chatRoomVM,
-                    ContentPanelType.Setting => _settingDetailVM,
-                    _ => _friendDetailVM
-                };
-            });
-            // ContentPanel 화면을 메세지에 포함된 User의 Profile 화면으로 교체합니다. 
-            WeakReferenceMessenger.Default.Register<FriendSelectionChangedMessage>(this, (r, m) =>
-            {
-                CurrentVM = _friendDetailVM;
-                _friendDetailVM.SetFriendProfile(m.friend);
-            });
-            // AddFriendMode 신호가 오면 반대 값으로 변경합니다.
-            WeakReferenceMessenger.Default.Register<AddFriendModeChangedMessage>(this, (r, m) =>
-            {
-                IsAddFriendMode = !IsAddFriendMode;
-            });
-            // ContentPanel 화면을 메세지에 포함된 roomId 채팅방 화면으로 교체합니다.
-            WeakReferenceMessenger.Default.Register<ChatRoomSelectionChangedMessage>(this, (r, m) =>
-            {
-                CurrentVM = _chatRoomVM;
-                _chatRoomVM.SetChatRoom(m.roomId);
-            });
-            // ContentPanel 화면을 CreateChatRoomView로 변경합니다.
-            WeakReferenceMessenger.Default.Register<OpenCreateChatRoomRequestMessage>(this, (r, m) =>
-            {
-                if (CurrentVM == _createChatRoomVM) return;
-                CurrentVM = _createChatRoomVM;
-                _ = _createChatRoomVM.ResetInputValues();
-            });
-        }
-        #endregion private Method
     }
 }

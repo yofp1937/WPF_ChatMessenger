@@ -51,6 +51,28 @@ namespace ChatMessenger.Client.Models.Chats
         }
 
         /// <summary>
+        /// 해당 방의 UnreadCount를 0으로 변경합니다.
+        /// </summary>
+        public void ClearUnreadCount()
+        {
+            UnreadCount = 0;
+        }
+
+        /// <summary>
+        /// 마지막으로 전송받은 메세지를 업데이트하고, UnreadCount를 증가시킬지 정합니다.
+        /// </summary>
+        /// <param name="message">마지막으로 전송받은 메세지 내용</param>
+        /// <param name="sentAt">메세지의 전송 시간</param>
+        /// <param name="shouldIncrementUnread">읽지 않음 수를 올릴지 말지 여부 true: 올림, false: 안올림</param>
+        public void UpdateLastMessage(string message, DateTime sentAt, bool shouldIncrementUnread)
+        {
+            LastMessage = message;
+            LastMessageSentAt = sentAt.ToLocalTime();
+            if (shouldIncrementUnread)
+                UnreadCount++;
+        }
+
+        /// <summary>
         /// 입력받은 DTO를 바탕으로 모델 데이터를 갱신합니다.
         /// </summary>
         private void UpdateFromDTO(ChatRoomSummaryResponse dto)

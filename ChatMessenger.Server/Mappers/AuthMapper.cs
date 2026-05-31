@@ -26,19 +26,6 @@ namespace ChatMessenger.Server.Mappers
             };
         }
         /// <summary>
-        /// 로그인에 실패했을때의 LoginResponse를 생성합니다.
-        /// </summary>
-        /// <param name="message">Client에게 반환해줄 메세지</param>
-        /// <returns>로그인 실패 결과가 담긴 LoginResponse</returns>
-        public static LoginResponse ToFailLoginResponse(string message)
-        {
-            return new LoginResponse
-            {
-                IsSuccess = false,
-                Message = message,
-            };
-        }
-        /// <summary>
         /// 회원가입 결과 RegisterResponse를 생성합니다.
         /// </summary>
         /// <param name="isSuccess">회원가입 성공 여부</param>

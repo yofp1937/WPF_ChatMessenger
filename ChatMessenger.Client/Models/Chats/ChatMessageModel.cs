@@ -1,5 +1,6 @@
 ﻿using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
+using ChatMessenger.Shared.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ChatMessenger.Client.Models.Chats
@@ -7,6 +8,8 @@ namespace ChatMessenger.Client.Models.Chats
     public partial class ChatMessageModel : ObservableObject
     {
         public long MessageId { get; set; }
+        [ObservableProperty]
+        private ChatMessageType _messageType;
         public FriendModel? Sender { get; set; }
         // 내용
         [ObservableProperty]
@@ -49,6 +52,7 @@ namespace ChatMessenger.Client.Models.Chats
         public void UpdateFromDTO(ChatMessageResponse dto, string myEmail)
         {
             MessageId = dto.MessageId;
+            MessageType = dto.MessageType;
             Content = dto.Content;
             SentAt = dto.SentAt.ToLocalTime();
             UnreadPeopleCount = dto.UnreadPeopleCount;
@@ -57,6 +61,11 @@ namespace ChatMessenger.Client.Models.Chats
             {
                 Sender = new(dto.Sender);
                 IsMine = dto.Sender.Email == myEmail;
+            }
+            else
+            {
+                Sender = null;
+                IsMine = false;
             }
         }
     }

@@ -1,8 +1,8 @@
 ﻿/*
  * 엔티티(Entity) 모델을 클라이언트 전송용 DTO로 변환하는 확장 메서드들을 정의하는 클래스입니다.
  */
+using ChatMessenger.Server.Data.DTOs;
 using ChatMessenger.Server.Data.Entities;
-using ChatMessenger.Server.Data.Projections;
 using ChatMessenger.Shared.DTOs.Responses.Friend;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,6 +14,26 @@ namespace ChatMessenger.Server.Mappers
     /// </summary>
     public static class FriendMapper
     {
+        /// <summary>
+        /// User Entity를 기반으로 FriendResponse DTO를 생성합니다.
+        /// </summary>
+        /// <param name="user">변환할 원본 User 객체</param>
+        /// <param name="friendship">나와의 관계 정보(선택 사항)</param>
+        public static FriendResponse MapToFriendResponse(this User user, Friendship? friendship = null, bool isMe = false)
+        {
+            return new FriendResponse
+            {
+                Email = user.Email,
+                Nickname = user.Nickname,
+                StatusMessage = user.StatusMessage,
+                ProfileImageURL = user.ProfileImageURL,
+
+                IsMe = isMe,
+                IsAdded = friendship != null && !friendship.IsBlocked,
+                IsFavorite = friendship?.IsFavorite ?? false,
+                IsBlocked = friendship?.IsBlocked ?? false,
+            };
+        }
         /// <summary>
         /// IQueryable(DB 쿼리) 단계에서 Friendship과 User 테이블을 Join하여 필요한 컬럼만 선별적으로 추출(Projection)합니다.
         /// </summary>
@@ -41,27 +61,6 @@ namespace ChatMessenger.Server.Mappers
                     IsFavorite = friendship.IsFavorite,                // 5.여기까진 Friendship 테이블에서 데이터 추출
                     IsMe = false                                          // (나와 친구 등록된 데이터를 추출하는거라 IsMe는 false) 
                 });
-        }
-
-        /// <summary>
-        /// User Entity를 기반으로 FriendResponse DTO를 생성합니다.
-        /// </summary>
-        /// <param name="user">변환할 원본 User 객체</param>
-        /// <param name="friendship">나와의 관계 정보(선택 사항)</param>
-        public static FriendResponse MapToFriendResponse(this User user, Friendship? friendship = null, bool isMe = false)
-        {
-            return new FriendResponse
-            {
-                Email = user.Email,
-                Nickname = user.Nickname,
-                StatusMessage = user.StatusMessage,
-                ProfileImageURL = user.ProfileImageURL,
-
-                IsMe = isMe,
-                IsAdded = friendship != null && !friendship.IsBlocked,
-                IsFavorite = friendship?.IsFavorite ?? false,
-                IsBlocked = friendship?.IsBlocked ?? false,
-            };
         }
 
         /// <summary>

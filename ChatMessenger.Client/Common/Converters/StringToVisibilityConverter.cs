@@ -13,7 +13,7 @@ namespace ChatMessenger.Client.Common.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             // 1. 텍스트가 존재하면 Visible
-            if(!string.IsNullOrEmpty(value as string))
+            if (!string.IsNullOrEmpty(value as string))
             {
                 return Visibility.Visible;
             }
