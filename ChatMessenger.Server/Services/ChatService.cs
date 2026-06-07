@@ -175,7 +175,7 @@ namespace ChatMessenger.Server.Services
                 if (roomResult == null)
                     throw new InvalidOperationException("새로운 채팅방 생성에 실패 했습니다.");
                 // 2. 참가자 등록, 
-                JoinAndLeaveChatRoomDTO result = await AddParticipantsAndCreateMessageInternalAsync(roomResult.Id, myEmail, request.TargetEmails);
+                JoinAndLeaveChatRoomDTO result = await AddParticipantsAndCreateMessageCoreAsync(roomResult.Id, myEmail, request.TargetEmails);
                 // 3. result 반환
                 return result;
             });
@@ -348,28 +348,42 @@ namespace ChatMessenger.Server.Services
         /// <returns>JoinAndLeaveChatRoomDTO DTO</returns>
         private async Task<JoinAndLeaveChatRoomDTO> AddParticipantsAndCreateMessageInternalAsync(Guid roomId, string userEmail, IEnumerable<string> emails)
         {
-            // 1. 내부에서 필요한 데이터 미리 선언
-            JoinAndLeaveChatRoomDTO result = new() { RoomId = roomId };
             return await ExecuteTransactionAsync(_chatParticipantRepository, async () =>
             {
-                // 2. 입장 메세지 등록을 위해 참가자들의 Nickname 요청
-                List<string> nicknameResult = await _userRepository.GetNicknamesByEmailsAsync(emails);
-                if (nicknameResult.Count == 0)
-                    throw new InvalidOperationException("등록된 채팅방 참가자를 찾을 수 없습니다.");
-                // 3. 입장 메세지 등록
-                ChatMessage messageResult = await AddJoinAndExitSystemMessageAsync(nicknameResult, roomId, true);
-                result.SystemMessage = messageResult;
-                // 4. 참가자들 등록 시도
-                bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, emails, messageResult.Id);
-                if (!addResult)
-                    throw new InvalidOperationException("채팅방 참가자 등록 중 오류가 발생했습니다.");
-                // 5. 참가자들 Email result에 삽입
-                List<ChatParticipantDTO> particiDTO = await _chatParticipantRepository.GetParticipantDTOListAsync(roomId);
-                List<string> particiEmailList = particiDTO.Select(p => p.Email).ToList();
-                result.RemainingUsersEmailList = particiEmailList;
-                // 6. result 반환
-                return result;
+                return await AddParticipantsAndCreateMessageCoreAsync(roomId, userEmail, emails);
             });
+        }
+        /// <summary>
+        /// 참가자들을 채팅방에 초대하고, 입장 메세지를 등록한 뒤 JoinAndLeaveChatRoomDTO를 반환해줍니다.
+        /// </summary>
+        /// <remarks>
+        /// 해당 메서드는 ExecuteBusinessLogicAsync나 ExecuteTransactionAsync 내부에서 실행돼야하는 메서드입니다.
+        /// </remarks>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        /// <param name="userEmail">참가자들을 초대한 User의 Email</param>
+        /// <param name="emails">초대 대상들의 Email</param>
+        /// <returns>JoinAndLeaveChatRoomDTO DTO</returns>
+        private async Task<JoinAndLeaveChatRoomDTO> AddParticipantsAndCreateMessageCoreAsync(Guid roomId, string userEmail, IEnumerable<string> emails)
+        {
+            // 1. 내부에서 필요한 데이터 미리 선언
+            JoinAndLeaveChatRoomDTO result = new() { RoomId = roomId };
+            // 2. 입장 메세지 등록을 위해 참가자들의 Nickname 요청
+            List<string> nicknameResult = await _userRepository.GetNicknamesByEmailsAsync(emails);
+            if (nicknameResult.Count == 0)
+                throw new InvalidOperationException("등록된 채팅방 참가자를 찾을 수 없습니다.");
+            // 3. 입장 메세지 등록
+            ChatMessage messageResult = await AddJoinAndExitSystemMessageAsync(nicknameResult, roomId, true);
+            result.SystemMessage = messageResult;
+            // 4. 참가자들 등록 시도
+            bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, emails, messageResult.Id);
+            if (!addResult)
+                throw new InvalidOperationException("채팅방 참가자 등록 중 오류가 발생했습니다.");
+            // 5. 참가자들 Email result에 삽입
+            List<ChatParticipantDTO> particiDTO = await _chatParticipantRepository.GetParticipantDTOListAsync(roomId);
+            List<string> particiEmailList = particiDTO.Select(p => p.Email).ToList();
+            result.RemainingUsersEmailList = particiEmailList;
+            // 6. result 반환
+            return result;
         }
         /// <summary>
         /// 유저가 해당 채팅방에서 나간 상태(IsLeft)라면 참여 상태로 변경하고 진입 시점 메세지 식별 번호를 갱신합니다.

@@ -118,7 +118,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs
             // 1. 서버에 유저 검색 요청
             ServiceResult<FriendModel> response = await _friendService.SearchFriendAsync(SearchEmail);
             if (!response.IsSuccess)
+            {
+                AddFriendWarningText = response.ErrorMessage;
                 return;
+            }
 
             // 2. 검색 성공 시 상세 정보 업데이트
             CurrentVM = _friendDetailVM;

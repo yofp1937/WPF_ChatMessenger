@@ -3,7 +3,7 @@
 # =============================================================================
 # /app 에 프로그램을 배치(루트 폴더로 설정)하고 포트 번호는 8080으로 설정한 뒤 aspnet으로 구동하겠다고 설정
 # ★ aspnet이란: SDK로 컴파일을 끝낸 dll 파일로 프로그램을 구동시켜주는 엔진
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
@@ -11,7 +11,7 @@ EXPOSE 8080
 # [2단계]: SDK를 사용해 소스 코드를 컴파일
 # =============================================================================
 # /src에 컴파일용 SDK를 준비
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # 외부 라이브러리 목록을 미리 불러와서 변경사항이 있으면 패키지를 새로 다운로드합니다.

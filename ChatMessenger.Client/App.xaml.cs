@@ -10,7 +10,7 @@ namespace ChatMessenger.Client
     {
         public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
-        public App()
+       public App()
         {
             ServiceCollection services = new();
             // "/Config/DependencyInjectionConfig"에 선언된 AddAppServices 메서드 실행

@@ -50,12 +50,14 @@ namespace ChatMessenger.Server.Services
                 // 1. 입력 값 검사
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(friendEmail))
                     return ServiceResult<FriendResponse>.Failed("잘못된 요청 데이터입니다.", ServiceResultType.BadRequest);
-                // 2. 친구 관계 확인
+                // 2. friendEmail이 등록된 이메일인지 확인
+                User? user = await _userRepository.GetUserByEmailAsync(friendEmail);
+                if(user == null)
+                    return ServiceResult<FriendResponse>.Failed("유저를 찾을 수 없습니다.", ServiceResultType.BadRequest);
+                // 3. Response 생성에 필요한 friendship 검색
                 Friendship? friendship = await _friendshipRepository.GetFriendshipEntityAsync(myEmail, friendEmail);
-                if (friendship == null)
-                    return ServiceResult<FriendResponse>.Failed("해당 유저와 친구 관계가 아닙니다.", ServiceResultType.BadRequest);
-                // 3. FriendResponse로 매핑하여 반환
-                FriendResponse response = friendship.Friend.MapToFriendResponse(friendship, myEmail == friendEmail);
+                // 4. FriendResponse로 매핑하여 반환
+                FriendResponse response = user.MapToFriendResponse(friendship, myEmail == friendEmail);
                 return ServiceResult<FriendResponse>.Success(response);
             });
         }
