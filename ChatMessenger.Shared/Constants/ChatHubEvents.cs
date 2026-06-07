@@ -10,7 +10,13 @@
         /// </summary>
         public static class ChatHubRequestEvent
         {
+            /// <summary>
+            /// 채팅방에 입장할시 송신하는 이벤트
+            /// </summary>
             public const string JoinRoom = "JoinRoom";
+            /// <summary>
+            /// 채팅방에서 퇴장할시 송신하는 이벤트
+            /// </summary>
             public const string LeaveRoom = "LeaveRoom";
         }
 
@@ -19,8 +25,18 @@
         /// </summary>
         public static class ChatHubResponseEvent
         {
+            /// <summary>
+            /// 누군가 메세지 전송시 수신하는 이벤트
+            /// </summary>
             public const string ReceiveMessage = "ReceiveMessage";
+            /// <summary>
+            /// 누군가 메세지 읽을시 수신하는 이벤트
+            /// </summary>
             public const string UserReadMessage = "UserReadMessage";
+            /// <summary>
+            /// 참가자 입장, 퇴장시 수신하는 이벤트
+            /// </summary>
+            public const string UpdateParticipantStatus = "UpdateParticipantStatus";
         }
     }
 }

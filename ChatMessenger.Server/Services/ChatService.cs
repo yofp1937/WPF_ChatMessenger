@@ -10,8 +10,10 @@ using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.Constants;
 using ChatMessenger.Shared.DTOs.Requests.Chat;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
 using ChatMessenger.Shared.Enums;
 using Microsoft.AspNetCore.SignalR;
+using System.Diagnostics;
 
 namespace ChatMessenger.Server.Services
 {
@@ -36,209 +38,6 @@ namespace ChatMessenger.Server.Services
             _userRepository = userRepository;
         }
 
-        #region public Method
-        #region 채팅방 Search, Add, Remove, Update
-        /// <inheritdoc/>
-        public async Task<ServiceResult<ChatRoomSummaryResponse>> GetChatRoomSummaryResponseAsync(Guid roomId, string myEmail)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if(roomId == Guid.Empty || string.IsNullOrEmpty(myEmail))
-                    return ServiceResult<ChatRoomSummaryResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. 채팅방 접근 권한 확인
-                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, myEmail);
-                // 3. Response 생성에 필요한 DTO 추출
-                ChatRoomSummaryDTO? result = await _chatRoomRepository.GetChatRoomSummaryDTOAsync(participant);
-                if (result == null)
-                    return ServiceResult<ChatRoomSummaryResponse>.Failed("ChatRoomSummaryDTO 생성에 실패했습니다.", ServiceResultType.InternalServerError);
-                // 4. DTO를 Response로 변환하여 반환
-                ChatRoomSummaryResponse response = ChatMapper.ToSummaryResponse(result);
-                return ServiceResult<ChatRoomSummaryResponse>.Success(response);
-            });
-        }
-        /// <inheritdoc/>
-        public async Task<ServiceResult<List<ChatRoomSummaryResponse>>> GetChatRoomSummaryResponseListAsync(string myEmail)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if(string.IsNullOrEmpty(myEmail))
-                    return ServiceResult<List<ChatRoomSummaryResponse>>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. Response 생성에 필요한 DTO 추출 (방금 가입한 유저는 가입된 ChatRoom이 없으니 List가 0개여도 정상)
-                List<ChatRoomSummaryDTO> result = await _chatRoomRepository.GetChatRoomSummaryDTOListAsync(myEmail);
-                // 3. DTO를 Response로 매핑하고 List화하여 반환
-                List<ChatRoomSummaryResponse> response = result.Select(ChatMapper.ToSummaryResponse).ToList();
-                return ServiceResult<List<ChatRoomSummaryResponse>>.Success(response);
-            });
-        }
-        /// <inheritdoc/>
-        public async Task<ServiceResult<ChatRoomDetailResponse>> GetChatRoomDetailResponseAsync(Guid roomId, string myEmail)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if(roomId == Guid.Empty || string.IsNullOrEmpty(myEmail))
-                    return ServiceResult<ChatRoomDetailResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. 채팅방 접근 권한 확인
-                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, myEmail);
-                // 3. Response 생성에 필요한 채팅방 참가자들 정보 추출
-                List<ChatParticipantProjection> projectionResult = await _chatParticipantRepository.GetParticipantProjectionListAsync(roomId);
-                if(projectionResult.Count == 0)
-                    return ServiceResult<ChatRoomDetailResponse>.Failed("ChatParticipantProjection 생성에 실패했습니다.", ServiceResultType.InternalServerError);
-                // 4. Response 생성에 필요한 채팅방 최근 메세지 정보 추출
-                List<ChatMessage> messagesResult = await _chatMessageRepository.GetLastFiftyMessageListAsync(roomId);
-                // 5. 추출한 Data들로 Response로 매핑하여 반환
-                ChatRoomDetailResponse response = ChatMapper.ToChatRoomDetailResponse(participant, projectionResult, messagesResult);
-                return ServiceResult<ChatRoomDetailResponse>.Success(response);
-            });
-        }
-        /// <inheritdoc/>
-        public async Task<ServiceResult<Guid>> CreateChatRoomAsync(string myEmail, CreateGroupChatRequest request)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if(string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(request.Title) || request.TargetEmails.Count == 0)
-                    return ServiceResult<Guid>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. 그룹 채팅방을 만들고 참가자들을 초대한 뒤 시스템 메세지까지 등록
-                JoinAndLeaveRoomDTO transactionResult = await CreateChatRoomWithParticipantsAsync(myEmail, request);
-                if (transactionResult.SystemMessage == null)
-                    throw new InvalidOperationException("SystemMessage가 누락됐습니다.");
-                // 3. ChatHub를 통해 채팅방 참가자들에게 전송하기위해 response 매핑
-                ChatMessageResponse response = ChatMapper.ToSystemMessageResponse(transactionResult.SystemMessage);
-                // 4. 채팅방 참가자들에게 퇴장 메세지 전송
-                await _chatHubContext.Clients.Groups(transactionResult.RemainingUsersEmailList)
-                    .SendAsync(ChatHubEvents.ChatHubResponseEvent.ReceiveMessage, response);
-                // 5. 결과 반환
-                return ServiceResult<Guid>.Success(transactionResult.RoomId);
-            });
-        }
-        #endregion 채팅방 Search, Add, Remove, Update
-        #region 채팅 참가자 Search, Add, Remove, Update
-        /// <inheritdoc/>
-        public async Task<ServiceResult<List<ChatParticipantDTO>>> GetParticipantDTOListAsync(Guid roomId)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if (roomId == Guid.Empty)
-                    return ServiceResult<List<ChatParticipantDTO>>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. Response 생성에 필요한 DTO 추출
-                List<ChatParticipantDTO> result = await _chatParticipantRepository.GetParticipantDTOListAsync(roomId);
-                if (result.Count == 0)
-                    return ServiceResult<List<ChatParticipantDTO>>.Failed("채팅방 참가자들의 정보를 읽어오는데 실패했습니다.", ServiceResultType.InternalServerError);
-                // 3. 결과 반환
-                return ServiceResult<List<ChatParticipantDTO>>.Success(result);
-            });
-        }
-        /// <inheritdoc/>
-        public async Task<ServiceResult<bool>> RemoveParticipantAndCreateLeaveMessageAsync(Guid roomId, string userEmail)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if (roomId == Guid.Empty || string.IsNullOrEmpty(userEmail))
-                    return ServiceResult<bool>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. 채팅방 접근 권한 확인
-                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, userEmail);
-                // 3. 참가자 정보 삭제, 조건부 채팅방 삭제, 조건부 퇴장 메세지 등록을 transaction으로 실행하고,
-                //    퇴장 메세지 전송을 위한 결과값 반환받음
-                JoinAndLeaveRoomDTO transactionResult = await RemoveParticipantAndCreateMessageInternalAsync(roomId, participant);
-                // 4. transactionResult.SystemMessage가 null이면 채팅방이 삭제된거라 메세지 전송 스킵
-                if(transactionResult.SystemMessage != null)
-                {
-                    // 5. ChatHub를 통해 채팅방 참가자들에게 전송하기위해 response 매핑
-                    ChatMessageResponse response = ChatMapper.ToSystemMessageResponse(transactionResult.SystemMessage);
-                    // 6. 채팅방 참가자들에게 퇴장 메세지 전송
-                    await _chatHubContext.Clients.Groups(transactionResult.RemainingUsersEmailList)
-                        .SendAsync(ChatHubEvents.ChatHubResponseEvent.ReceiveMessage, response);
-                }
-                // 7. 결과 반환
-                return ServiceResult<bool>.Success(true);
-            });
-        }
-        /// <inheritdoc/>
-        public async Task<ServiceResult<bool>> AddParticipantsToRoomAsync(Guid roomId, string myEmail, IEnumerable<string> emails)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if(roomId == Guid.Empty || string.IsNullOrEmpty(myEmail) || emails.Count() == 0)
-                    return ServiceResult<bool>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. 채팅방 접근 권한 확인
-                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, myEmail);
-                // 3. 참가자 등록, 입장 메세지 생성하여 반환받음
-                JoinAndLeaveRoomDTO transactionResult = await AddParticipantsAndCreateMessageInternalAsync(roomId, myEmail, emails);
-                if (transactionResult.SystemMessage == null)
-                    throw new InvalidOperationException("SystemMessage가 누락됐습니다.");
-                // 4. ChatHub를 통해 채팅방 참가자들에게 전송하기위해 response 매핑
-                ChatMessageResponse response = ChatMapper.ToSystemMessageResponse(transactionResult.SystemMessage);
-                // 5. 채팅방 참가자들에게 입장 메세지 전송
-                await _chatHubContext.Clients.Groups(transactionResult.RemainingUsersEmailList)
-                    .SendAsync(ChatHubEvents.ChatHubResponseEvent.ReceiveMessage, response);
-                // 6. 결과 반환
-                return ServiceResult<bool>.Success(true);
-            });
-        }
-        #endregion 채팅 참가자 Search, Add, Remove, Update
-        #region 메세지 Add, Remove, Update
-        /// <inheritdoc/>
-        public async Task<ServiceResult<UserReadUpdateResponse>> UpdateLastReadedMessageAsync(string myEmail, UpdateLastReadedMessageRequest request)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if(string.IsNullOrEmpty(myEmail) || request.RoomId == Guid.Empty || request.LastReadMessageId < 0)
-                    return ServiceResult<UserReadUpdateResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. 채팅방 접근 권한 확인
-                ChatParticipant participant = await GetValidatedParticipantAsync(request.RoomId, myEmail, true);
-                // 3. 이전에 마지막으로 읽었던 메세지 번호 저장
-                long previouseId = participant.LastReadMessageId;
-                // 4. 내 ChatParticipant Entity의 값을 수정하고 Db에 적용 요청
-                bool isSuccess = await _chatParticipantRepository.UpdateChatParticipantAsync(participant, p =>
-                {
-                    p.LastReadMessageId = request.LastReadMessageId;
-                });
-                if (!isSuccess)
-                    return ServiceResult<UserReadUpdateResponse>.Failed("변경 사항이 없거나, 저장에 실패했습니다.", ServiceResultType.InternalServerError);
-                // 4. 결과 Data들 Response로 매핑
-                UserReadUpdateResponse response = ChatMapper.ToReadUpdateResponse(request.RoomId, myEmail, request.LastReadMessageId, previouseId);
-                // 5. 업데이트 성공했으면 ChatHub를 통해 내가 메세지를 읽었으니 View 업데이트하라고 브로드 캐스트 전송
-                await _chatHubContext.Clients.Group(request.RoomId.ToString())
-                    .SendAsync(ChatHubEvents.ChatHubResponseEvent.UserReadMessage, response);
-                // 6. Response 반환
-                return ServiceResult<UserReadUpdateResponse>.Success(response);
-            });
-        }
-        /// <inheritdoc/>
-        public async Task<ServiceResult<ChatMessageResponse>> SendMessageAsync(string myEmail, SendMessageRequest request)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검증
-                if (string.IsNullOrEmpty(myEmail) || request.RoomId == Guid.Empty || string.IsNullOrEmpty(request.Content))
-                    return ServiceResult<ChatMessageResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
-                // 2. 채팅방 접근 권한 확인
-                ChatParticipant participant = await GetValidatedParticipantAsync(request.RoomId, myEmail);
-                // 3. 메세지 전송하고 나의 LastReadedMessageId 업데이트
-                ChatMessage messageResult = await AddMessageAndUpdateLastReadedMessageInternalAsync(myEmail, request, participant);
-                // 4. 메세지 전송을 위해 채팅방의 모든 참가자 정보 받아와서 Email 추출
-                List<ChatParticipantDTO> participantDTO = await _chatParticipantRepository.GetParticipantDTOListAsync(request.RoomId);
-                if (participantDTO.Count == 0)
-                    return ServiceResult<ChatMessageResponse>.Failed("채팅방 참가자 정보를 받아오는데 실패했습니다.", ServiceResultType.InternalServerError);
-                List<string> emails = participantDTO.Select(p => p.Email).ToList();
-                // 5. 결과 Data들 Response로 매핑하여 반환
-                ChatMessageResponse response = ChatMapper.ToMessageResponse(messageResult, participant.User, participantDTO.Count - 1);
-                // 6. ChatHub를 통해 참가자들에게 메세지 전송하고 Response 반환
-                await _chatHubContext.Clients.Groups(emails)
-                    .SendAsync(ChatHubEvents.ChatHubResponseEvent.ReceiveMessage, response);
-                return ServiceResult<ChatMessageResponse>.Success(response);
-            });
-        }
-        #endregion 메세지 Add, Remove, Update
-        #endregion public Method
-        #region private Method
         /// <summary>
         /// 채팅방에 접근할 권한이 있는지 확인하기위해 ChatParticipant Entity를 찾아서 반환하는 메서드입니다.
         /// </summary>
@@ -259,11 +58,399 @@ namespace ChatMessenger.Server.Services
                 ? await _chatParticipantRepository.GetTrackingParticipantEntityAsync(roomId, userEmail)
                 : await _chatParticipantRepository.GetParticipantEntityAsync(roomId, userEmail);
             // 2. 없으면 throw (BaseBusinessService의 ExecutedBusinessLogicAsync 내부 catch에서 예외 처리)
-            if (participant == null)
+            if (participant == null || participant.IsLeft)
                 throw new UnauthorizedAccessException("해당 채팅방에 접근 권한이 없습니다.");
             // 3. 있으면 반환
             return participant;
         }
+        #region ChatRoom 관련
+        /// <inheritdoc/>
+        public async Task<ServiceResult<ChatRoomSummaryResponse>> GetChatRoomSummaryResponseAsync(Guid roomId, string myEmail)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if (roomId == Guid.Empty || string.IsNullOrEmpty(myEmail))
+                    return ServiceResult<ChatRoomSummaryResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. 채팅방 접근 권한 확인
+                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, myEmail);
+                // 3. Response 생성에 필요한 DTO 추출
+                ChatRoomSummaryDTO? result = await _chatRoomRepository.GetChatRoomSummaryDTOAsync(participant);
+                if (result == null)
+                    return ServiceResult<ChatRoomSummaryResponse>.Failed("ChatRoomSummaryDTO 생성에 실패했습니다.", ServiceResultType.InternalServerError);
+                // 4. DTO를 Response로 변환하여 반환
+                ChatRoomSummaryResponse response = ChatMapper.ToSummaryResponse(result);
+                return ServiceResult<ChatRoomSummaryResponse>.Success(response);
+            });
+        }
+        /// <inheritdoc/>
+        public async Task<ServiceResult<List<ChatRoomSummaryResponse>>> GetChatRoomSummaryResponseListAsync(string myEmail)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if (string.IsNullOrEmpty(myEmail))
+                    return ServiceResult<List<ChatRoomSummaryResponse>>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. Response 생성에 필요한 DTO 추출 (방금 가입한 유저는 가입된 ChatRoom이 없으니 List가 0개여도 정상)
+                List<ChatRoomSummaryDTO> result = await _chatRoomRepository.GetChatRoomSummaryDTOListAsync(myEmail);
+                // 3. DTO를 Response로 매핑하고 List화하여 반환
+                List<ChatRoomSummaryResponse> response = result.Select(ChatMapper.ToSummaryResponse).ToList();
+                return ServiceResult<List<ChatRoomSummaryResponse>>.Success(response);
+            });
+        }
+        /// <inheritdoc/>
+        public async Task<ServiceResult<ChatRoomDetailResponse>> GetChatRoomDetailResponseAsync(Guid roomId, string myEmail)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if (roomId == Guid.Empty || string.IsNullOrEmpty(myEmail))
+                    return ServiceResult<ChatRoomDetailResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. 채팅방 접근 권한 확인
+                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, myEmail);
+                // 3. Response 생성에 필요한 채팅방 참가자들 정보 추출
+                List<ChatParticipantProjection> projectionResult = await _chatParticipantRepository.GetParticipantProjectionListAsync(roomId);
+                if (projectionResult.Count == 0)
+                    return ServiceResult<ChatRoomDetailResponse>.Failed("ChatParticipantProjection 생성에 실패했습니다.", ServiceResultType.InternalServerError);
+                // 4. Response 생성에 필요한 채팅방 최근 메세지 정보 추출
+                List<ChatMessage> messagesResult = await _chatMessageRepository.GetLastFiftyMessageListAsync(roomId, participant.EntryMessageId);
+                // 5. 추출한 Data들로 Response로 매핑하여 반환
+                ChatRoomDetailResponse response = ChatMapper.ToChatRoomDetailResponse(participant, projectionResult, messagesResult);
+                return ServiceResult<ChatRoomDetailResponse>.Success(response);
+            });
+        }
+        /// <inheritdoc/>
+        public async Task<ServiceResult<Guid>> CreateGroupChatRoomAsync(string myEmail, CreateGroupChatRequest request)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(request.Title) || request.TargetEmails.Count == 0)
+                    return ServiceResult<Guid>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. 그룹 채팅방을 만들고 참가자들을 초대한 뒤 시스템 메세지까지 등록
+                JoinAndLeaveChatRoomDTO transactionResult = await CreateGroupChatRoomWithParticipantsInternalAsync(myEmail, request);
+                if (transactionResult.SystemMessage == null)
+                    throw new InvalidOperationException("SystemMessage가 누락됐습니다.");
+                // 3. 참가자들에게 입장 SystemMessage 전송
+                bool sendMessageResult = await SendJoinAndLeaveSystemMessageInternalAsync(transactionResult, true);
+                if(!sendMessageResult)
+                    throw new InvalidOperationException("SystemMessage 전송에 실패했습니다.");
+                // 4. 결과 반환
+                return ServiceResult<Guid>.Success(transactionResult.RoomId);
+            });
+        }
+        /// <inheritdoc/>
+        public async Task<ServiceResult<Guid>> GetOrCreatePrivateChatAsync(string myEmail, CreatePrivateChatRequest request)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(request.TargetEmail))
+                    return ServiceResult<Guid>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. myEmail과 request.TargetEmail 사이의 채팅방 검색
+                ChatRoom? room = await _chatParticipantRepository.GetPrivateChatRoomEntityAsync(myEmail, request.TargetEmail);
+                // 3. 기존 채팅방 없으면 생성
+                if (room == null)
+                    room = await CreatePrivateChatRoomInternalAsync(myEmail, request.TargetEmail);
+                // 4. 존재하면 참여 상태 확인
+                else
+                    await EnsureParticipantActiveAsync(room.Id, myEmail);
+                // 5. 채팅방 식별 번호 반환
+                return ServiceResult<Guid>.Success(room.Id);
+            });
+        }
+        #region ChatRoom private 메서드
+        /// <summary>
+        /// 신규 그룹 채팅방을 개설하고, 참가자들을 추가한 뒤, 시스템 메세지까지 등록합니다.
+        /// </summary>
+        /// <param name="myEmail">방 개설자의 Email</param>
+        /// <param name="request">방 개설 정보</param>
+        /// <returns>JoinAndLeaveRoom DTO</returns>
+        private async Task<JoinAndLeaveChatRoomDTO> CreateGroupChatRoomWithParticipantsInternalAsync(string myEmail, CreateGroupChatRequest request)
+        {
+            return await ExecuteTransactionAsync(_chatRoomRepository, async () =>
+            {
+                // 1. 새로운 그룹 채팅방 생성하고, result에 RoomId 삽입
+                ChatRoom? roomResult = await _chatRoomRepository.CreateChatRoomAsync(request.Title, request.ProfileImageURL, true);
+                if (roomResult == null)
+                    throw new InvalidOperationException("새로운 채팅방 생성에 실패 했습니다.");
+                // 2. 참가자 등록, 
+                JoinAndLeaveChatRoomDTO result = await AddParticipantsAndCreateMessageInternalAsync(roomResult.Id, myEmail, request.TargetEmails);
+                // 3. result 반환
+                return result;
+            });
+        }
+        /// <summary>
+        /// 두 유저 사이의 1대1 채팅방을 생성합니다.
+        /// </summary>
+        /// <param name="myEmail">로그인한 User의 Email</param>
+        /// <param name="targetEmail">채팅 상대 User의 Email</param>
+        /// <returns>생성된 ChatRoom Entity</returns>
+        private async Task<ChatRoom> CreatePrivateChatRoomInternalAsync(string myEmail, string targetEmail)
+        {
+            return await ExecuteTransactionAsync(_chatRoomRepository, async () =>
+            {
+                ChatRoom? room = await _chatRoomRepository.CreateChatRoomAsync(null, null, false);
+                if (room == null)
+                    throw new InvalidOperationException("1대1 채팅방 생성에 실패했습니다.");
+                List<string> participantList = new() { myEmail, targetEmail };
+                bool particiResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(room.Id, participantList, 0);
+                if (!particiResult)
+                    throw new InvalidOperationException("1대1 채팅방 참가자 등록에 실패했습니다.");
+                return room;
+            });
+        }
+        #endregion ChatRoom private 메서드
+        #endregion ChatRoom 관련
+        #region ChatParticipant 관련
+        /// <inheritdoc/>
+        public async Task<ServiceResult<bool>> RemoveParticipantAndCreateLeaveMessageAsync(Guid roomId, string userEmail)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if (roomId == Guid.Empty || string.IsNullOrEmpty(userEmail))
+                    return ServiceResult<bool>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. 채팅방 접근 권한 확인
+                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, userEmail, true);
+                bool isGroupChat = participant.ChatRoom.IsGroupChat;
+                // 3. 참가자 정보 삭제, 조건부 채팅방 삭제, 조건부 퇴장 메세지 등록을 transaction으로 실행하고,
+                //    퇴장 메세지 전송을 위한 결과값 반환받음
+                JoinAndLeaveChatRoomDTO transactionResult = await RemoveParticipantAndCreateMessageInternalAsync(roomId, participant);
+                // 4. transactionResult.SystemMessage가 null이면 채팅방이 삭제된거라 메세지 전송 스킵
+                if(transactionResult.SystemMessage != null && isGroupChat)
+                {
+                    // 5. 참가자들에게 퇴장 SystemMessage 전송
+                    bool sendMessageResult = await SendJoinAndLeaveSystemMessageInternalAsync(transactionResult, false, userEmail);
+                    if (!sendMessageResult)
+                        throw new InvalidOperationException("SystemMessage 전송에 실패했습니다.");
+                }
+                // 6. 결과 반환
+                return ServiceResult<bool>.Success(true);
+            });
+        }
+        /// <inheritdoc/>
+        public async Task<ServiceResult<bool>> AddParticipantsToRoomAsync(Guid roomId, string myEmail, IEnumerable<string> emails)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if(roomId == Guid.Empty || string.IsNullOrEmpty(myEmail) || emails.Count() == 0)
+                    return ServiceResult<bool>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. 채팅방 접근 권한 확인
+                ChatParticipant participant = await GetValidatedParticipantAsync(roomId, myEmail);
+                // 3. 참가자 등록, 입장 메세지 생성하여 반환받음
+                JoinAndLeaveChatRoomDTO transactionResult = await AddParticipantsAndCreateMessageInternalAsync(roomId, myEmail, emails);
+                if (transactionResult.SystemMessage == null)
+                    throw new InvalidOperationException("SystemMessage가 누락됐습니다.");
+                // 4. 참가자들에게 입장 SystemMessage 전송
+                bool sendMessageResult = await SendJoinAndLeaveSystemMessageInternalAsync(transactionResult, true);
+                if (!sendMessageResult)
+                    throw new InvalidOperationException("SystemMessage 전송에 실패했습니다.");
+                // 6. 결과 반환
+                return ServiceResult<bool>.Success(true);
+            });
+        }
+        /// <summary>
+        /// 누군가 채팅방에 입장하거나 퇴장하면 SystemMessage를 생성하여 채팅방 참가자들에게 전송합니다.
+        /// </summary>
+        /// <remarks>
+        /// 퇴장 이벤트의 경우, 이미 방을 나간 탈퇴자에게는 SignalR 이벤트를 전송하지 않도록 전송 대상 목록에서 제외합니다.
+        /// </remarks>
+        /// <param name="dto">입퇴장 트랜잭션 결과가 담긴 DTO</param>
+        /// <param name="isJoined">입장시 true, 퇴장시 false</param>
+        /// <param name="leaverEmail">퇴장한 User의 이메일(퇴장 이벤트일때 필수 입력해야함)</param>
+        /// <returns>입퇴장 시스템 메세지 전송 성공 여부</returns>
+        private async Task<bool> SendJoinAndLeaveSystemMessageInternalAsync(JoinAndLeaveChatRoomDTO dto, bool isJoined, string? leaverEmail = null)
+        {
+            // 1. 입력 값 검증
+            if (dto.RoomId == Guid.Empty || dto.SystemMessage == null)
+                throw new InvalidOperationException("JoinAndLeaveChatRoomDTO의 값이 정상적으로 설정되지 않았습니다.");
+            // 1. 참가자들에게 전송할 response 생성을 위한 Data 세팅
+            ChatMessageResponse msgResponse = ChatMapper.ToSystemMessageResponse(dto.SystemMessage);
+            List<FriendResponse> userResponse;
+            // 2. 누군가 입장했을때
+            if (isJoined)
+            {
+                // 3. _chatHubContext를 통해 전송할 response 생성을 위해 데이터 추출
+                List<ChatParticipantProjection> projections = await _chatParticipantRepository.GetParticipantProjectionListAsync(dto.RoomId);
+                userResponse = projections
+                    .Where(p => dto.RemainingUsersEmailList.Contains(p.User.Email))
+                    .Select(p => FriendMapper.MapToFriendResponse(p.User))
+                    .ToList();
+            }
+            // 4. 누군가 퇴장했을때
+            else
+            {
+                // 5. _chatHubContext를 통해 전송할 response 생성을 위해 데이터 추출
+                if (leaverEmail == null || string.IsNullOrEmpty(leaverEmail))
+                    throw new InvalidOperationException("leaverEmail이 정상적으로 넘어오지 않았습니다.");
+                User? user = await _userRepository.GetUserByEmailAsync(leaverEmail);
+                if(user == null)
+                    throw new InvalidOperationException("User 객체를 찾지못했습니다.");
+                userResponse = new() { FriendMapper.MapToFriendResponse(user) };
+            }
+            // 6. ChatHub를 통해 채팅방 참가자들에게 전송
+            ChatParticipantStatusResponse response = 
+                ChatMapper.ToParticipantStatusResponse(msgResponse, dto.RemainingUsersEmailList.Count, userResponse, isJoined);
+            await BroadcastToUsersAsync(_chatHubContext, dto.RemainingUsersEmailList, ChatHubEvents.ChatHubResponseEvent.UpdateParticipantStatus, response);
+            return true;
+        }
+        #region ChatParticipant private 메서드
+        /// <summary>
+        /// 원자성을 보장하기위해 transaction을 사용해 ChatParticipant 삭제와 퇴장 SystemMessage 등록을 진행합니다.
+        /// </summary>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        /// <param name="participant">채팅방 탈퇴자의 ChatParticipant Entity</param>
+        /// <returns>JoinAndLeaveRoom DTO</returns>
+        private async Task<JoinAndLeaveChatRoomDTO> RemoveParticipantAndCreateMessageInternalAsync(Guid roomId, ChatParticipant participant)
+        {
+            // 1. 내부에서 필요한 데이터 미리 선언
+            JoinAndLeaveChatRoomDTO result = new() { RoomId = roomId };
+            string nickname = participant.User.Nickname;
+            bool isGroupChat = participant.ChatRoom.IsGroupChat;
+            return await ExecuteTransactionAsync(_chatParticipantRepository, async () =>
+            {
+                // 2. 사용자 요청에 따라 Db에서 ChatParticipant 수정
+                bool removeParticipantResult = await _chatParticipantRepository.UpdateChatParticipantAsync(participant, p =>
+                {
+                    p.IsLeft = true;
+                });
+                if (!removeParticipantResult)
+                    throw new InvalidOperationException("참가자 채팅방 탈퇴 처리 중 오류가 발생했습니다.");
+                // 3. 채팅방에 남아있는 사람들의 Email과 Nickname 추출하고, Email만 result에 삽입
+                List<ChatParticipantDTO> participantDTO = await _chatParticipantRepository.GetParticipantDTOListAsync(roomId);
+                result.RemainingUsersEmailList = participantDTO.Select(p => p.Email).ToList();
+                // 4. 채팅방에 아무도 없으면 채팅방 제거
+                if (participantDTO.Count == 0)
+                {
+                    bool removeRoomResult = await _chatRoomRepository.RemoveRoomAsync(participant.ChatRoom);
+                    if (!removeRoomResult)
+                        throw new InvalidOperationException("채팅방 삭제 중 오류가 발생했습니다.");
+                }
+                // 5. 누군가 남아있고, 그룹 채팅이면 퇴장 메세지 등록 후 ChatHub를 통해 전송
+                else if (participantDTO.Count > 0 && isGroupChat)
+                {
+                    // 4-1. 퇴장 메세지 등록
+                    ChatMessage exitMessageResult = await AddJoinAndExitSystemMessageAsync([nickname], roomId, false);
+                    // 4-2. 등록된 메세지 result에 삽입
+                    result.SystemMessage = exitMessageResult;
+                }
+                return result;
+            });
+        }
+        /// <summary>
+        /// 원자성 보장을 위하여 transaction을 사용해 참가자들을 채팅방에 초대하고, 입장 메세지를 등록한 뒤 JoinAndLeaveChatRoomDTO를 반환해줍니다.
+        /// </summary>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        /// <param name="userEmail">참가자들을 초대한 User의 Email</param>
+        /// <param name="emails">초대 대상들의 Email</param>
+        /// <returns>JoinAndLeaveChatRoomDTO DTO</returns>
+        private async Task<JoinAndLeaveChatRoomDTO> AddParticipantsAndCreateMessageInternalAsync(Guid roomId, string userEmail, IEnumerable<string> emails)
+        {
+            // 1. 내부에서 필요한 데이터 미리 선언
+            JoinAndLeaveChatRoomDTO result = new() { RoomId = roomId };
+            return await ExecuteTransactionAsync(_chatParticipantRepository, async () =>
+            {
+                // 2. 입장 메세지 등록을 위해 참가자들의 Nickname 요청
+                List<string> nicknameResult = await _userRepository.GetNicknamesByEmailsAsync(emails);
+                if (nicknameResult.Count == 0)
+                    throw new InvalidOperationException("등록된 채팅방 참가자를 찾을 수 없습니다.");
+                // 3. 입장 메세지 등록
+                ChatMessage messageResult = await AddJoinAndExitSystemMessageAsync(nicknameResult, roomId, true);
+                result.SystemMessage = messageResult;
+                // 4. 참가자들 등록 시도
+                bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, emails, messageResult.Id);
+                if (!addResult)
+                    throw new InvalidOperationException("채팅방 참가자 등록 중 오류가 발생했습니다.");
+                // 5. 참가자들 Email result에 삽입
+                List<ChatParticipantDTO> particiDTO = await _chatParticipantRepository.GetParticipantDTOListAsync(roomId);
+                List<string> particiEmailList = particiDTO.Select(p => p.Email).ToList();
+                result.RemainingUsersEmailList = particiEmailList;
+                // 6. result 반환
+                return result;
+            });
+        }
+        /// <summary>
+        /// 유저가 해당 채팅방에서 나간 상태(IsLeft)라면 참여 상태로 변경하고 진입 시점 메세지 식별 번호를 갱신합니다.
+        /// </summary>
+        /// <param name="roomId">채팅방 식별 번호</param>
+        /// <param name="userEmail">채팅방 참가하려는 User의 이메일</param>
+        /// <returns></returns>
+        private async Task EnsureParticipantActiveAsync(Guid roomId, string userEmail)
+        {
+            ChatParticipant? participant = await _chatParticipantRepository.GetTrackingParticipantEntityAsync(roomId, userEmail);
+            if (participant != null && participant.IsLeft)
+            {
+                long lastMessageId = await _chatMessageRepository.GetLastMessageIdAsync(roomId);
+                long entryMessageId = lastMessageId;
+                // 1대1 채팅방의 경우 입퇴장 메세지가 없기때문에 entryMessageId는 LastMessageId보다 1 커야함
+                if(!participant.ChatRoom.IsGroupChat)
+                    entryMessageId += 1;
+                await _chatParticipantRepository.UpdateChatParticipantAsync(participant, p =>
+                {
+                    p.IsLeft = false;
+                    p.EntryMessageId = entryMessageId;
+                    p.LastReadMessageId = lastMessageId;
+                });
+            }
+        }
+        #endregion ChatParticipant private 메서드
+        #endregion ChatParticipant 관련
+        #region ChatMessage 관련
+        /// <inheritdoc/>
+        public async Task<ServiceResult<UserReadUpdateResponse>> UpdateLastReadedMessageAsync(string myEmail, UpdateLastReadedMessageRequest request)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if(string.IsNullOrEmpty(myEmail) || request.RoomId == Guid.Empty || request.LastReadMessageId < 0)
+                    return ServiceResult<UserReadUpdateResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. 채팅방 접근 권한 확인
+                ChatParticipant participant = await GetValidatedParticipantAsync(request.RoomId, myEmail, true);
+                // 3. 이전에 마지막으로 읽었던 메세지 번호 저장
+                long previouseId = participant.LastReadMessageId;
+                // 4. 내 ChatParticipant Entity의 값을 수정하고 Db에 적용 요청
+                bool isSuccess = await _chatParticipantRepository.UpdateChatParticipantAsync(participant, p =>
+                {
+                    Console.WriteLine($"전달받은 LastReadMessageId: {request.LastReadMessageId}, Db에 기록된 LastReadMessageId: {p.LastReadMessageId}");
+                    p.LastReadMessageId = request.LastReadMessageId;
+                });
+                if (!isSuccess)
+                    return ServiceResult<UserReadUpdateResponse>.Failed("변경 사항이 없거나, 저장에 실패했습니다.", ServiceResultType.InternalServerError);
+                // 4. 결과 Data들 Response로 매핑
+                UserReadUpdateResponse response = ChatMapper.ToReadUpdateResponse(request.RoomId, myEmail, request.LastReadMessageId, previouseId);
+                // 5. 업데이트 성공했으면 ChatHub를 통해 내가 메세지를 읽었으니 View 업데이트하라고 브로드 캐스트 전송
+                await BroadcastToRoomAsync(_chatHubContext, request.RoomId.ToString(), ChatHubEvents.ChatHubResponseEvent.UserReadMessage, response);
+                // 6. Response 반환
+                return ServiceResult<UserReadUpdateResponse>.Success(response);
+            });
+        }
+        /// <inheritdoc/>
+        public async Task<ServiceResult<ChatMessageResponse>> SendMessageAsync(string myEmail, SendMessageRequest request)
+        {
+            return await ExecutedBusinessLogicAsync(async () =>
+            {
+                // 1. 입력 값 검증
+                if (string.IsNullOrEmpty(myEmail) || request.RoomId == Guid.Empty || string.IsNullOrEmpty(request.Content))
+                    return ServiceResult<ChatMessageResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
+                // 2. 채팅방 접근 권한 확인
+                ChatParticipant participant = await GetValidatedParticipantAsync(request.RoomId, myEmail, true);
+                // 3. 메세지 전송하고 나의 LastReadedMessageId 업데이트
+                ChatMessage messageResult = await AddMessageAndUpdateLastReadedMessageInternalAsync(myEmail, request, participant);
+                // 4. 메세지 전송을 위해 채팅방의 모든 참가자 정보 받아와서 Email 추출
+                List<ChatParticipantDTO> participantDTO = await _chatParticipantRepository.GetParticipantDTOListAsync(request.RoomId);
+                if (participantDTO.Count == 0)
+                    return ServiceResult<ChatMessageResponse>.Failed("채팅방 참가자 정보를 받아오는데 실패했습니다.", ServiceResultType.InternalServerError);
+                List<string> emails = participantDTO.Select(p => p.Email).ToList();
+                // 5. 결과 Data들 Response로 매핑하여 반환
+                ChatMessageResponse response = ChatMapper.ToMessageResponse(messageResult, participant.User, participantDTO.Count - 1);
+                // 6. ChatHub를 통해 참가자들에게 메세지 전송하고 Response 반환
+                await BroadcastToUsersAsync(_chatHubContext, emails, ChatHubEvents.ChatHubResponseEvent.ReceiveMessage, response);
+                return ServiceResult<ChatMessageResponse>.Success(response);
+            });
+        }
+        #region ChatMessage private 메서드
         /// <summary>
         /// 원자성을 보장하기위해 transaction을 사용해 메세지를 Db에 등록하고, 작성자의 LastReadedMessageId를 신규 메세지 Id로 변경합니다.
         /// </summary>
@@ -280,14 +467,19 @@ namespace ChatMessenger.Server.Services
                 ChatMessage? messageResult = await _chatMessageRepository.AddMessageAsnyc(myEmail, request);
                 if (messageResult == null)
                     throw new InvalidOperationException("메세지 저장 중 오류가 발생했습니다.");
-                // 2. 메세지가 성공적으로 등록됐으면 LastReadMessagId를 업데이트해줘야함
+                // 2. 1대1 채팅이면 상대방의 IsLeft와 상관없이 메세지를 전송할수있게 검사 로직 실행
+                if(!myParticipant.ChatRoom.IsGroupChat)
+                {
+                    await _chatParticipantRepository.ActivateParticipantIsLeftStatusIfPrivateAsync(request.RoomId, myEmail, messageResult.Id);
+                }
+                // 3. 메세지가 성공적으로 등록됐으면 LastReadMessagId를 업데이트해줘야함
                 bool isUpdated = await _chatParticipantRepository.UpdateChatParticipantAsync(myParticipant, p =>
                 {
                     p.LastReadMessageId = messageResult.Id;
                 });
                 if (!isUpdated)
                     throw new InvalidOperationException("메세지 등록 후 LastReadMessageId 수정에 실패했습니다.");
-                // 3. 저장된 ChatMessage를 ServiceResult에 담아서 반환
+                // 4. 저장된 ChatMessage를 ServiceResult에 담아서 반환
                 return messageResult;
             });
         }
@@ -318,106 +510,7 @@ namespace ChatMessenger.Server.Services
             // 3. 처리 결과 반환
             return messageResult;
         }
-        /// <summary>
-        /// 원자성을 보장하기위해 transaction을 사용해 ChatParticipant 삭제와 퇴장 SystemMessage 등록을 진행합니다.
-        /// </summary>
-        /// <param name="roomId">채팅방 식별 번호</param>
-        /// <param name="participant">채팅방 탈퇴자의 ChatParticipant Entity</param>
-        /// <returns>JoinAndLeaveRoom DTO</returns>
-        private async Task<JoinAndLeaveRoomDTO> RemoveParticipantAndCreateMessageInternalAsync(Guid roomId, ChatParticipant participant)
-        {
-            // 1. 내부에서 필요한 데이터 미리 선언
-            JoinAndLeaveRoomDTO result = new() { RoomId = roomId };
-            string nickname = participant.User.Nickname;
-            bool isGroupChat = participant.ChatRoom.IsGroupChat;
-            return await ExecuteTransactionAsync(_chatParticipantRepository, async () =>
-            {
-                // 2. 사용자 요청에 따라 Db에서 ChatParticipant 삭제
-                bool removeParticipantResult = await _chatParticipantRepository.RemoveParticipantAsync(participant);
-                if (!removeParticipantResult)
-                    throw new InvalidOperationException("참가자 데이터 삭제 중 오류가 발생했습니다.");
-                // 3. 채팅방에 남아있는 사람들의 Email과 Nickname 추출하고, Email만 result에 삽입
-                List<ChatParticipantDTO> participantDTO = await _chatParticipantRepository.GetParticipantDTOListAsync(roomId);
-                result.RemainingUsersEmailList = participantDTO.Select(p => p.Email).ToList();
-                // 4. 채팅방에 아무도 없으면 채팅방 제거
-                if (participantDTO.Count == 0)
-                {
-                    bool removeRoomResult = await _chatRoomRepository.RemoveRoomAsync(participant.ChatRoom);
-                    if (!removeRoomResult)
-                        throw new InvalidOperationException("채팅방 삭제 중 오류가 발생했습니다.");
-                }
-                // 5. 누군가 남아있고, 그룹 채팅이면 퇴장 메세지 등록 후 ChatHub를 통해 전송
-                else if (participantDTO.Count > 0 && isGroupChat)
-                {
-                    // 4-1. 퇴장 메세지 등록
-                    ChatMessage exitMessageResult = await AddJoinAndExitSystemMessageAsync([nickname], roomId, false);
-                    // 4-2. 등록된 메세지 result에 삽입
-                    result.SystemMessage = exitMessageResult;
-                }
-                return result;
-            });
-        }
-        /// <summary>
-        /// 신규 그룹 채팅방을 개설하고, 참가자들을 추가한 뒤, 시스템 메세지까지 등록합니다.
-        /// </summary>
-        /// <param name="myEmail">방 개설자의 Email</param>
-        /// <param name="request">방 개설 정보</param>
-        /// <returns>JoinAndLeaveRoom DTO</returns>
-        private async Task<JoinAndLeaveRoomDTO> CreateChatRoomWithParticipantsAsync(string myEmail, CreateGroupChatRequest request)
-        {
-            // 1. 내부에서 필요한 데이터 미리 선언
-            JoinAndLeaveRoomDTO result = new();
-            return await ExecuteTransactionAsync(_chatRoomRepository, async () =>
-            {
-                // 2. 새로운 그룹 채팅방 생성하고, result에 RoomId 삽입
-                ChatRoom? roomResult = await _chatRoomRepository.CreateChatRoomAsync(request.Title, request.ProfileImageURL, true);
-                if (roomResult == null)
-                    throw new InvalidOperationException("새로운 채팅방 생성에 실패 했습니다.");
-                result.RoomId = roomResult.Id;
-                // 2. request에 담긴 Email 목록에 채팅방 개설자 Email 추가하여 List 만들고 해당 List로 참가자 등록하고 result에 Email List 삽입 
-                List<string> participantEmails = new(request.TargetEmails);
-                participantEmails.Add(myEmail);
-                bool participantResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomResult.Id, participantEmails);
-                if (!participantResult)
-                    throw new InvalidOperationException("채팅방 참가자 등록 중 오류가 발생했습니다.");
-                result.RemainingUsersEmailList = participantEmails;
-                // 3. 초대 메세지 등록하고 result에 삽입
-                ChatMessage joinMessageResult = await AddJoinAndExitSystemMessageAsync(participantEmails, roomResult.Id, true);
-                if (joinMessageResult == null)
-                    throw new InvalidOperationException("채팅방 입장 메세지를 생성하여 등록하는 중 오류가 발생했습니다.");
-                result.SystemMessage = joinMessageResult;
-                // 4. result 반환
-                return result;
-            });
-        }
-        /// <summary>
-        /// 원자성 보장을 위하여 transaction을 사용해 참가자들을 채팅방에 초대하고, 입장 메세지를 등록한 뒤 JoinAndLeaveRoomDTO를 반환해줍니다.
-        /// </summary>
-        /// <param name="roomId">채팅방 식별 번호</param>
-        /// <param name="userEmail">참가자들을 초대한 User의 Email</param>
-        /// <param name="emails">초대 대상들의 Email</param>
-        /// <returns>JoinAndLeaveRoom DTO</returns>
-        private async Task<JoinAndLeaveRoomDTO> AddParticipantsAndCreateMessageInternalAsync(Guid roomId, string userEmail, IEnumerable<string> emails)
-        {
-            // 1. 내부에서 필요한 데이터 미리 선언
-            JoinAndLeaveRoomDTO result = new() { RoomId = roomId };
-            return await ExecuteTransactionAsync(_chatParticipantRepository, async () =>
-            {
-                // 2. 참가자들 등록 시도
-                bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, emails);
-                if (!addResult)
-                    throw new InvalidOperationException("채팅방 참가자 등록 중 오류가 발생했습니다.");
-                // 3. 입장 메세지 등록을 위해 참가자들의 Nickname 요청
-                List<string> nicknameResult = await _userRepository.GetNicknamesByEmailsAsync(emails);
-                if (nicknameResult.Count == 0)
-                    throw new InvalidOperationException("등록된 채팅방 참가자를 찾을 수 없습니다.");
-                // 4. 입장 메세지 등록
-                ChatMessage messageResult = await AddJoinAndExitSystemMessageAsync(nicknameResult, roomId, true);
-                result.SystemMessage = messageResult;
-                // 5. result 반환
-                return result;
-            });
-        }
-        #endregion private Method
+        #endregion ChatMessage private 메서드
+        #endregion ChatMessage 관련
     }
 }

@@ -1,9 +1,11 @@
-﻿namespace ChatMessenger.Shared.DTOs.Requests.Chat
+﻿using ChatMessenger.Shared.DTOs.Requests.Base;
+
+namespace ChatMessenger.Shared.DTOs.Requests.Chat
 {
     /// <summary>
     /// 그룹 채팅방 생성을 요청하기위한 DTO입니다.
     /// </summary>
-    public class CreateGroupChatRequest
+    public class CreateGroupChatRequest : BaseRequest
     {
         // 방 제목
         public string Title { get; set; } = string.Empty;

@@ -62,25 +62,5 @@ namespace ChatMessenger.Server.Mappers
                     IsMe = false                                          // (나와 친구 등록된 데이터를 추출하는거라 IsMe는 false) 
                 });
         }
-
-        /// <summary>
-        /// 채팅방의 참가자 목록 List와 친구관계 List로 FriendResponse를 만들어 반환합니다.
-        /// </summary>
-        /// <param name="myEmail">로그인한 User의 Email</param>
-        /// <param name="participants">Response 생성을 위한 참가자들의 원본 데이터 포인터</param>
-        /// <param name="friendships">참가자들 Email과 Friendship 정보를 담고있는 Dictionary</param>
-        /// <returns>채팅방 참가자들과의 관계 정보를 포함한 Response DTO</returns>
-        public static List<FriendResponse> ToFriendResponseList(string myEmail, IEnumerable<ChatParticipantProjection> participants, Dictionary<string, Friendship> friendships)
-        {
-            return participants.Select(p =>
-            {
-                User user = p.User;
-                // 1. 해당 유저와의 관계 정보 추출
-                friendships.TryGetValue(user.Email, out Friendship? f);
-
-                // 2. FriendMapper의 확장 메서드 재사용
-                return user.MapToFriendResponse(f, p.User.Email == myEmail);
-            }).ToList();
-        }
     }
 }

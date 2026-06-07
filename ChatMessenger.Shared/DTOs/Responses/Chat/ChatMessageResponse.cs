@@ -1,4 +1,5 @@
-﻿using ChatMessenger.Shared.DTOs.Responses.Friend;
+﻿using ChatMessenger.Shared.DTOs.Responses.Base;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
 using ChatMessenger.Shared.Enums;
 
 namespace ChatMessenger.Shared.DTOs.Responses.Chat
@@ -6,7 +7,7 @@ namespace ChatMessenger.Shared.DTOs.Responses.Chat
     /// <summary>
     /// Server에서 Client 측으로 특정 채팅 메세지 정보를 전송해주기위한 DTO입니다.
     /// </summary>
-    public class ChatMessageResponse
+    public class ChatMessageResponse : BaseResponse
     {
         public Guid RoomId { get; set; }
         public long MessageId { get; set; }

@@ -32,27 +32,6 @@ namespace ChatMessenger.Server.Mappers
             };
         }
         /// <summary>
-        /// 그룹 채팅방 최초 생성 시, 개설 정보와 시스템 메시지를 조합하여 최초 요약 Response DTO로 변환합니다. (오버로딩)
-        /// </summary>
-        /// <param name="room">생성된 채팅방 Entity</param>
-        /// <param name="systemMessage">방금 등록된 입장 시스템 메시지 Entity</param>
-        /// <param name="participantCount">방에 참가한 전체 인원 수</param>
-        /// <returns>그룹 채팅방 생성 직후 클라이언트에게 반환할 Response</returns>
-        public static ChatRoomSummaryResponse ToSummaryResponse(ChatRoom room, ChatMessage systemMessage, int participantCount)
-        {
-            return new ChatRoomSummaryResponse
-            {
-                RoomId = room.Id,
-                Title = room.Title ?? "그룹 채팅", // 지정된 타이틀이 없으면 기본값 설정
-                RoomProfileImageURL = room.RoomProfileImageURL,
-                ParticipantCount = participantCount,
-                LastMessage = systemMessage.Content, // 방금 생성된 "OOO님이 입장하셨습니다." 가 마지막 메시지
-                LastMessageSentAt = systemMessage.SentAt,
-                UnreadCount = 0, // 방금 생성되어 입장 메시지를 본 상태이므로 안 읽은 메시지는 0개
-                IsGroupChat = room.IsGroupChat
-            };
-        }
-        /// <summary>
         /// 채팅방의 Title을 결정하여 반환해줍니다. User가 채팅방 별명을 설정했으면 채팅방의 원래 이름도 함께 반환합니다.
         /// </summary>
         /// <param name="room">채팅방 Entity</param>
@@ -198,66 +177,6 @@ namespace ChatMessenger.Server.Mappers
                 UnreadPeopleCount = 0
             };
         }
-        #endregion ChatMessage 관련
-        #region private Method
-        /// <summary>
-        /// 상대방의 정보를 찾을 수 없을때 임시 사용자 정보를 생성합니다.
-        /// </summary>
-        /// <returns>Unknown 사용자 정보</returns>
-        private static FriendResponse GetUnknownUser() => new() { Email = "Unknown", Nickname = "알 수 없는 사용자" };
-
-        /// <summary>
-        /// 각 ChatParticipantProjection의 User 필드를 FriendMapper를 사용해 FriendModel 타입으로 변환해 List로 만들어 반환해줍니다.
-        /// </summary>
-        /// <param name="projections"></param>
-        /// <returns></returns>
-        private static List<FriendResponse> MapToFriendResponseList(IEnumerable<ChatParticipantProjection> projections)
-        {
-            return projections.Select(p => FriendMapper.MapToFriendResponse(p.User)).ToList();
-        }
-        #endregion private Method
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        /// <summary>
-        /// 여러가지 정보들을 ChatRoomDetailResponse로 Mapping해줍니다.
-        /// </summary>
-        /// <param name="room">채팅방 정보 Entity</param>
-        /// <param name="myPartiEntity">채팅방에 대한 나의 참가 정보 Entity</param>
-        /// <param name="participants">참가자 정보 DTO</param>
-        /// <param name="messages">메세지 정보 DTO</param>
-        /// <param name="displayTitle">실제로 보여질 채팅방 제목</param>
-        /// <param name="originalTitle">채팅방의 제목 원본</param>
-        /// <returns>채팅방의 모든 정보를 품고있는 Response DTO</returns>
-        public static ChatRoomDetailResponse ToChatRoomDetailResponse(ChatRoom room, ChatParticipant myPartiEntity, List<FriendResponse> participants,
-            List<ChatMessageResponse> messages, string displayTitle, string? originalTitle)
-        {
-            return new ChatRoomDetailResponse
-            {
-                RoomId = room.Id,
-                Title = displayTitle,
-                OriginalRoomTitle = originalTitle,
-                RoomProfileImageURL = room.RoomProfileImageURL,
-                ParticipantCount = participants.Count,
-                IsGroupChat = room.IsGroupChat,
-                Participants = participants,
-                Messages = messages,
-                UnreadCount = messages.Count(m => m.MessageId > myPartiEntity.LastReadMessageId),
-                LastReadMessageId = myPartiEntity.LastReadMessageId,
-            };
-        }
-
         /// <summary>
         /// 입장 또는 퇴장에 따른 시스템 메시지 문자열을 생성합니다.
         /// </summary>
@@ -273,5 +192,45 @@ namespace ChatMessenger.Server.Mappers
                 ? $"{combinedNames}님이 입장하셨습니다."
                 : $"{combinedNames}님이 퇴장하셨습니다.";
         }
+        #endregion ChatMessage 관련
+        #region ChatParticipant 관련
+        /// <summary>
+        /// 참가자가 입장, 퇴장하면 시스템 메세지와 참가자 변동 상황을 response로 생성합니다.
+        /// </summary>
+        /// <remarks>
+        /// FriendResponse는 채팅방 참가자 정보에서 데이터를 추가하거나 삭제해야하기때문에 필요합니다.
+        /// </remarks>
+        /// <param name="msgResponse">참가자들에게 전송할 시스템 메세지 Response</param>
+        /// <param name="currentParticipantsCount">변동 이후 채팅방 참가자 수</param>
+        /// <param name="users">채팅방 참가, 퇴장 대상자들의 FriendRespons List</param>
+        /// <param name="isJoined">입장시 ture, 퇴장시 false</param>
+        /// <returns></returns>
+        public static ChatParticipantStatusResponse ToParticipantStatusResponse(ChatMessageResponse msgResponse, int currentParticipantsCount, List<FriendResponse> users, bool isJoined)
+        {
+            return new()
+            {
+                Message = msgResponse,
+                CurrentParticipantCount = currentParticipantsCount,
+                TargetUsers = users,
+                IsJoined = isJoined
+            };
+        }
+        #endregion ChatParticipant 관련
+        #region private Method
+        /// <summary>
+        /// 상대방의 정보를 찾을 수 없을때 임시 사용자 정보를 생성합니다.
+        /// </summary>
+        /// <returns>Unknown 사용자 정보</returns>
+        private static FriendResponse GetUnknownUser() => new() { Email = "Unknown", Nickname = "알 수 없는 사용자" };
+        /// <summary>
+        /// 각 ChatParticipantProjection의 User 필드를 FriendMapper를 사용해 FriendModel 타입으로 변환해 List로 만들어 반환해줍니다.
+        /// </summary>
+        /// <param name="projections"></param>
+        /// <returns></returns>
+        private static List<FriendResponse> MapToFriendResponseList(IEnumerable<ChatParticipantProjection> projections)
+        {
+            return projections.Select(p => FriendMapper.MapToFriendResponse(p.User)).ToList();
+        }
+        #endregion private Method
     }
 }

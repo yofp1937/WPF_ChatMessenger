@@ -9,7 +9,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         
         <!-- 우측 상단 더보기 탭(즐겨찾기, 차단 전용) -->
@@ -41,6 +40,7 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <!-- 이미지 표시용 그리드 -->
             <Grid Style="{StaticResource Common_BigProfileGrid}">
@@ -66,30 +66,36 @@
                 </StackPanel>
                 <TextBlock Grid.Row="2"  Text="{Binding CurrentFriend.StatusMessage}" Style="{StaticResource FriendDetail_Info_StatusMessageTextBlock}"/>
             </StackPanel>
-            
+
+            <!-- 최하단 버튼 패널 (내 프로필일때) -->
             <!-- 닉네임, 상태메세지 편집용 StackPanel -->
             <StackPanel Grid.Row="2" Style="{StaticResource FriendDetail_Edit_StackPanel}">
                 <StackPanel Style="{StaticResource FriendDetail_NicknameStackPanel}">
                     <materialDesign:PackIcon Style="{StaticResource MDStyle_Friend_FavoriteIcon}"
                                                       Visibility="{Binding CurrentFriend.IsFavorite, Converter={StaticResource BoolToVis}}"/>
                     <TextBox Text="{Binding EditNickname, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource FriendDetail_Edit_NicknameTextBox}"/>
+                             Style="{StaticResource FriendDetail_Edit_NicknameTextBox}"/>
                     <TextBlock Text="{Binding CurrentFriend.Email, StringFormat='({0})'}" Style="{StaticResource FriendDetail_Info_EmailTextBlock}"/>
                 </StackPanel>
                 <TextBlock Text="{Binding EditProfileWarningText}" Style="{StaticResource FriendEtail_Edit_WarningText}"/>
                 <TextBox Grid.Row="2" Text="{Binding EditStatusMessage, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource FriendDetail_Edit_StatusMessageTextBox}"/>
             </StackPanel>
-        </Grid>
-
-        <!-- CurrentFriend.IsMe가 True일때 표시되는 버튼 패널 -->
-        <StackPanel Grid.Row="2" Style="{StaticResource FriendDetail_EditButtonPanel}">
-            <Button Content="프로필 수정" Margin="5,0" Command="{Binding ChangeProfileEditModeCommand}"
+            <!-- 최하단 버튼 패널 (친구 프로필일때) -->
+            <StackPanel Grid.Row="3" Style="{StaticResource FriendDetail_BottomPanel}">
+                <Button Style="{StaticResource FriendDetail_StartChatButton}"
+                        Command="{Binding StartChatCommand}"/>
+            </StackPanel>
+            
+            <!-- CurrentFriend.IsMe가 True일때 표시되는 버튼 패널 -->
+            <StackPanel Grid.Row="3" Style="{StaticResource FriendDetail_Edit_ButtonPanel}">
+                <Button Content="프로필 수정" Margin="5,0" Command="{Binding ChangeProfileEditModeCommand}"
                         Visibility="{Binding IsEditMode, Converter={StaticResource InvertedBoolToColl}}"/>
-            <Button Content="변경" Margin="5,0" 
+                <Button Content="변경" Margin="5,0" 
                         Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVis}}"/>
-            <Button Content="취소" Margin="5,0" Command="{Binding ChangeProfileEditModeCommand}"
+                <Button Content="취소" Margin="5,0" Command="{Binding ChangeProfileEditModeCommand}"
                         Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVis}}"/>
-        </StackPanel>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

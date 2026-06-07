@@ -50,17 +50,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             // 채팅방 목록 불러오기
             _ = GetChatRoomSummaryModelListAsync();
         }
-        /// <inheritdoc/>
-        /// <remarks>
-        /// ChatHub 이벤트 구독도 해제합니다.
-        /// </remarks>
-        public override void CleanUp()
-        {
-            base.CleanUp();
-            _chatHubService.MessageReceivedEvent -= OnMessageReceived;
-            _searchCts?.Cancel();
-            _searchCts?.Dispose();
-        }
         protected override void Subscribe()
         {
             // ChatRoomViewModel의 CurrentRoom이 닫힐때 SelectedRoom도 null로 동기화 시키기위함
@@ -98,6 +87,19 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
                 });
             });
             _chatHubService.MessageReceivedEvent += OnMessageReceived;
+            _chatHubService.UpdateParticipantStatusEvent += OnParticipantStatusUpdated;
+        }
+        /// <inheritdoc/>
+        /// <remarks>
+        /// ChatHub 이벤트 구독도 해제합니다.
+        /// </remarks>
+        public override void CleanUp()
+        {
+            base.CleanUp();
+            _chatHubService.MessageReceivedEvent -= OnMessageReceived;
+            _chatHubService.UpdateParticipantStatusEvent -= OnParticipantStatusUpdated;
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
         }
         #endregion 생성자, override
 
@@ -165,6 +167,13 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
                     ChatRooms.Refresh();
                 });
             }
+        }
+        private void OnParticipantStatusUpdated(ChatParticipantStatusResponse response)
+        {
+            ChatRoomSummaryModel? room = _rooms.FirstOrDefault(r => r.RoomId == response.Message.RoomId);
+            OnMessageReceived(response.Message);
+            if (room != null)
+                room.ParticipiantCount = response.CurrentParticipantCount;
         }
         #endregion
         #region RelayCommand

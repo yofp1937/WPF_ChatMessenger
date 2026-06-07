@@ -1,6 +1,10 @@
-﻿using ChatMessenger.Server.Interfaces.Services.Repositories;
+﻿using ChatMessenger.Server.Hubs;
+using ChatMessenger.Server.Interfaces.Services.Repositories;
 using ChatMessenger.Shared.Common;
+using ChatMessenger.Shared.Constants;
+using ChatMessenger.Shared.DTOs.Responses.Base;
 using ChatMessenger.Shared.Enums;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Runtime.CompilerServices;
 
@@ -21,8 +25,10 @@ namespace ChatMessenger.Server.Services.Bases
         /// </summary>
         /// <typeparam name="T">반환할 ServiceResult의 데이터 타입</typeparam>
         /// <param name="businessLogic">try 내부에서 실행할 비지니스 로직</param>
+        /// <param name="callerMethodName">컴파일러에 의해 주입되는 호출 메서드 이름</param>
         /// <returns>로직 실행 결과 또는 예외 처리 결과</returns>
-        protected async Task<ServiceResult<T>> ExecutedBusinessLogicAsync<T>(Func<Task<ServiceResult<T>>> businessLogic)
+        protected async Task<ServiceResult<T>> ExecutedBusinessLogicAsync<T>(Func<Task<ServiceResult<T>>> businessLogic,
+            [CallerMemberName] string callerMethodName = "")
         {
             try
             {
@@ -30,7 +36,7 @@ namespace ChatMessenger.Server.Services.Bases
             }
             catch (Exception ex)
             {
-                return HandleExcetpion<T>(ex);
+                return HandleExcetpion<T>(ex, callerMethodName);
             }
         }
         /// <summary>
@@ -64,6 +70,32 @@ namespace ChatMessenger.Server.Services.Bases
                 throw;
             }
         }
+        /// <summary>
+        /// 특정 채팅방 그룹에 실시간 메시지를 전송합니다.
+        /// </summary>
+        /// <param name="hubContext">SignalR 허브 컨텍스트</param>
+        /// <param name="roomId">채팅방 식별 번호 문자열</param>
+        /// <param name="eventMethod">클라이언트가 수신할 실시간 이벤트 메서드명</param>
+        /// <param name="response">BaseResponse를 상속받은 Response 객체</param>
+        protected async Task BroadcastToRoomAsync(IHubContext<ChatHub> hubContext, string roomId, string eventMethod, BaseResponse response)
+        {
+            if (string.IsNullOrEmpty(roomId) || string.IsNullOrEmpty(eventMethod))
+                return;
+            await hubContext.Clients.Group(roomId).SendAsync(eventMethod, response);
+        }
+        /// <summary>
+        /// 다수의 유저에게 실시간 메시지를 동시에 전송합니다.
+        /// </summary>
+        /// <param name="hubContext">SignalR 허브 컨텍스트</param>
+        /// <param name="userEmails">메시지를 수신할 유저들의 이메일 리스트</param>
+        /// <param name="eventMethod">클라이언트가 수신할 실시간 이벤트 메서드명</param>
+        /// <param name="response">BaseResponse를 상속받은 Response 객체</param>
+        protected async Task BroadcastToUsersAsync(IHubContext<ChatHub> hubContext, IEnumerable<string> userEmails, string eventMethod, BaseResponse response)
+        {
+            if (userEmails == null || !userEmails.Any() || string.IsNullOrEmpty(eventMethod))
+                return;
+            await hubContext.Clients.Groups(userEmails).SendAsync(eventMethod, response);
+        }
         #endregion protected Method
         #region private Method
         /// <summary>
@@ -72,11 +104,11 @@ namespace ChatMessenger.Server.Services.Bases
         /// </summary>
         /// <typeparam name="T">반환할 ServiceResult의 데이터 타입</typeparam>
         /// <param name="ex">발생한 예외 객체</param>
+        /// <param name="callerMethodName">호출 메서드 이름</param>
         /// <param name="errorMessage">외부로 노출할 에러 메세지</param>
-        /// <param name="callerMethodName">컴파일러에 의해 주입되는 호출 메서드 이름</param>
         /// <returns>Data 요청 결과가 담긴 ServiceResult 객체</returns>
-        private ServiceResult<T> HandleExcetpion<T>(Exception ex, string errorMessage = "서버 내부 데이터 처리 중 오류가 발생했습니다.",
-            [CallerMemberName] string callerMethodName = "") // 어느 Class의 어떤 Method에서 오류가 발생했는지 확인하기 위해 사용
+        private ServiceResult<T> HandleExcetpion<T>(Exception ex, string callerMethodName,
+            string errorMessage = "서버 내부 데이터 처리 중 오류가 발생했습니다.")
         {
             // 1. 공통 로그 처리 메서드 호출
             LogBusinessError(ex, callerMethodName);

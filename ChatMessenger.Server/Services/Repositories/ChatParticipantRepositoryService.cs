@@ -22,7 +22,7 @@ namespace ChatMessenger.Server.Services.Repositories
                 .AsNoTracking()
                 .Include(cp => cp.User)
                 .Include(cp => cp.ChatRoom)
-                .FirstOrDefaultAsync(cp => cp.ChatRoomId == roomId && cp.UserEmail == userEmail));
+                .FirstOrDefaultAsync(cp => cp.ChatRoomId == roomId && cp.UserEmail == userEmail && !cp.IsLeft));
         }
         /// <inheritdoc/>
         public async Task<ChatParticipant?> GetTrackingParticipantEntityAsync(Guid roomId, string userEmail)
@@ -37,10 +37,10 @@ namespace ChatMessenger.Server.Services.Repositories
         public async Task<List<ChatParticipantProjection>> GetParticipantProjectionListAsync(Guid roomId)
         {
             return await ExecuteDbActionAsync(() =>
-                // 2. 채팅방 참가자들의 Projection List 추출
+                // 1. 채팅방 참가자들의 Projection List 추출
                 _context.ChatParticipants
                     .AsNoTracking()
-                    .Where(cp => cp.ChatRoomId == roomId)
+                    .Where(cp => cp.ChatRoomId == roomId && !cp.IsLeft)
                     .Select(cp => new ChatParticipantProjection
                     {
                         User = cp.User,
@@ -62,12 +62,11 @@ namespace ChatMessenger.Server.Services.Repositories
                 return await _context.SaveChangesAsync() > 0;
             });
         }
-
         /// <inheritdoc/>
         public async Task<int> GetParticipantsCountAsync(Guid roomId)
         {
             return await ExecuteDbActionAsync(() =>
-                _context.ChatParticipants.CountAsync(cp => cp.ChatRoomId == roomId));
+                _context.ChatParticipants.CountAsync(cp => cp.ChatRoomId == roomId && !cp.IsLeft));
         }
         /// <inheritdoc/>
         public async Task<List<ChatParticipantDTO>> GetParticipantDTOListAsync(Guid roomId)
@@ -76,7 +75,7 @@ namespace ChatMessenger.Server.Services.Repositories
                 // 1. DTO 추출
                 _context.ChatParticipants
                     .AsNoTracking()
-                    .Where(cp => cp.ChatRoomId == roomId)
+                    .Where(cp => cp.ChatRoomId == roomId && !cp.IsLeft)
                     .Select(cp => new ChatParticipantDTO
                     {
                         Email = cp.UserEmail,
@@ -95,7 +94,7 @@ namespace ChatMessenger.Server.Services.Repositories
             });
         }
         /// <inheritdoc/>
-        public async Task<bool> AddParticipantsToRoomAsync(Guid roomId, IEnumerable<string> emails)
+        public async Task<bool> AddParticipantsToRoomAsync(Guid roomId, IEnumerable<string> emails, long entryMessageId)
         {
             return await ExecuteDbActionAsync(async () =>
             {
@@ -103,11 +102,49 @@ namespace ChatMessenger.Server.Services.Repositories
                 IEnumerable<ChatParticipant> participants = emails.Select(email => new ChatParticipant
                 {
                     ChatRoomId = roomId,
-                    UserEmail = email
+                    UserEmail = email,
+                    EntryMessageId = entryMessageId,
+                    LastReadMessageId = entryMessageId
                 });
                 // 2. Db에 등록
                 _context.ChatParticipants.AddRange(participants);
                 return await _context.SaveChangesAsync() > 0;
+            });
+        }
+        /// <inheritdoc/>
+        public async Task<ChatRoom?> GetPrivateChatRoomEntityAsync(string userEmail, string targetEmail)
+        {
+            return await ExecuteDbActionAsync(() =>
+                _context.ChatParticipants
+                    .AsNoTracking()
+                    .Where(p => p.UserEmail == userEmail && !p.ChatRoom.IsGroupChat)
+                    .Where(p => p.ChatRoom.Participants.Any(other => other.UserEmail == targetEmail))
+                    .Select(p => p.ChatRoom)
+                    .FirstOrDefaultAsync());
+        }
+        /// <inheritdoc/>
+        public async Task<bool> ActivateParticipantIsLeftStatusIfPrivateAsync(Guid roomId, string myEmail, long messageId)
+        {
+            return await ExecuteDbActionAsync(async () =>
+            {
+                List<ChatParticipant> participants = await _context.ChatParticipants
+                    .Include(cp => cp.ChatRoom)
+                    .Where(cp => cp.ChatRoomId == roomId)
+                    .ToListAsync();
+                // 1대1 채팅인 경우에만 동작
+                if(participants.Count > 0 && !participants.First().ChatRoom.IsGroupChat)
+                {
+                    ChatParticipant? target = participants.FirstOrDefault(cp => cp.UserEmail != myEmail);
+                    // 상대방이 퇴장 상태라면 메세지 전송을 위해 입장 상태로 변경
+                    if (target != null && target.IsLeft)
+                    {
+                        target.IsLeft = false;
+                        target.EntryMessageId = messageId;
+                        target.LastReadMessageId = messageId - 1;
+                    }
+                    return await _context.SaveChangesAsync() > 0;
+                }
+                return false;
             });
         }
         #endregion public Method

@@ -57,19 +57,12 @@ namespace ChatMessenger.Client.Common.Interfaces
         /// <param name="emails">초대하려는 참가자들의 Email List</param>
         /// <returns>요청 결과 Data가 담긴 ServiceResult</returns>
         Task<ServiceResult<bool>> InviteParticipantsAsync(Guid roomId, List<string> emails);
-
-
-
-
-
-
         /// <summary>
-        /// 상대방과 1대1 채팅방을 생성하거나, 이미 존재하면 기존 방의 Guid를 받아옵니다.
+        /// 특정 유저와의 1대1 채팅방 식별 번호를 요청합니다.
+        /// 채팅방이 없으면 생성한 뒤 식별 번호를 반환합니다.
         /// </summary>
-        /// <param name="targetEmail">상대방 이메일</param>
+        /// <param name="targetEmail">채팅 상대 User의 Email</param>
         /// <returns>요청 결과 Data가 담긴 ServiceResult</returns>
-        Task<ChatRoomSummaryModel?> CreatePrivateChatRoomAsync(string targetEmail);
-
-
+        Task<ServiceResult<Guid>> GetOrCreatePersonalChatAsync(string targetEmail);
     }
 }

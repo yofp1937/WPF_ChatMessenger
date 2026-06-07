@@ -14,10 +14,10 @@ namespace ChatMessenger.Server.Controllers
     [Route("api/[controller]")] // 주소: "https://서버주소/api/friend" (Class 이름에서 Contoller를 뺀 이름으로 자동 치환 됨)
     public class FriendController : AuthorizedBaseController
     {
-        private readonly ISocialService _friendService;
-        public FriendController(ISocialService friendService) : base()
+        private readonly ISocialService _socialService;
+        public FriendController(ISocialService socialService) : base()
         {
-            _friendService = friendService;
+            _socialService = socialService;
         }
 
         #region public Method
@@ -28,7 +28,7 @@ namespace ChatMessenger.Server.Controllers
         public async Task<IActionResult> GetFriendList()
         {
             // 1. Service를 통해 친구 List 요청
-            ServiceResult<List<FriendResponse>> friendList = await _friendService.GetFriendResponseListAsync(CurrentUserEmail);
+            ServiceResult<List<FriendResponse>> friendList = await _socialService.GetFriendResponseListAsync(CurrentUserEmail);
             return ContextResponse(friendList);
         }
         /// <summary>
@@ -39,7 +39,7 @@ namespace ChatMessenger.Server.Controllers
         public async Task<IActionResult> AddFriend([FromBody] AddorDeleteFriendRequest request)
         {
             // 1. Service를 통해 친구 추가 요청
-            ServiceResult<FriendResponse> response = await _friendService.AddFriendAsync(CurrentUserEmail, request.Email);
+            ServiceResult<FriendResponse> response = await _socialService.AddFriendAsync(CurrentUserEmail, request.Email);
             return ContextResponse(response);
         }
         /// <summary>
@@ -50,7 +50,7 @@ namespace ChatMessenger.Server.Controllers
         public async Task<IActionResult> DeleteFriend([FromBody] AddorDeleteFriendRequest request)
         {
             // 1. 친구 삭제 요청
-            ServiceResult<bool> response = await _friendService.DeleteFriendAsync(CurrentUserEmail, request.Email);
+            ServiceResult<bool> response = await _socialService.DeleteFriendAsync(CurrentUserEmail, request.Email);
             return ContextResponse(response);
         }
         /// <summary>
@@ -61,7 +61,7 @@ namespace ChatMessenger.Server.Controllers
         public async Task<IActionResult> UpdateFavorite([FromBody] FriendStatusRequest request)
         {
             // 1. 즐겨찾기 변경 요청
-            ServiceResult<bool> response = await _friendService.UpdateFavoriteAsync(CurrentUserEmail, request);
+            ServiceResult<bool> response = await _socialService.UpdateFavoriteAsync(CurrentUserEmail, request);
             return ContextResponse(response);
         }
         /// <summary>
@@ -72,7 +72,7 @@ namespace ChatMessenger.Server.Controllers
         public async Task<IActionResult> UpdateBlock([FromBody] FriendStatusRequest request)
         {
             // 1. 차단 변경 요청
-            ServiceResult<bool> response = await _friendService.UpdateBlockAsync(CurrentUserEmail, request);
+            ServiceResult<bool> response = await _socialService.UpdateBlockAsync(CurrentUserEmail, request);
             return ContextResponse(response);
         }
         /// <summary>
@@ -83,7 +83,7 @@ namespace ChatMessenger.Server.Controllers
         public async Task<IActionResult> SearchUser([FromQuery] string friendEmail)
         {
             // 1. 유저 검색
-            ServiceResult<FriendResponse> response = await _friendService.GetFriendResponseAsync(friendEmail);
+            ServiceResult<FriendResponse> response = await _socialService.GetFriendResponseAsync(CurrentUserEmail, friendEmail);
             return ContextResponse(response);
         }
         #endregion

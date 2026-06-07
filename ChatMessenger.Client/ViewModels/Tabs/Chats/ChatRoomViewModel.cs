@@ -2,13 +2,16 @@
 using ChatMessenger.Client.Common.Messages.Tab.Chat;
 using ChatMessenger.Client.Common.Messages.Tab.Chat.Room;
 using ChatMessenger.Client.Models.Chats;
+using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
 using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Requests.Chat;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
+using ChatMessenger.Shared.DTOs.Responses.Friend;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using System.Diagnostics;
 
 namespace ChatMessenger.Client.ViewModels.Tabs.Chats
 {
@@ -44,6 +47,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             // Server가 ChatHubService에게 신호를 보내면 ViewModel이 감지하여 특정 메서드를 실행하게 합니다.
             _chatHubService.MessageReceivedEvent += OnMessageReceived;
             _chatHubService.ReadStatusUpdatedEvent += OnReadStatusUpdated;
+            _chatHubService.UpdateParticipantStatusEvent += OnParticipantStatusUpdated;
         }
         /// <inheritdoc/>
         /// <remarks>
@@ -54,6 +58,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             base.CleanUp();
             _chatHubService.MessageReceivedEvent -= OnMessageReceived;
             _chatHubService.ReadStatusUpdatedEvent -= OnReadStatusUpdated;
+            _chatHubService.UpdateParticipantStatusEvent -= OnParticipantStatusUpdated;
             CurrentRoom = null;
         }
         #endregion 생성자, override
@@ -80,10 +85,12 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// 현재 채팅방 화면을 닫습니다.
         /// </summary>
         [RelayCommand]
-        private void CloseCurrentRoom()
+        private async Task CloseCurrentRoom()
         {
+            if (CurrentRoom == null)
+                return;
+            await _chatHubService.LeaveRoomAsync(CurrentRoom.RoomId);
             CurrentRoom = null;
-            IsSidePanelVisible = false;
             // ChatListViewModel의 SelectRoom과 CurrentRoom을 동기화하기위해 메세지 전송
             WeakReferenceMessenger.Default.Send(new ChatRoomClosedMessage());
         }
@@ -137,7 +144,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             if (!result.IsSuccess) return;
 
             Guid leftRoomId = CurrentRoom.RoomId;
-            CurrentRoom = null;
+            await CloseCurrentRoom();
 
             // 3. ChatListView에게 현재 입장한 방이 삭제됐음을 알림
             WeakReferenceMessenger.Default.Send(new LeaveChatRoomMessage(leftRoomId));
@@ -150,17 +157,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// <param name="value">변경 값</param>
         partial void OnCurrentRoomChanged(ChatRoomDetailModel? value)
         {
-            if (value == null) return;
             IsSidePanelVisible = false;
-        }
-        /// <summary>
-        /// CurrentRoom이 변경되기 직전에 호출됩니다.
-        /// </summary>
-        /// <param name="value">변경되기 이전의 값</param>
-        partial void OnCurrentRoomChanging(ChatRoomDetailModel? value)
-        {
-            if (value == null) return;
-            _ = Task.Run(async () => await _chatHubService.LeaveRoomAsync(value.RoomId));
+            if (value == null)
+                return;
+            _ = Task.Run(async () => await _chatHubService.JoinRoomAsync(value.RoomId));
         }
         #endregion OnChanged
         #region private Method
@@ -178,9 +178,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             // 2. Message List에 추가
             App.Current.Dispatcher.Invoke(async () =>
             {
-                ChatMessageModel newMessage = new(response, _identityService.MyProfile.Email);
-                CurrentRoom.AddMessage(newMessage);
-
+                ChatMessageModel newMessage = ProcessIncomingMessage(response);
                 // 3. 내가 보낸 메세지가 아니면 읽음 처리 호출 (내가 메세지를 전송하면 나의 lastReadedMessagId는 자동으로 전송한 MessageId로 업데이트됨)
                 if (!newMessage.IsMine)
                 {
@@ -203,6 +201,21 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             if (_identityService.MyProfile.Email == response.UserEmail) return;
             // 2. 해당 ID 이하의 메시지들 카운트 감소
             DecrementUnreadCounts(response.LastReadMessageId, response.PreviousLastReadMessageId);
+        }
+        /// <summary>
+        /// 현재 방의 참가자가 변경 메세지 수신시 호출되는 메서드  
+        /// </summary>
+        /// <param name="response"></param>
+        private void OnParticipantStatusUpdated(ChatParticipantStatusResponse response)
+        {
+            if (CurrentRoom == null || CurrentRoom.RoomId != response.Message.RoomId) return;
+
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                CurrentRoom.ParticipantCount = response.CurrentParticipantCount;
+                UpdateParticipantList(response.TargetUsers, response.IsJoined);
+                ProcessIncomingMessage(response.Message);
+            });
         }
         #endregion ChatHub Action Event와 연결된 Method
         /// <summary>
@@ -227,9 +240,6 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             {
                 await UpdateLastReadedMessageAsync(roomId, lastMessage.MessageId);
             }
-
-            // 4. 채팅방에 입장해 정보를 실시간으로 받아옵니다.
-            await _chatHubService.JoinRoomAsync(roomId);
         }
         /// <summary>
         /// 현재 방의 특정 메세지를 읽었으니 업데이트하라고 서버에게 요청합니다.
@@ -287,6 +297,44 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
                     message.UnreadPeopleCount--;
                 }
             });
+        }
+        /// <summary>
+        /// ChatMessageResponse를 ChatMessageModel로 변환하고 CurrentRoom의 메세지 목록에 추가하는 공통 로직
+        /// </summary>
+        /// <param name="response">메세지 전송 DTO</param>
+        /// <returns>생성된 메세지 모델</returns>
+        private ChatMessageModel ProcessIncomingMessage(ChatMessageResponse response)
+        {
+            ChatMessageModel newMessage = new(response, _identityService.MyProfile.Email);
+            CurrentRoom?.AddMessage(newMessage);
+            return newMessage;
+        }
+        /// <summary>
+        /// 리스트 형태의 참가자 정보로 현재 방의 참여자 목록을 업데이트합니다.
+        /// </summary>
+        /// <param name="users">방에 참가하거나 퇴장한 User들의 FriendResponse List</param>
+        /// <param name="isJoined">참가 처리시 true, 퇴장 처리시 false</param>
+        private void UpdateParticipantList(IEnumerable<FriendResponse> users, bool isJoined)
+        {
+            if (CurrentRoom == null) return;
+            foreach (FriendResponse user in users)
+            {
+                string x = "님 CurrentRoom.Participants에";
+                x += isJoined ? " 등록" : "서 삭제";
+                if(isJoined)
+                {
+                    // 새로운 참가자 Email과 동일한 Email을 사용하는 유저가 없으면 추가
+                    if (!CurrentRoom.Participants.Any(p => p.Email == user.Email))
+                        CurrentRoom.Participants.Add(new FriendModel(user));
+                }
+                else
+                {
+                    // 탈퇴자와 동일한 Email을 사용하는 유저 제거
+                    FriendModel? target = CurrentRoom.Participants.FirstOrDefault(p => p.Email == user.Email);
+                    if (target != null)
+                        CurrentRoom.Participants.Remove(target);
+                }
+            }
         }
         #endregion
     }

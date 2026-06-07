@@ -1,6 +1,7 @@
 ﻿/*
  * Server에서 Client에게 Login 요청에 대한 결과를 반환해주는 Data
  */
+using ChatMessenger.Shared.DTOs.Responses.Base;
 using ChatMessenger.Shared.DTOs.Responses.Friend;
 
 namespace ChatMessenger.Shared.DTOs.Responses.Auth
@@ -8,7 +9,7 @@ namespace ChatMessenger.Shared.DTOs.Responses.Auth
     /// <summary>
     /// Server에서 Client로 로그인 요청에 대한 결과를 반환해주는 DTO입니다.
     /// </summary>
-    public class LoginResponse
+    public class LoginResponse : BaseResponse
     {
         public bool IsSuccess { get; set; }
         public string? Token { get; set; } // 로그인 성공 시 JWT 토큰

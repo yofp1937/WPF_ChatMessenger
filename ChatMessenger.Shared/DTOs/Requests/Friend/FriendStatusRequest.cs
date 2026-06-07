@@ -1,9 +1,11 @@
-﻿namespace ChatMessenger.Shared.DTOs.Requests
+﻿using ChatMessenger.Shared.DTOs.Requests.Base;
+
+namespace ChatMessenger.Shared.DTOs.Requests
 {
     /// <summary>
     /// 친구의 즐겨찾기, 차단 상태를 변경하기위한 요청을 전달할때 사용하는 DTO입니다.
     /// </summary>
-    public class FriendStatusRequest
+    public class FriendStatusRequest : BaseRequest
     {
         public string Email { get; set; } = string.Empty;
         public bool IsFavorite { get; set; }

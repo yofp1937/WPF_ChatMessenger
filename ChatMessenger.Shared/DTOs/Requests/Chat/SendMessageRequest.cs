@@ -1,11 +1,12 @@
-﻿using ChatMessenger.Shared.Enums;
+﻿using ChatMessenger.Shared.DTOs.Requests.Base;
+using ChatMessenger.Shared.Enums;
 
 namespace ChatMessenger.Shared.DTOs.Requests.Chat
 {
     /// <summary>
     /// 채팅방에 메세지를 전달할때 Server에게 전송하는 DTO 입니다.
     /// </summary>
-    public class SendMessageRequest
+    public class SendMessageRequest : BaseRequest
     {
         public Guid RoomId { get; set; }
         public ChatMessageType MessageType { get; set; }

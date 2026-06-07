@@ -3,6 +3,7 @@ using ChatMessenger.Client.Configs;
 using ChatMessenger.Shared.Constants;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Diagnostics;
 
 namespace ChatMessenger.Client.Common.Services.Chats
 {
@@ -12,6 +13,7 @@ namespace ChatMessenger.Client.Common.Services.Chats
 
         public event Action<ChatMessageResponse>? MessageReceivedEvent;
         public event Action<UserReadUpdateResponse>? ReadStatusUpdatedEvent;
+        public event Action<ChatParticipantStatusResponse>? UpdateParticipantStatusEvent;
 
         public async Task ConnectAsync(string accessToken)
         {
@@ -36,6 +38,10 @@ namespace ChatMessenger.Client.Common.Services.Chats
             {
                 ReadStatusUpdatedEvent?.Invoke(res);
             });
+            _connection.On<ChatParticipantStatusResponse>(ChatHubEvents.ChatHubResponseEvent.UpdateParticipantStatus, (res =>
+            {
+                UpdateParticipantStatusEvent?.Invoke(res);
+            }));
 
             await _connection.StartAsync();
         }

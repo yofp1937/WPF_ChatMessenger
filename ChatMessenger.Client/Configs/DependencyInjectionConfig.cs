@@ -19,7 +19,8 @@ namespace ChatMessenger.Client.Configs
 {
     public static class DependencyInjectionConfig
     {
-        public const string ServerBaseUrl = "https://localhost:7015";
+        public const string _localURL = "https://localhost:7015";
+        public const string ServerBaseUrl = "http://13.53.43.132:8080";
         /// <summary>
         /// DI 컨테이너가 대신 관리할 객체들을 IServiceCollection에 등록합니다.<br/>
         /// 해당 메서드는 App.xaml.cs에서 프로그램이 실행될때 동작합니다.

@@ -1,6 +1,8 @@
-﻿namespace ChatMessenger.Shared.DTOs.Responses.Chat
+﻿using ChatMessenger.Shared.DTOs.Responses.Base;
+
+namespace ChatMessenger.Shared.DTOs.Responses.Chat
 {
-    public class UserReadUpdateResponse
+    public class UserReadUpdateResponse : BaseResponse
     {
         public Guid RoomId { get; set; }
         public string UserEmail { get; set; } = string.Empty;

@@ -32,8 +32,16 @@ namespace ChatMessenger.Server.Data.Entities
         [StringLength(24, ErrorMessage = "채팅방 이름은 24자 이내로 입력해주세요.")]
         public string? RenamedRoomName { get; set; }
 
+        // 이 유저가 방에 초대됐을때 마지막 메세지 식별 번호
+        // 해당 메세지 식별 번호 이전의 메세지는 읽을 수 없음
+        public long EntryMessageId { get; set; } = 0;
         // 이 유저가 마지막으로 읽은 메세지 식별 번호
         // 초기값 = 0 (0이면 읽은 메세지 없음)
         public long LastReadMessageId { get; set; } = 0;
+
+        // 현재 채팅방을 나간 상태인지 여부
+        public bool IsLeft { get; set; }
+        // 방을 나간 시간
+        public DateTime? LeftAt { get; set; }
     }
 }

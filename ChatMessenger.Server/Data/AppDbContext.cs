@@ -102,7 +102,7 @@ namespace ChatMessenger.Server.Data
 
                 // 채팅방과의 관계
                 entity.HasOne(p => p.ChatRoom)
-                      .WithMany()
+                      .WithMany(r => r.Participants)
                       .HasForeignKey(p => p.ChatRoomId)
                       .OnDelete(DeleteBehavior.Cascade); // 방이 삭제되면 참여 정보도 삭제
             });
@@ -122,7 +122,7 @@ namespace ChatMessenger.Server.Data
 
                 // 채팅방과의 관계
                 entity.HasOne(m => m.ChatRoom)
-                      .WithMany()
+                      .WithMany(r => r.Messages)
                       .HasForeignKey(m => m.ChatRoomId)
                       .OnDelete(DeleteBehavior.Cascade); // 방이 삭제되면 메시지 전부 삭제
 

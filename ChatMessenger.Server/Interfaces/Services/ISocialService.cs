@@ -50,11 +50,5 @@ namespace ChatMessenger.Server.Interfaces.Services
         /// <param name="request">상태 변경 처리에 필요한 데이터가 담긴 Request DTO</param>
         /// <returns>요청 결과 Data가 담긴 ServiceResult</returns>
         Task<ServiceResult<bool>> UpdateBlockAsync(string myEmail, FriendStatusRequest request);
-        /// <summary>
-        /// Email로 상대방의 FriendResponse를 생성해 반환합니다.
-        /// </summary>
-        /// <param name="targetEmail">검색 대상 User의 Email</param>
-        /// <returns>요청 결과 Data가 담긴 ServiceResult</returns>
-        Task<ServiceResult<FriendResponse>> GetFriendResponseAsync(string targetEmail);
     }
 }

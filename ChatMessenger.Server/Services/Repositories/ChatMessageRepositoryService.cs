@@ -13,13 +13,13 @@ namespace ChatMessenger.Server.Services.Repositories
     {
         public ChatMessageRepositoryService(AppDbContext context) : base(context) { }
         /// <inheritdoc/>
-        public async Task<List<ChatMessage>> GetLastFiftyMessageListAsync(Guid roomId)
+        public async Task<List<ChatMessage>> GetLastFiftyMessageListAsync(Guid roomId, long entryMessageId)
         {
             return await ExecuteDbActionAsync(() =>
                 // 1. 채팅방의 최근 메세지 50개 추출
                 _context.ChatMessages
                     .AsNoTracking()
-                    .Where(cm => cm.ChatRoomId == roomId)
+                    .Where(cm => cm.ChatRoomId == roomId && cm.Id >=  entryMessageId)
                     .OrderByDescending(cm => cm.SentAt)         // 최근 메세지 순서로 정렬
                     .Take(50)                                                // 50개 추출
                     .OrderBy(cm => cm.SentAt)                        // 다시 과거 -> 최신 메세지 순서로 정렬
@@ -44,6 +44,17 @@ namespace ChatMessenger.Server.Services.Repositories
                 // 3. 등록 여부에따라 return
                 return isSuccess ? newMessage : null;
             });
+        }
+        /// <inheritdoc/>
+        public async Task<long> GetLastMessageIdAsync(Guid roomId)
+        {
+            return await ExecuteDbActionAsync(() =>
+                _context.ChatMessages
+                    .Where(m => m.ChatRoomId == roomId)
+                    .OrderByDescending(m => m.Id)
+                    .Select(m => m.Id)
+                    .FirstOrDefaultAsync()
+            );
         }
     }
 }

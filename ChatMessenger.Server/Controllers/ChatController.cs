@@ -69,7 +69,18 @@ namespace ChatMessenger.Server.Controllers
         [HttpPost("creategroupchat")]
         public async Task<IActionResult> CreateGroupChatAsync([FromBody] CreateGroupChatRequest request)
         {
-            ServiceResult<Guid> response = await _chatService.CreateChatRoomAsync(CurrentUserEmail, request);;
+            ServiceResult<Guid> response = await _chatService.CreateGroupChatRoomAsync(CurrentUserEmail, request);;
+            return ContextResponse(response);
+        }
+        /// <summary>
+        /// 1대1 채팅방이 존재하는지 확인하고 없으면 생성하여 반환해줍니다.
+        /// </summary>
+        /// <param name="request">1대1 채팅방 생성에 필요한 정보 DTO</param>
+        /// <returns>요청 결과 Data가 담긴 ServiceResult</returns>
+        [HttpPost("getprivate")]
+        public async Task<IActionResult> GetOrCreatePrivateChatAsync([FromBody] CreatePrivateChatRequest request)
+        {
+            ServiceResult<Guid> response = await _chatService.GetOrCreatePrivateChatAsync(CurrentUserEmail, request);
             return ContextResponse(response);
         }
         #endregion 채팅방 관련 메서드
@@ -127,33 +138,5 @@ namespace ChatMessenger.Server.Controllers
             return ContextResponse(ServiceResult<bool>.Success(true));
         }
         #endregion 메세지 관련 메서드
-
-
-
-
-
-
-
-
-
-        /*
-        /// <summary>
-        /// 1대1 채팅방이 존재하는지 확인하고 없으면 생성하여 반환해줍니다.
-        /// </summary>
-        /// <param name="request">Client측에서 보내준 정보 묶음</param>
-        /// <returns>찾았거나 생성한 방의 ChatRoomSummaryResponse</returns>
-        [HttpPost("searchorcreateroom")]
-        public async Task<IActionResult> SearchOrCreatePrivateChatRoomAsync([FromBody] CreatePrivateChatRequest request)
-        {
-            string? targetEmail = request.TargetEmail;
-            if (string.IsNullOrEmpty(targetEmail)) return BadRequest("대상이 존재하지 않습니다.");
-
-            // 1. 방을 찾아서 반환(없으면 생성)
-            ChatRoomSummaryResponse? response = await _chatService.GetOrCreatePrivateChatRoomAsync(CurrentUserEmail, targetEmail);
-            if (response == null) return BadRequest("방을 생성하지 못했습니다.");
-
-            return Ok(response);
-        }
-        */
     }
 }

@@ -1,5 +1,6 @@
 ﻿using ChatMessenger.Client.Common.Interfaces;
 using ChatMessenger.Client.Common.Messages;
+using ChatMessenger.Client.Common.Messages.Tab.Chat.Room;
 using ChatMessenger.Client.Common.Messages.Tab.Friend;
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Client.ViewModels.Base;
@@ -14,6 +15,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
     public partial class FriendDetailViewModel : BaseViewModel
     {
         private readonly IFriendService _friendService;
+        private readonly IChatService _chatService;
 
         // 프로필 표시용
         [ObservableProperty]
@@ -30,9 +32,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
         [ObservableProperty]
         private string? _editProfileWarningText = string.Empty;
 
-        public FriendDetailViewModel(IIdentityService identityService, IFriendService friendService)
+        public FriendDetailViewModel(IIdentityService identityService, IFriendService friendService, IChatService chatService)
         {
             _friendService = friendService;
+            _chatService = chatService;
 
             // 로그인에 성공했지만 Profile 정보가 존재하지않으면 강제 로그아웃
             if (identityService.MyProfile == null)
@@ -145,6 +148,16 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Friends
             // 3. 차단한거면 친구 목록에서 삭제 요청
             if (nextState)
                 WeakReferenceMessenger.Default.Send(new FriendDeletedMessage(CurrentFriend));
+        }
+        [RelayCommand]
+        private async Task StartChat()
+        {
+            if (CurrentFriend == null) return;
+            // 1. 해당 유저와의 채팅방 찾기
+            ServiceResult<Guid> response = await _chatService.GetOrCreatePersonalChatAsync(CurrentFriend.Email);
+            // 2. 채팅방 표시 요청
+            WeakReferenceMessenger.Default.Send(new ChatRoomSelectionChangedMessage(response.Data));
+            CurrentFriend = null;
         }
         #endregion
         #region OnChanged Method

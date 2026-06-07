@@ -19,12 +19,8 @@ namespace ChatMessenger.Client.Common.Services.Chats
             _httpClient = httpClient;
         }
 
-        #region public Method
         #region 채팅방 조회
         /// <inheritdoc/>
-        /// <remarks>
-        /// Server에게 Response를 전달받고, ChatRoomSummaryModel 형식으로 매핑해서 반환합니다.
-        /// </remarks>
         public async Task<ServiceResult<ChatRoomSummaryModel>> GetChatRoomSummaryModelAsync(Guid roomId)
         {
             // 1. BaseService의 ExecuteAsync 실행
@@ -36,9 +32,6 @@ namespace ChatMessenger.Client.Common.Services.Chats
                 );
         }
         /// <inheritdoc/>
-        /// <remarks>
-        /// Server에게 Response를 전달받고, Response를 List<ChatRoomSummaryModel> 형식으로 매핑해서 반환합니다.
-        /// </remarks>
         public async Task<ServiceResult<List<ChatRoomSummaryModel>>> GetChatRoomSummaryModelListAsync()
         {
             return await ExecuteAsync<List<ChatRoomSummaryResponse>, List<ChatRoomSummaryModel>>(
@@ -47,15 +40,20 @@ namespace ChatMessenger.Client.Common.Services.Chats
                 );
         }
         /// <inheritdoc/>
-        /// <remarks>
-        /// Server에게 Response를 전달받고, ChatRoomDetailModel 형식으로 매핑해서 반환합니다.
-        /// </remarks>
         public async Task<ServiceResult<ChatRoomDetailModel>> GetChatRoomDetailModelAsync(Guid roomId, string myEmail)
         {
             return await ExecuteAsync<ChatRoomDetailResponse, ChatRoomDetailModel>(
                 sendRequestFunc: () => _httpClient.GetAsync($"api/chat/join/{roomId}"),
                 mapToModelFunc: (response) => new ChatRoomDetailModel(response, myEmail)
-            );
+                );
+        }
+        /// <inheritdoc/>
+        public async Task<ServiceResult<Guid>> GetOrCreatePersonalChatAsync(string targetEmail)
+        {
+            return await ExecuteAsync<Guid, Guid>(
+                sendRequestFunc: () => _httpClient.PostAsJsonAsync($"api/chat/getprivate", new CreatePrivateChatRequest { TargetEmail = targetEmail }),
+                mapToModelFunc: x => x
+                );
         }
         #endregion
         #region 채팅방 Add, Remove, Update
@@ -117,37 +115,5 @@ namespace ChatMessenger.Client.Common.Services.Chats
                 );
         }
         #endregion 채팅 참가자 Add, Remove, Update
-
-
-
-
-
-
-        /// <inheritdoc/>
-        public async Task<ChatRoomSummaryModel?> CreatePrivateChatRoomAsync(string targetEmail)
-        {
-            try
-            {
-                // 1. request 객체 생성
-                CreatePrivateChatRequest request = new() { TargetEmail = targetEmail };
-
-                // 2. Server로 개인 채팅방 생성 요청
-                HttpResponseMessage response = await _httpClient.PostAsJsonAsync("api/chat/searchorcreateroom", request);
-                if (!response.IsSuccessStatusCode) return null;
-
-                // 3. response에서 ChatRoomSummaryResponse 추출
-                ChatRoomSummaryResponse? result = await response.Content.ReadFromJsonAsync<ChatRoomSummaryResponse>();
-                if (result == null) return null;
-
-                // 4. ChatRoomSummaryModel로 변환하여 반환
-                return new ChatRoomSummaryModel(result);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[{nameof(ChatService)}_{nameof(CreatePrivateChatRoomAsync)}]: {ex.Message}");
-                return null;
-            }
-        }
-        #endregion
     }
 }

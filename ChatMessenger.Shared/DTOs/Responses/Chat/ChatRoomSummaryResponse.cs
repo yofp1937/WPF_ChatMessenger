@@ -1,9 +1,11 @@
-﻿namespace ChatMessenger.Shared.DTOs.Responses.Chat
+﻿using ChatMessenger.Shared.DTOs.Responses.Base;
+
+namespace ChatMessenger.Shared.DTOs.Responses.Chat
 {
     /// <summary>
     /// Server에서 Client측으로 채팅방의 간략한 정보를 전송해주기위한 DTO입니다.
     /// </summary>
-    public class ChatRoomSummaryResponse
+    public class ChatRoomSummaryResponse : BaseResponse
     {
         // 채팅방 식별 번호
         public Guid RoomId { get; set; }

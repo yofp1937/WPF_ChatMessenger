@@ -130,7 +130,6 @@ namespace ChatMessenger.Server.Services
                     return ServiceResult<bool>.Failed("잘못된 요청 데이터입니다.", ServiceResultType.BadRequest);
                 // 2. 등록된 친구인지 확인
                 Friendship? friendship = await _friendshipRepository.GetFriendshipEntityAsync(myEmail, request.Email);
-
                 // 3. 조건에 따라 처리
                 bool result;
                 // [분기 1]: 상대와 친구 관계가 아닌 경우
@@ -160,23 +159,6 @@ namespace ChatMessenger.Server.Services
                 if (!result)
                     return ServiceResult<bool>.Failed("차단 상태 변경에 실패했습니다.", ServiceResultType.InternalServerError);
                 return ServiceResult<bool>.Success(result);
-            });
-        }
-        /// <inheritdoc>/>
-        public async Task<ServiceResult<FriendResponse>> GetFriendResponseAsync(string targetEmail)
-        {
-            return await ExecutedBusinessLogicAsync(async () =>
-            {
-                // 1. 입력 값 검사
-                if (string.IsNullOrEmpty(targetEmail))
-                    return ServiceResult<FriendResponse>.Failed("잘못된 요청 데이터입니다.", ServiceResultType.BadRequest);
-                // 2.  User Entity 추출
-                User? userResult = await _userRepository.GetUserByEmailAsync(targetEmail);
-                if (userResult == null)
-                    return ServiceResult<FriendResponse>.Failed("유저 데이터를 찾을 수 없습니다.", ServiceResultType.NotFound);
-                // 3. 매핑하여 반환
-                FriendResponse response = FriendMapper.MapToFriendResponse(userResult);
-                return ServiceResult<FriendResponse>.Success(response);
             });
         }
         #endregion public Method
