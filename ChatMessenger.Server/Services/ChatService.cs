@@ -174,9 +174,13 @@ namespace ChatMessenger.Server.Services
                 ChatRoom? roomResult = await _chatRoomRepository.CreateChatRoomAsync(request.Title, request.ProfileImageURL, true);
                 if (roomResult == null)
                     throw new InvalidOperationException("새로운 채팅방 생성에 실패 했습니다.");
-                // 2. 참가자 등록, 
+                // 2. 방 개설자 참가자로 등록
+                bool isCreatorAdded = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomResult.Id, [myEmail], 0);
+                if (!isCreatorAdded)
+                    throw new InvalidOperationException("채팅방 개설자 등록 중 오류가 발생했습니다.");
+                // 3. 참가자 등록
                 JoinAndLeaveChatRoomDTO result = await AddParticipantsAndCreateMessageCoreAsync(roomResult.Id, myEmail, request.TargetEmails);
-                // 3. result 반환
+                // 4. result 반환
                 return result;
             });
         }
@@ -375,9 +379,7 @@ namespace ChatMessenger.Server.Services
             ChatMessage messageResult = await AddJoinAndExitSystemMessageAsync(nicknameResult, roomId, true);
             result.SystemMessage = messageResult;
             // 4. 참가자들 등록 시도
-            List<string> tempEmails = new(emails);
-            tempEmails.Add(userEmail);
-            bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, tempEmails, messageResult.Id);
+            bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, emails, messageResult.Id);
             if (!addResult)
                 throw new InvalidOperationException("채팅방 참가자 등록 중 오류가 발생했습니다.");
             // 5. 참가자들 Email result에 삽입

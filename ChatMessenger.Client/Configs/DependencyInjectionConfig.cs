@@ -26,7 +26,7 @@ namespace ChatMessenger.Client.Configs
         /// 해당 메서드는 App.xaml.cs에서 프로그램이 실행될때 동작합니다.
         /// </summary>
         public static IServiceCollection AddAppServices(this IServiceCollection services)
-        {
+        { 
             services.AddCommonServices();
             services.AddViewsAndViewModels();
             return services;
