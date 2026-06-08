@@ -25,7 +25,7 @@ namespace ChatMessenger.Shared.Common
             }
         }
 
-        /// <summary>
+        /// <summary> 
         /// 서비스 처리 결과를 담은 객체를 초기화합니다.
         /// </summary>
         /// <param name="isSuccess">요청의 성공 여부</param>

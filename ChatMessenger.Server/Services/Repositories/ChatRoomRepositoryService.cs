@@ -89,7 +89,7 @@ namespace ChatMessenger.Server.Services.Repositories
                         .Select(m => new { m.Content, m.SentAt })
                         .FirstOrDefault(),
                     // 채팅방의 참여자가 몇명인지 카운트
-                    ParticipantCount = p.ChatRoom.Participants.Count(),
+                    ParticipantCount = p.ChatRoom.Participants.Count(cp => !cp.IsLeft),
                     // 안읽은 메세지 수
                     UnreadCount = p.ChatRoom.Messages.Count(m =>
                         m.Id > p.LastReadMessageId &&
@@ -171,7 +171,7 @@ namespace ChatMessenger.Server.Services.Repositories
                     LastMessageSentAt = lastMessage.SentAt,
                     LastReadMessageId = participant.LastReadMessageId,
 
-                    ParticipantCount = r.Participants.Count(),
+                    ParticipantCount = r.Participants.Count(cp => !cp.IsLeft),
 
                     UnreadCount = r.Messages.Count(m =>
                         m.Id > participant.LastReadMessageId &&

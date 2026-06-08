@@ -375,7 +375,9 @@ namespace ChatMessenger.Server.Services
             ChatMessage messageResult = await AddJoinAndExitSystemMessageAsync(nicknameResult, roomId, true);
             result.SystemMessage = messageResult;
             // 4. 참가자들 등록 시도
-            bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, emails, messageResult.Id);
+            List<string> tempEmails = new(emails);
+            tempEmails.Add(userEmail);
+            bool addResult = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomId, tempEmails, messageResult.Id);
             if (!addResult)
                 throw new InvalidOperationException("채팅방 참가자 등록 중 오류가 발생했습니다.");
             // 5. 참가자들 Email result에 삽입
