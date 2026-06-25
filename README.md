@@ -50,7 +50,9 @@
 
 # 2. 프로그램 작동 영상과 설명
  ### 2-1. 회원 가입, 로그인
+ 
 https://github.com/user-attachments/assets/4288449a-9ef2-41c8-8a6d-56f3a7148c3e
+
 <img width="1123" height="453" alt="회원가입, 로그인 drawio" src="https://github.com/user-attachments/assets/bd634d70-4d4b-4889-98da-bf79036b6e88" />
   - 회원가입시 아이디, 닉네임, 비밀번호 유효성 검사를 진행합니다.
   - 클라이언트측 Service에서 입력받은 데이터로 Request를 생성해 API를 요청합니다.
