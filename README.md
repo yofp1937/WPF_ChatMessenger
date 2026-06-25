@@ -53,7 +53,8 @@
  
 https://github.com/user-attachments/assets/4288449a-9ef2-41c8-8a6d-56f3a7148c3e
 
-<img width="1123" height="453" alt="회원가입, 로그인 drawio" src="https://github.com/user-attachments/assets/bd634d70-4d4b-4889-98da-bf79036b6e88" />
+<img width="1123" height="453" alt="제목 없는 다이어그램 drawio" src="https://github.com/user-attachments/assets/3cdc07ad-cb48-467d-9f1e-ce9412cd543f" />
+
   - 회원가입시 아이디, 닉네임, 비밀번호 유효성 검사를 진행합니다.
   - 클라이언트측 Service에서 입력받은 데이터로 Request를 생성해 API를 요청합니다.
   - 서버측 Service에서 Request 요청을 처리하고, Response를 생성해 Controller에게 반환합니다.
