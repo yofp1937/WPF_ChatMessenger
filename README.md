@@ -53,57 +53,44 @@
  
 https://github.com/user-attachments/assets/4288449a-9ef2-41c8-8a6d-56f3a7148c3e
 
-<img width="1123" height="453" alt="제목 없는 다이어그램 drawio" src="https://github.com/user-attachments/assets/3cdc07ad-cb48-467d-9f1e-ce9412cd543f" />
+<img width="1123" height="491" alt="로그인, 회원가입" src="https://github.com/user-attachments/assets/802797a5-77b2-4c8e-a63d-4062b4b18031" />
 
   - 회원가입시 아이디, 닉네임, 비밀번호 유효성 검사를 진행합니다.
-  - 클라이언트측 Service에서 입력받은 데이터로 Request를 생성해 API를 요청합니다.
-  - 서버측 Service에서 Request 요청을 처리하고, Response를 생성해 Controller에게 반환합니다.
-  - 로그인 성공 시 해당 유저의 Token을 생성해 반환합니다.
+  - 로그인 성공 시 서버측 Service에서 해당 유저의 Token을 생성해 반환합니다.
   - 클라이언트측 Service에서 Token을 반환받으면 메세지 수신 알림을 받기위해 Socket 통신을 연결합니다.
 
- ### 2-2. 친구
-[https://영상](https://영상)
- 
-  - 설명
+ ### 2-2. 친구 목록, 친구 추가, 즐겨찾기 등록, 친구 삭제, 차단
 
- #### 　① 친구 목록
-[영상](https://영상)
- 
-  - 설명
+https://github.com/user-attachments/assets/4f2d7b5f-b479-4a58-972a-58040a0415ad
 
- #### 　② 친구 등록
-[영상](https://영상)
- 
-  - 설명
+<img width="1121" height="154" alt="친구 이벤트 drawio" src="https://github.com/user-attachments/assets/f187a2ed-3679-4bbd-8732-ebb87d8890f5" />
 
- #### 　③ 친구 삭제
-[영상](https://영상)
- 
-  - 설명
-
- #### 　④ 차단
-[영상](https://영상)
- 
-  - 설명
+  - 친구 추가, 즐겨찾기, 친구 삭제, 차단 이벤트 발생으로 인한 친구 목록 변동은 위 데이터 흐름을 따릅니다.
+  - 친구 관계는 친구 등록시 Friendship 테이블에 튜플을 생성하고, 친구 삭제시 Friendship 튜플을 삭제하는 방식으로 관리합니다.
+  - Friendship 테이블에서 bool 타입으로 즐겨찾기와 차단 상태를 관리합니다.
 
  ### 2-3. 채팅
-[https://](https://영상)
- 
-  - 설명
  #### 　① 채팅 목록
-[영상](https://영상)
- 
-  - 설명
+
+https://github.com/user-attachments/assets/2ff49dba-2308-47e7-bdbd-289f59540a89
+
+  - 유저가 로그인에 성공하면 가입된 채팅방 목록을 비동기로 가져옵니다.
+  - 채팅 목록에서 채팅방 정렬 기준은 (① 읽지 않은 메세지 여부에 따라 내림차순 정렬, ② 마지막 메세지의 전송 시간 기준 내림차순 정렬) 두가지 입니다.
+  - 채팅방에 입장시 어떤 유저가 해당 채팅방에 참여중인지 목록을 확인할 수 있습니다.
 
  #### 　② 개인 채팅
-[영상](https://영상)
- 
-  - 설명
+
+https://github.com/user-attachments/assets/6ebc0238-5645-4f74-806a-d6746ddc202c
+
+  - 왼쪽 화면은 공유기를 사용하는 데스크탑, 오른쪽 화면은 모바일 핫스팟을 사용하는 노트북으로 테스트 진행했습니다.
+  - 채팅방에 입장시 실시간으로 메세지를 수신받기위해 해당 채팅방의 식별번호로 Socket 라인과 통신을 연결합니다.
+  - 채팅방을 나갔다가 다시 입장시 기존 채팅 내역은 사라집니다. (ChatParticipants 테이블의 IsLeft 컬럼으로 채팅방 목록에 읽어올지를 결정하고, EntryMessageId 컬럼으로 접근 가능한 마지막 메세지를 관리합니다.)
 
  #### 　③ 그룹 채팅
 [영상](https://영상)
  
-  - 설명
+  - 왼쪽 화면은 공유기를 사용하는 데스크탑, 오른쪽 화면은 모바일 핫스팟을 사용하는 노트북으로 테스트 진행했습니다.
+  - 채팅방에 입장시 실시간으로 메세지를 수신받기위해 해당 채팅방의 식별번호로 Socket 라인과 통신을 연결합니다.
 
  #### 　④ 그룹 채팅 생성
 [영상](https://영상)
