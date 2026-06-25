@@ -49,16 +49,16 @@
 -----
 
 # 2. 프로그램 작동 영상과 설명
- ### 2-1. 회원 가입
-[https:/](https://영상)
+ ### 2-1. 회원 가입, 로그인
+https://github.com/user-attachments/assets/4288449a-9ef2-41c8-8a6d-56f3a7148c3e
+<img width="1123" height="453" alt="회원가입, 로그인 drawio" src="https://github.com/user-attachments/assets/bd634d70-4d4b-4889-98da-bf79036b6e88" />
+  - 회원가입시 아이디, 닉네임, 비밀번호 유효성 검사를 진행합니다.
+  - 클라이언트측 Service에서 입력받은 데이터로 Request를 생성해 API를 요청합니다.
+  - 서버측 Service에서 Request 요청을 처리하고, Response를 생성해 Controller에게 반환합니다.
+  - 로그인 성공 시 해당 유저의 Token을 생성해 반환합니다.
+  - 클라이언트측 Service에서 Token을 반환받으면 메세지 수신 알림을 받기위해 Socket 통신을 연결합니다.
 
- - 설명
-
- ### 2-2. 로그인
- 
-  - 설명
-
- ### 2-3. 친구
+ ### 2-2. 친구
 [https://영상](https://영상)
  
   - 설명
@@ -83,7 +83,7 @@
  
   - 설명
 
- ### 2-4. 채팅
+ ### 2-3. 채팅
 [https://](https://영상)
  
   - 설명
