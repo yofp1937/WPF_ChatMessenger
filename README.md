@@ -127,7 +127,7 @@ https://github.com/user-attachments/assets/92cf161d-5f6e-4d9c-ae3c-9e2e2b47c253
 
   <img width="1427" height="497" alt="image" src="https://github.com/user-attachments/assets/0cba5dad-74ff-477f-96a9-a34ce89a3bae" />
 
-  ③ Transaction을 이용해 메세지 등록, 메세지 전송자의 마지막 읽은 메세지 식별 번호를 갱신합니다.
+  ③ Transaction을 이용해 메세지 등록, 메세지 전송자의 마지막 읽은 메세지 식별 번호를 갱신합니다. <br/>
   ④ Transaction이 성공적으로 실행됐으면 채팅방 참가자들의 Email을 추출하고, 생성된 여러 데이터들을 Client측에 필요한 데이터만 담긴 ChatMessageResponse로 매핑합니다.
   
   <img width="574" height="222" alt="image" src="https://github.com/user-attachments/assets/786396a1-e68e-475c-a090-9be5b01f0066" />
