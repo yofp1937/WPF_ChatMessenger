@@ -55,7 +55,7 @@ https://github.com/user-attachments/assets/4288449a-9ef2-41c8-8a6d-56f3a7148c3e
 
 <img width="1123" height="491" alt="로그인, 회원가입" src="https://github.com/user-attachments/assets/802797a5-77b2-4c8e-a63d-4062b4b18031" />
 
-  - 회원가입시 아이디, 닉네임, 비밀번호 유효성 검사를 진행합니다.
+  - 회원가입시 ViewModel에서 선제적으로 아이디, 닉네임, 비밀번호 유효성 검사를 진행합니다.
   - 로그인 성공 시 서버측 Service에서 해당 유저의 Token을 생성해 반환합니다.
   - 클라이언트측 Service에서 Token을 반환받으면 메세지 수신 알림을 받기위해 Socket 통신을 연결합니다.
 
@@ -74,6 +74,8 @@ https://github.com/user-attachments/assets/4f2d7b5f-b479-4a58-972a-58040a0415ad
 
 https://github.com/user-attachments/assets/2ff49dba-2308-47e7-bdbd-289f59540a89
 
+<img width="1121" height="113" alt="채팅방 목록 drawio" src="https://github.com/user-attachments/assets/2747d1fc-c302-47e1-b7ef-e530a30a9b53" />
+
   - 유저가 로그인에 성공하면 가입된 채팅방 목록을 비동기로 가져옵니다.
   - 채팅 목록에서 채팅방 정렬 기준은 (① 읽지 않은 메세지 여부에 따라 내림차순 정렬, ② 마지막 메세지의 전송 시간 기준 내림차순 정렬) 두가지 입니다.
   - 채팅방에 입장시 어떤 유저가 해당 채팅방에 참여중인지 목록을 확인할 수 있습니다.
@@ -82,37 +84,69 @@ https://github.com/user-attachments/assets/2ff49dba-2308-47e7-bdbd-289f59540a89
 
 https://github.com/user-attachments/assets/6ebc0238-5645-4f74-806a-d6746ddc202c
 
+<img width="1150" height="812" alt="메세지 전송, 수신 흐름도" src="https://github.com/user-attachments/assets/511ddfaf-c3bf-498f-a73d-31ebfed38b39" />
+
   - 왼쪽 화면은 공유기를 사용하는 데스크탑, 오른쪽 화면은 모바일 핫스팟을 사용하는 노트북으로 테스트 진행했습니다.
   - 채팅방에 입장시 실시간으로 메세지를 수신받기위해 해당 채팅방의 식별번호로 Socket 라인과 통신을 연결합니다.
-  - 채팅방을 나갔다가 다시 입장시 기존 채팅 내역은 사라집니다. (ChatParticipants 테이블의 IsLeft 컬럼으로 채팅방 목록에 읽어올지를 결정하고, EntryMessageId 컬럼으로 접근 가능한 마지막 메세지를 관리합니다.)
+  - 채팅방 탈퇴시 데이터를 삭제하지 않고 IsLeft 컬럼을 수정해 데이터 이력을 보존합니다.
+  - 채팅방 재입장시 EntryMessageId 컬럼 값을 기점으로 이전 메세지의 노출을 차단하고 신규 메세지만 접근 가능하도록 설계했습니다.
+  - 메세지를 전송해 Db에 등록할때는 트랜잭션을 사용해 (내 메세지 Db에 등록, 내 채팅방 참가 정보에서 마지막으로 읽은 메세지 식별번호 수정) 두 행동을 한번에 진행해서 내가 보낸 메세지는 바로 읽음 처리되도록 설계했습니다.
+  - 각 요청에따른 Db 반영이 성공적으로 이루어지면 Socket 라인을 통해 실시간 채팅방에 입장중인 유저들에게 UI 갱신을 위해 데이터를 전송합니다.
 
  #### 　③ 그룹 채팅
-[영상](https://영상)
+
+https://github.com/user-attachments/assets/ebf248f3-1f4e-485c-9de8-0a6e5946576c
  
-  - 왼쪽 화면은 공유기를 사용하는 데스크탑, 오른쪽 화면은 모바일 핫스팟을 사용하는 노트북으로 테스트 진행했습니다.
-  - 채팅방에 입장시 실시간으로 메세지를 수신받기위해 해당 채팅방의 식별번호로 Socket 라인과 통신을 연결합니다.
+  - 개인 채팅과 동일한 로직으로 동작합니다.
 
  #### 　④ 그룹 채팅 생성
-[영상](https://영상)
+
+https://github.com/user-attachments/assets/92cf161d-5f6e-4d9c-ae3c-9e2e2b47c253
+
+<img width="1121" height="511" alt="그룹 채팅 생성 흐름도" src="https://github.com/user-attachments/assets/367a6bea-56e1-4e06-9520-3459e5de3068" />
+
  
-  - 설명
+  - 왼쪽 화면은 공유기를 사용하는 데스크탑, 오른쪽 화면은 모바일 핫스팟을 사용하는 노트북으로 테스트 진행했습니다.
+  - 그룹 채팅은 생성할때 유효성 검사를 진행해 채팅방 제목과 인원이 3명 이상인지 체크합니다.
+  - 그룹 채팅방 생성시 ViewModel에서 선제적으로 채팅방 이름, 참가 인원 유효성 검사를 진행합니다.
+  - 그룹 채팅방을 생성할때 여러 테이블에 데이터가 동시에 추가돼야해서 Transaction을 사용해 원자성을 보장했습니다.
+  - Transaction이 성공적으로 이루어지면 Socket 라인을 통해 채팅방 참가 유저들에게 UI 갱신을 위해 채팅방 정보를 전송합니다.
 
 -----
 
 # 3. 주요 로직 설명
- ### 3-1. 메세지 전송/수신
-  
-  - 설명
+ ### 3-1. 메세지 전송
 
- ### 3-2. 메세지 읽음 처리
+  <img width="737" height="349" alt="image" src="https://github.com/user-attachments/assets/1e611178-f6c1-47ca-b084-4e50d97541f4" />
+
+  ① Client가 메세지를 전송하면 Server에선 ChatService의 SendMessageAsync 메서드를 사용해 메세지 전송 요청을 처리합니다.
+
+  <img width="608" height="388" alt="image" src="https://github.com/user-attachments/assets/0339fda6-1fc6-4bc2-a326-7d5e8e868317" />
+
+  ② GetValidatedParticipantAsync 메서드로 메세지 전송자가 해당 방에 접근 권한이 있는지 확인합니다.
+
+  <img width="1427" height="497" alt="image" src="https://github.com/user-attachments/assets/0cba5dad-74ff-477f-96a9-a34ce89a3bae" />
+
+  ③ Transaction을 이용해 메세지 등록, 메세지 전송자의 마지막 읽은 메세지 식별 번호를 갱신합니다.
+  ④ Transaction이 성공적으로 실행됐으면 채팅방 참가자들의 Email을 추출하고, 생성된 여러 데이터들을 Client측에 필요한 데이터만 담긴 ChatMessageResponse로 매핑합니다.
+  
+  <img width="574" height="222" alt="image" src="https://github.com/user-attachments/assets/786396a1-e68e-475c-a090-9be5b01f0066" />
+
+  ⑤ 이후 BroadcastToUsersAsync 메서드를 이용해 참가자들의 Eamil로 매핑된 Socket 라인에 ChatMessageResponse를 전송합니다.
+
+ ### 3-2. 메세지 수신
  
   - 설명
  
- ### 3-3. 채팅방 입장과 퇴장
+ ### 3-3. 메세지 읽음 처리
  
   - 설명
  
- ### 3-4. 그룹 채팅방 생성
+ ### 3-4. 채팅방 입장과 퇴장
+ 
+  - 설명
+ 
+ ### 3-5. 그룹 채팅방 생성
  
   - 설명
  
