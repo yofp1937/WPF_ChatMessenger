@@ -120,7 +120,7 @@ https://github.com/user-attachments/assets/92cf161d-5f6e-4d9c-ae3c-9e2e2b47c253
   <img width="1355" height="347" alt="image" src="https://github.com/user-attachments/assets/a09cca85-ab35-4a8e-b769-f441c50c1a83" />
 
    -  ① Client가 메세지를 전송하면 Server에선 ChatService의 SendMessageAsync 메서드를 사용해 메세지 전송 요청을 처리합니다.
-   -  부모 클래스에 작성된 ExecutedBusinessLogicAsnyc를 사용해 try-catch 내부에서 로직을 실행합니다.
+   -  부모 클래스에 작성된 ExecutedBusinessLogicAsnyc를 사용해 try-catch 내부에서 로직을 실행하고 Repository에서 오류 발생시 throw를 발생시켜 HandleException으로 로그를 남깁니다.
 
   <img width="608" height="388" alt="image" src="https://github.com/user-attachments/assets/0339fda6-1fc6-4bc2-a326-7d5e8e868317" />
 
@@ -139,7 +139,13 @@ https://github.com/user-attachments/assets/92cf161d-5f6e-4d9c-ae3c-9e2e2b47c253
 
  ### 3-2. 메세지 수신
  
-  - 설명
+ <img width="583" height="264" alt="image" src="https://github.com/user-attachments/assets/ca50e48f-61a3-4953-9a3c-bd3af9552d3b" />
+
+  - ① 채팅방 상세 정보를 관리하는 ChatRoomViewModel이 생성되면 ChatHubService의 Action에 메서드를 연결합니다.
+
+ <img width="735" height="328" alt="image" src="https://github.com/user-attachments/assets/a9bfa90d-fd09-4927-bf03-07e5ccbdfc78" />
+
+  - ② 누군가 메세지를 전송해서 ChatHubService의 MessageReceivedEvent에 데이터가 도착하면 연결된 OnMessageReceived가 동작해 유효성 검사를 진행하고, Response를 Model 객체로 변환한 뒤,   
  
  ### 3-3. 메세지 읽음 처리
  
