@@ -117,22 +117,25 @@ https://github.com/user-attachments/assets/92cf161d-5f6e-4d9c-ae3c-9e2e2b47c253
 # 3. 주요 로직 설명
  ### 3-1. 메세지 전송
 
-  <img width="737" height="349" alt="image" src="https://github.com/user-attachments/assets/1e611178-f6c1-47ca-b084-4e50d97541f4" />
+  <img width="1355" height="347" alt="image" src="https://github.com/user-attachments/assets/a09cca85-ab35-4a8e-b769-f441c50c1a83" />
 
-  ① Client가 메세지를 전송하면 Server에선 ChatService의 SendMessageAsync 메서드를 사용해 메세지 전송 요청을 처리합니다.
+   -  ① Client가 메세지를 전송하면 Server에선 ChatService의 SendMessageAsync 메서드를 사용해 메세지 전송 요청을 처리합니다.
+   -  부모 클래스에 작성된 ExecutedBusinessLogicAsnyc를 사용해 try-catch 내부에서 로직을 실행합니다.
 
   <img width="608" height="388" alt="image" src="https://github.com/user-attachments/assets/0339fda6-1fc6-4bc2-a326-7d5e8e868317" />
 
-  ② GetValidatedParticipantAsync 메서드로 메세지 전송자가 해당 방에 접근 권한이 있는지 확인합니다.
+   -  ② GetValidatedParticipantAsync 메서드로 메세지 전송자가 해당 방에 접근 권한이 있는지 확인합니다.
 
   <img width="1427" height="497" alt="image" src="https://github.com/user-attachments/assets/0cba5dad-74ff-477f-96a9-a34ce89a3bae" />
 
-  ③ Transaction을 이용해 메세지 등록, 메세지 전송자의 마지막 읽은 메세지 식별 번호를 갱신합니다. <br/>
-  ④ Transaction이 성공적으로 실행됐으면 채팅방 참가자들의 Email을 추출하고, 생성된 여러 데이터들을 Client측에 필요한 데이터만 담긴 ChatMessageResponse로 매핑합니다.
+   -  ③ Transaction을 이용해 메세지 등록, 메세지 전송자의 마지막 읽은 메세지 식별 번호를 갱신합니다.
+   -  부모 클래스에 작성된 ExecutedTransactionLogicAsnyc를 사용해 Transaction을 이용합니다.
+  
+   -  ④ Transaction이 성공적으로 실행됐으면 (①번 사진 4번 주석으로 이동)채팅방 참가자들의 Email을 추출하고, 생성된 여러 데이터들을 Client측에 필요한 데이터만 담긴 ChatMessageResponse로 매핑합니다.
   
   <img width="574" height="222" alt="image" src="https://github.com/user-attachments/assets/786396a1-e68e-475c-a090-9be5b01f0066" />
 
-  ⑤ 이후 BroadcastToUsersAsync 메서드를 이용해 참가자들의 Eamil로 매핑된 Socket 라인에 ChatMessageResponse를 전송합니다.
+   -  ⑤ 이후 BroadcastToUsersAsync 메서드를 이용해 참가자들의 Eamil로 매핑된 Socket 라인에 ChatMessageResponse를 전송합니다.
 
  ### 3-2. 메세지 수신
  
