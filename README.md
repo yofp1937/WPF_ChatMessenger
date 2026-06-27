@@ -10,11 +10,9 @@
  
  3. [주요 로직 설명](#3-주요-로직-설명)
  
- 4. [개발 중 어려웠던 부분](#4-개발-중-어려웠던-부분)
+ 4. [아쉬웠던 점](#5-아쉬웠던-점)
  
- 5. [아쉬웠던 점](#5-아쉬웠던-점)
- 
- 6. [업데이트 예정](#6-업데이트-예정)
+ 5. [업데이트 예정](#6-업데이트-예정)
 
  ---
 
@@ -115,98 +113,85 @@ https://github.com/user-attachments/assets/92cf161d-5f6e-4d9c-ae3c-9e2e2b47c253
 -----
 
 # 3. 주요 로직 설명
- ### 3-1. 메세지 전송
+ ### 3-1. Service 계층화와 공통 예외 처리 메서드 설계
+  #### ① 데이터 책임 분리를 위한 Service 계층화
+   - BusinessService: API 컨트롤러의 요청을 처리하기위해 비즈니스 로직을 관리하고, 데이터를 가공해 응답 객체로 변환하는 역할을 전담합니다.
+   - RepositoryService: 비즈니스 로직에 종속되지않고, Db에 직접 접근하여 데이터 CRUD를 처리하는 역할을 전담합니다.
+   - 관심사 분리를 극대화해 Db 엔진이나 쿼리 구조가 변경되도 상위 비즈니스 로직은 영향을 받지 않는 느슨한 결합 구조를 구현했습니다
 
-  <img width="1355" height="347" alt="image" src="https://github.com/user-attachments/assets/a09cca85-ab35-4a8e-b769-f441c50c1a83" />
-
-   -  ① Client가 메세지를 전송하면 Server에선 ChatService의 SendMessageAsync 메서드를 사용해 메세지 전송 요청을 처리합니다.
-   -  부모 클래스에 작성된 ExecutedBusinessLogicAsnyc를 사용해 try-catch 내부에서 로직을 실행하고 Repository에서 오류 발생시 throw를 발생시켜 HandleException으로 로그를 남깁니다.
-
-  <img width="608" height="388" alt="image" src="https://github.com/user-attachments/assets/0339fda6-1fc6-4bc2-a326-7d5e8e868317" />
-
-   -  ② GetValidatedParticipantAsync 메서드로 메세지 전송자가 해당 방에 접근 권한이 있는지 확인합니다.
-
-  <img width="1427" height="497" alt="image" src="https://github.com/user-attachments/assets/0cba5dad-74ff-477f-96a9-a34ce89a3bae" />
-
-   -  ③ Transaction을 이용해 메세지 등록, 메세지 전송자의 마지막 읽은 메세지 식별 번호를 갱신합니다.
-   -  부모 클래스에 작성된 ExecutedTransactionLogicAsnyc를 사용해 Transaction을 이용합니다.
+  #### ② ExecutedBusinessLogicAsync 메서드를 통한 공통 예외 처리
   
-   -  ④ Transaction이 성공적으로 실행됐으면 (①번 사진 4번 주석으로 이동)채팅방 참가자들의 Email을 추출하고, 생성된 여러 데이터들을 Client측에 필요한 데이터만 담긴 ChatMessageResponse로 매핑합니다.
+  <img width="608" height="847" alt="image" src="https://github.com/user-attachments/assets/738d1e21-d328-42de-84c9-0d8bf86d9255" />
   
-  <img width="574" height="222" alt="image" src="https://github.com/user-attachments/assets/786396a1-e68e-475c-a090-9be5b01f0066" />
+   - try-catch 블록이 중복되어 코드가 비대해지는걸 방지하기위해 공통 예외 처리 메서드를 작성해 동일한 런타임 오류 발생시 어디서든 동일하게 예외 처리를 진행하도록 설계했습니다.
+  > [매커니즘]<br/>
+  ① RepositoryService에서 요청한 데이터를 찾는데 실패해 null 반환시 throw 던짐<br/>
+  ② throw 발생시 ExecutedBusinessLogicAsync가 catch<br/>
+  ③ HandleException이 동작하여 호출 클래스명, 호출 메서드명, 타임 스탬프가 결합된 로그를 찍고, 규격화된 오류 상태 객체를 반환함
 
-   -  ⑤ 이후 BroadcastToUsersAsync 메서드를 이용해 참가자들의 Eamil로 매핑된 Socket 라인에 ChatMessageResponse를 전송합니다.
-
- ### 3-2. 메세지 수신
- 
- <img width="583" height="264" alt="image" src="https://github.com/user-attachments/assets/ca50e48f-61a3-4953-9a3c-bd3af9552d3b" />
-
-  - ① 채팅방 상세 정보를 관리하는 ChatRoomViewModel이 생성되면 ChatHubService의 Action에 메서드를 연결합니다.
-
- <img width="735" height="328" alt="image" src="https://github.com/user-attachments/assets/a9bfa90d-fd09-4927-bf03-07e5ccbdfc78" />
-
-  - ② 누군가 메세지를 전송해서 ChatHubService의 MessageReceivedEvent에 데이터가 도착하면 연결된 OnMessageReceived가 동작해 유효성 검사를 진행하고, Response를 Model 객체로 변환한 뒤,   
- 
- ### 3-3. 메세지 읽음 처리
- 
-  - 설명
- 
- ### 3-4. 채팅방 입장과 퇴장
- 
-  - 설명
- 
- ### 3-5. 그룹 채팅방 생성
- 
-  - 설명
- 
------
-
-# 4. 개발 중 어려웠던 부분
- 
- ### 발생한 문제
-  > [문제]<br/>
-  문제
-
-  > [원인]<br/>
-  원인
-
-  > [해결]<br/>
-  해결
+  #### ③ ExecutedTransactionAsync 메서드를 통한 데이터 불일치 방지
   
- ### ② 발생한 문제
-  > [문제]<br/>
-  문제
+  <img width="737" height="482" alt="image" src="https://github.com/user-attachments/assets/a906485b-f0a4-43ce-9ff3-0c033901c3b6" />
+  
+   - 여러 Db 테이블에 동시 데이터 삽입이 발생할 때, 중간에 오류가 발생해 일부 데이터만 반영되는 데이터 불일치 현상을 방지하기위해 메서드를 작성했습니다.
 
-  > [원인]<br/>
-  원인
-
-  > [해결]<br/>
-  해결
-
- ### ③ 발생한 문제
-  > [문제]<br/>
-  문제
-
-  > [원인]<br/>
-  원인
+ ### 3-2. 공통 결과 래퍼 객체를 설계해 예외 처리 및 비즈니스 규격화
  
-  > [해결]<br/>
-  해결
+ <img width="775" height="582" alt="image" src="https://github.com/user-attachments/assets/7f77bbae-12c4-4474-afe5-868cae1bf7ab" />
+ 
+   - 기존 BusinessService에서 요청받은 비즈니스 로직을 실행하는데 실패해 null을 반환했을때, 어떤 이유로 실패했는지 외부에서 알 방법이 없어서 공통 결과 래퍼 객체를 설계했습니다.
+   - 오류 발생시 오류 코드와, 에러 메세지를 주입해 반환하면 외부에서 이를 이용해 View에 오류 내용을 표시하거나, 분기를 나눠 데이터를 처리할 수 있게 만들었습니다.
+ 
+ ### 3-3. HTTP API와 SignalR(WebSocket) 하이브리드 기반 실시간 메세지 송수신 파이프라인
+  #### ① HTTP API와 실시간 소켓 채널의 역할 분담 및 결합
+   - 메세지 전송: HTTP POST API 요청을 사용해 데이터를 Db에 저장합니다.
+   - 메세지 수신: 서버 내부에서 전송된 메세지 저장이 끝나면 실시간 채팅에 참여중인 유저들의 SignalR Socket 라인으로 메세지 패킷을 전송합니다.
+   
+  #### ② 브로드캐스팅 채널 분리
+  
+  <img width="708" height="206" alt="image" src="https://github.com/user-attachments/assets/7588d1b8-eed4-45e8-92a9-65256052e08f" />
 
- ### ④ 발생한 문제
-  > [문제]<br/>
-  문제
+   - 사용자가 특정 채팅방에 입장하면 해당 채팅방의 식별 번호(RoomId) 소켓 채널에 가입됩니다.
+   - 이후 누군가 메세지를 읽으면 채팅방 채널 브로드캐스팅을 통해 "읽음 상태 업데이트" 메서드가 동작해 채팅방에 입장중인 유저들의 화면만 UI 업데이트가 실행됩니다.
 
-  > [원인]<br/>
-  원인
+<img width="572" height="222" alt="image" src="https://github.com/user-attachments/assets/e12accb7-781d-442f-837b-cc71f2821ba2" />
 
-  > [해결]<br/>
-  해결
+   - 사용자가 로그인하면 사용자 이메일 소켓 채널에 가입됩니다.
+   - 이후 누군가 메세지를 보내면 이메일 채널 브로드캐스팅을 통해 "메세지 수신" 메서드가 동작해 읽지 않은 메세지 카운트, 새 채팅방 초대 알림 등 UI 업데이트가 실행됩니다.
+ 
+ ### 3-4. 논리 삭제를 통한 채티방 입,퇴장 상태 관리 및 진입점 제한
+  #### ① 논리 삭제 기반 기존 데이터 유실 방지
+  - 유저가 채팅방을 나갈때 Db에서 참가 데이터를 삭제하면 해당 유저의 메세지 삭제 등으로 인한 데이터 무결성이 파괴되는 문제가 있었습니다.
+  - 이를 방지하기위해 채팅방 참가자 데이터를 관리하는 'ChatParticipant' 테이블에 IsLeft 컬럼을 추가해 논리 삭제 패턴으로 데이터 유실을 방지했습니다.
+
+  #### ② EntryMessageId 컬럼 도입을 통한 진입점 제한
+  - 채팅방에 새로 입장하거나 퇴장했던 유저가 동일 채팅방에 재입장할 경우, 과거 대화 내역 유출을 차단하기 위해 입장 시점의 마지막 메세지 식별 번호를 EntryMessageId에 등록합니다.
+  - 클라이언트가 과거 대화 내역을 조회하는 쿼리를 요청할때, EntryMessageId보다 메세지 식별 번호가 큰 메세지만 조회할 수 있게해 과거 대화 내역 접근을 차단했습니다. 
+ 
+ ### 3-5. 메신저를 통한 화면 전환 및 메모리 누수 차단
+ 
+ <img width="957" height="778" alt="image" src="https://github.com/user-attachments/assets/7352e60f-6d0e-43ae-a86e-add7f1dc0fa4" />
+
+  #### ① Messenger를 이용한 화면 전환
+  - 메인 윈도우와 뷰모델간의 직접적인 참조를 제거하기위해 메세지를 사용해 화면 전환을 요청하게 설계했습니다.
+
+  #### ② 메모리 누수 차단
+  - 뷰모델이 파괴될때 Register로 연결한 이벤트들이 해제되지않아 발생하는 메모리 누수를 방지하기위해 자원 정리를 담당하는 CleanUp 메서드를 작성했습니다.
+  - 강제 로그아웃이나 뷰모델이 파괴되면 최상위 뷰모델의 CleanUp이 호출되고 상위 뷰모델들은 하위 뷰모델들의 CleanUp을 호출하여 연쇄적으로 자원을 해제하게끔 설계했습니다.
+
+ ### 3-6. DelegatingHandler를 사용한 JWT 토큰 자동 주입
+ 
+ <img width="1153" height="546" alt="image" src="https://github.com/user-attachments/assets/d2e859a0-86ed-4458-b618-23e997f82f84" />
+
+  - HTTP API 요청을 진행하는 Service에서 매번 수동으로 토큰을 주입하는 중복 코드가 발생해 HTTP 요청을 중간에 가로채 Header에 토큰을 주입해주는 AuthHeaderHandler를 구현했습니다.
+  - 메모리에 토큰이 존재하지 않으면 HTTP API 요청을 전송하지않고 자체 임시 응답 객체를 생성해 리턴합니다.(불필요 네트워크 신호 전송, 서버 인증 연산 차단)
+  - 검증이 끝난 HTTP API 요청에만 Header에 토큰을 추가한 뒤 base.SendAsync를 사용해 안전하게 패킷을 전송합니다.
+  - AuthHeaderHandler가 자동으로 API 요청을 가로채 Header에 토큰을 추가해주므로 Service 클래스들은 순수 데이터 요청 로직에만 집중할 수 있는 관심사 분리를 설계했습니다.
 
 -----
 
-# 5. 아쉬웠던 점
- ### ① 제목
+# 4. 아쉬웠던 점
+ ### ① 문서화 없이 개발을 진행하니 계속 버그가 발생해서 고치는데 시간이 많이 든다.
   > 설명.<br/>
 
  ### ② 제목
@@ -217,7 +202,7 @@ https://github.com/user-attachments/assets/92cf161d-5f6e-4d9c-ae3c-9e2e2b47c253
 
 -----
 
-# 6. 업데이트 예정
+# 5. 업데이트 예정
  ### ① 메세지 스크롤 기능
   > 설명.<br/>
 
