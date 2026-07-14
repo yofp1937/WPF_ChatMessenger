@@ -11,7 +11,6 @@ using ChatMessenger.Shared.DTOs.Responses.Friend;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using System.Diagnostics;
 
 namespace ChatMessenger.Client.ViewModels.Tabs.Chats
 {
@@ -66,8 +65,12 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// <summary>
         /// 화면을 roomId 채팅방 화면으로 변경하고 입장합니다.
         /// </summary>
+        /// <remarks>
+        /// async void 대신 async Task로 선언하여, 내부에서 예외가 발생했을 때 호출부에서 Task를 통해 예외를 관측할 수 있게 합니다.<br/>
+        /// async void는 예외가 발생해도 호출부로 전파되지 않고 애플리케이션이 곧바로 종료(크래시)되는 문제가 있습니다.
+        /// </remarks>
         /// <param name="roomId">채팅방 식별 번호</param>
-        public async void SetChatRoom(Guid roomId)
+        public async Task SetChatRoom(Guid roomId)
         {
             await LoadRoomDetailAsync(roomId);
         }
@@ -137,16 +140,14 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         {
             if (CurrentRoom == null) return;
 
-            // 1. TODO: 진짜 채팅방 나갈것인지 확인 입력 받아야함
-
-            // 2. Service에 현재 방 탈퇴 메세지 요청
+            // 1. Service에 현재 방 탈퇴 메세지 요청
             ServiceResult<bool> result = await _chatService.LeaveRoomAsync(CurrentRoom.RoomId);
             if (!result.IsSuccess) return;
 
             Guid leftRoomId = CurrentRoom.RoomId;
             await CloseCurrentRoom();
 
-            // 3. ChatListView에게 현재 입장한 방이 삭제됐음을 알림
+            // 2. ChatListView에게 현재 입장한 방이 삭제됐음을 알림
             WeakReferenceMessenger.Default.Send(new LeaveChatRoomMessage(leftRoomId));
         }
         #endregion RelayCommand
@@ -272,7 +273,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// 특정 메세지의 UnreadPeopleCount를 1만큼 감소시킵니다
         /// </summary>
         /// <remarks>
-        /// lastMessageId와 previouseLastMessageId 사이에 존재하는 메세지들의 UnreadPeopleCount를 1씩 감소시킵니다.
+        /// lastMessageId와 previousLastMessageId 사이에 존재하는 메세지들의 UnreadPeopleCount를 1씩 감소시킵니다.
         /// </remarks>
         /// <param name="lastMessageId">UnreadPeopleCount를 감소시키기 시작할 메세지의 Id</param>
         /// <param name="previousLastMessageId">UnreadPeopleCount를 감소시키고 메서드 종료할 메세지의 Id</param>
@@ -321,7 +322,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             {
                 string x = "님 CurrentRoom.Participants에";
                 x += isJoined ? " 등록" : "서 삭제";
-                if(isJoined)
+                if (isJoined)
                 {
                     // 새로운 참가자 Email과 동일한 Email을 사용하는 유저가 없으면 추가
                     if (!CurrentRoom.Participants.Any(p => p.Email == user.Email))

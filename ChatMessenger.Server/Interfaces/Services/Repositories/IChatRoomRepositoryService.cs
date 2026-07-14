@@ -1,7 +1,5 @@
 ﻿using ChatMessenger.Server.Data.DTOs;
 using ChatMessenger.Server.Data.Entities;
-using ChatMessenger.Shared.Common;
-using ChatMessenger.Shared.DTOs.Responses.Chat;
 
 namespace ChatMessenger.Server.Interfaces.Services.Repositories
 {

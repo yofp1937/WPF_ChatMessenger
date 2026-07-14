@@ -1,5 +1,4 @@
 ﻿using ChatMessenger.Server.Data.Entities;
-using ChatMessenger.Shared.Common;
 
 namespace ChatMessenger.Server.Interfaces.Services.Repositories
 {
@@ -31,6 +30,6 @@ namespace ChatMessenger.Server.Interfaces.Services.Repositories
         /// <param name="emails">Nickname을 반환받으려는 User들의 Email List</param>
         /// <returns>Email을 사용하는 User들의 Nickname List</returns>
         Task<List<string>> GetNicknamesByEmailsAsync(IEnumerable<string> emails);
-       
+
     }
 }

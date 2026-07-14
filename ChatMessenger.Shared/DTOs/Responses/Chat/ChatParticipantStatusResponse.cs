@@ -1,8 +1,5 @@
 ﻿using ChatMessenger.Shared.DTOs.Responses.Base;
 using ChatMessenger.Shared.DTOs.Responses.Friend;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ChatMessenger.Shared.DTOs.Responses.Chat
 {

@@ -33,8 +33,6 @@ namespace ChatMessenger.Client.ViewModels.Pages
             _authService = authService;
             _identityService = identityService;
             _chatHubService = chatHubService;
-
-            Email = "test1@naver.com";
         }
 
         /// <summary>

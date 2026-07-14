@@ -7,6 +7,7 @@ using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Requests.Auth;
 using ChatMessenger.Shared.DTOs.Responses.Auth;
 using ChatMessenger.Shared.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Services
 {
@@ -17,18 +18,21 @@ namespace ChatMessenger.Server.Services
     {
         private readonly IUserRepositoryService _userRepository;
         private readonly ITokenService _tokenService;
+        private readonly IPasswordHasherService _passwordHasher;
 
-        public AuthService(IUserRepositoryService userRepository, ITokenService tokenService)
+        public AuthService(IUserRepositoryService userRepository, ITokenService tokenService, IPasswordHasherService passwordHasher,
+            ILogger<AuthService> logger) : base(logger)
         {
             _userRepository = userRepository;
             _tokenService = tokenService;
+            _passwordHasher = passwordHasher;
         }
 
         #region public Method
         /// <inheritdoc/>
         public async Task<ServiceResult<RegisterResponse>> RegisterAsync(RegisterRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 전달받은 데이터 검증
                 if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password) || string.IsNullOrEmpty(request.Nickname))
@@ -37,8 +41,9 @@ namespace ChatMessenger.Server.Services
                 bool hasData = await _userRepository.FindUserByEmailAsync(request.Email);
                 if (hasData)
                     return ServiceResult<RegisterResponse>.Failed("사용중인 이메일입니다.", ServiceResultType.BadRequest);
-                // 3. 회원가입 진행 (Db에 데이터 삽입)
-                bool isRegistered = await _userRepository.AddNewUserAsync(request.Email, request.Password, request.Nickname);
+                // 3. 비밀번호를 평문 그대로 저장하지 않도록 해싱 후, 회원가입 진행 (Db에 데이터 삽입)
+                string hashedPassword = _passwordHasher.HashPassword(request.Password);
+                bool isRegistered = await _userRepository.AddNewUserAsync(request.Email, hashedPassword, request.Nickname);
                 if (!isRegistered)
                     return ServiceResult<RegisterResponse>.Failed("회원 등록 중 서버 오류가 발생했습니다.", ServiceResultType.InternalServerError);
                 // 4. Response 매핑하여 반환
@@ -49,7 +54,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<LoginResponse>> LoginAsync(LoginRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 전달받은 데이터 검증
                 if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
@@ -57,7 +62,7 @@ namespace ChatMessenger.Server.Services
 
                 // 2. 로그인을 시도하는 Email의 유저 정보 찾기
                 User? user = await _userRepository.GetUserByEmailAsync(request.Email);
-                if (user == null || user.Password != request.Password)
+                if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.Password))
                     return ServiceResult<LoginResponse>.Failed("이메일 혹은 비밀번호를 정확하게 입력해주세요.", ServiceResultType.BadRequest);
 
                 // 3. 로그인 성공시 토큰 발행하고 Response 매핑하여 반환

@@ -1,7 +1,6 @@
 ﻿/*
  * 엔티티(Entity) 모델을 클라이언트 전송용 DTO로 변환하는 확장 메서드들을 정의하는 클래스입니다.
  */
-using ChatMessenger.Server.Data.DTOs;
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Shared.DTOs.Responses.Friend;
 using Microsoft.EntityFrameworkCore;

@@ -82,6 +82,18 @@ namespace ChatMessenger.Client.ViewModels.Pages
         }
         #endregion
         #region OnChanged
+        partial void OnEmailChanged(string? value)
+        {
+            if(string.IsNullOrWhiteSpace(value))
+            {
+                WarningText = string.Empty;
+                return;
+            }
+            if (!value.Contains("@"))
+                WarningText = "아이디는 이메일 형식이어야합니다.";
+            else
+                WarningText = string.Empty;
+        }
         /// <summary>
         /// Nickname 입력 TextBox에 사용자가 값을 입력하면 상황에따라 경고 메세지를 띄워줍니다.
         /// </summary>
@@ -126,6 +138,11 @@ namespace ChatMessenger.Client.ViewModels.Pages
             if (string.IsNullOrEmpty(Email) || string.IsNullOrEmpty(Nickname))
             {
                 WarningText = "이메일과 닉네임을 입력해주세요.";
+                return false;
+            }
+            if(!Email.Contains("@"))
+            {
+                WarningText = "아이디는 이메일 형식이어야합니다.";
                 return false;
             }
             if (Nickname.Length < 4 || Nickname.Length > 12)

@@ -122,16 +122,16 @@ namespace ChatMessenger.Server.Mappers
         /// <param name="roomId">채팅방 식별 번호</param>
         /// <param name="userEmail">갱신할 User의 Email</param>
         /// <param name="lastReadMessageId">마지막으로 읽은 메세지 식별 번호</param>
-        /// <param name="previouseLastReadMessageId">변경 전 마지막으로 읽었던 메세지 식별 번호</param>
+        /// <param name="previousLastReadMessageId">변경 전 마지막으로 읽었던 메세지 식별 번호</param>
         /// <returns>다른 참가자들의 View 갱신을 위해 전송할 Response</returns>
-        public static UserReadUpdateResponse ToReadUpdateResponse(Guid roomId, string userEmail, long lastReadMessageId, long previouseLastReadMessageId)
+        public static UserReadUpdateResponse ToReadUpdateResponse(Guid roomId, string userEmail, long lastReadMessageId, long previousLastReadMessageId)
         {
             return new UserReadUpdateResponse
             {
                 RoomId = roomId,
                 UserEmail = userEmail,
                 LastReadMessageId = lastReadMessageId,
-                PreviousLastReadMessageId = previouseLastReadMessageId
+                PreviousLastReadMessageId = previousLastReadMessageId
             };
         }
         /// <summary>

@@ -4,6 +4,9 @@ using ChatMessenger.Server.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Serilog 기반 로깅 파이프라인 등록 (실행 환경별 Provider 분리, BackEnd.md §7)
+builder.AddSerilogLogging();
+
 // 서비스 등록
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

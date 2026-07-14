@@ -2,15 +2,11 @@
  * Client에서 채팅방 목록 요청, 채팅방 상세 내용 요청 등 채팅과 관련된 요청을 전송하면 이곳에서 처리합니다.
  */
 using ChatMessenger.Server.Controllers.Base;
-using ChatMessenger.Server.Data.DTOs;
-using ChatMessenger.Server.Hubs;
 using ChatMessenger.Server.Interfaces.Services;
 using ChatMessenger.Shared.Common;
-using ChatMessenger.Shared.Constants;
 using ChatMessenger.Shared.DTOs.Requests.Chat;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 
 namespace ChatMessenger.Server.Controllers
 {
@@ -69,7 +65,7 @@ namespace ChatMessenger.Server.Controllers
         [HttpPost("creategroupchat")]
         public async Task<IActionResult> CreateGroupChatAsync([FromBody] CreateGroupChatRequest request)
         {
-            ServiceResult<Guid> response = await _chatService.CreateGroupChatRoomAsync(CurrentUserEmail, request);;
+            ServiceResult<Guid> response = await _chatService.CreateGroupChatRoomAsync(CurrentUserEmail, request); ;
             return ContextResponse(response);
         }
         /// <summary>

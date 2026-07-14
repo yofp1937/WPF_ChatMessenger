@@ -26,12 +26,12 @@ namespace ChatMessenger.Client.Views.Tabs.Friends
             // 1. 현재 클릭한 Element의 객체를 반환받습니다.(글자를 클릭했으면 TextBlock, 이미지를 클릭했으면 Image)
             DependencyObject dep = (DependencyObject)e.OriginalSource;
             // 2. Element가 ListBoxItem이 될때까지 부모 트리로 올라가서 확인합니다.
-            while(dep != null && dep is not ListBoxItem)
+            while (dep != null && dep is not ListBoxItem)
             {
                 dep = System.Windows.Media.VisualTreeHelper.GetParent(dep);
             }
             // 3. 찾아낸 Element가 ListBoxItem일 경우에만 동작합니다.
-            if(dep is ListBoxItem clickedItem)
+            if (dep is ListBoxItem clickedItem)
             {
                 if (clickedListBox == MyProfileListBox)
                 {

@@ -22,7 +22,7 @@ namespace ChatMessenger.Server.Interfaces.Services.Repositories
         /// <param name="userEmail">메세지 작성자의 Email (SystemMessage일 경우 null 허용)</param>
         /// <param name="request">메세지 정보가 담긴 Request DTO</param>
         /// <returns>저장 성공시 등록된 ChatMessage Entity, 실패시 null 반환</returns>
-        Task<ChatMessage?> AddMessageAsnyc(string? userEmail, SendMessageRequest request);
+        Task<ChatMessage?> AddMessageAsync(string? userEmail, SendMessageRequest request);
         /// <summary>
         /// 특정 채팅방의 최신 메세지 식별 번호를 조회합니다.
         /// </summary>

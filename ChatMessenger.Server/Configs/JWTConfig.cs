@@ -19,6 +19,12 @@ namespace ChatMessenger.Server.Configs
             string jwtIssuer = config["Jwt:Issuer"]!;
             string jwtAudience = config["Jwt:Audience"]!;
 
+            // Jwt:Key는 appsettings.json에 커밋하지 않고 환경변수/User Secrets로만 주입하므로,
+            // 값이 비어있으면 토큰 서명이 무의미해지기 전에 즉시 실패시켜 원인을 명확히 알 수 있게 함
+            if (string.IsNullOrWhiteSpace(jwtKey))
+                throw new InvalidOperationException(
+                    "Jwt:Key 설정값이 비어있습니다. 로컬 개발: `dotnet user-secrets set \"Jwt:Key\" \"값\"` / 운영 배포: 환경변수 Jwt__Key를 설정하세요.");
+
             // JwtBearer 방식의 서비스를 등록합니다.
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>

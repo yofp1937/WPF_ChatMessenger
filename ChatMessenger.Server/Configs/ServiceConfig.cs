@@ -19,6 +19,8 @@ namespace ChatMessenger.Server.Configs
             // ★ 비즈니스 로직들은 대부분 AddScoped로 등록하여 요청 단위로 관리합니다.
             // 토큰 생성 서비스 등록
             services.AddScoped<ITokenService, TokenService>();
+            // 비밀번호 해싱 서비스 등록 (DbContext 등 요청 단위 자원을 참조하지 않는 무상태 서비스이므로 Singleton으로 등록)
+            services.AddSingleton<IPasswordHasherService, PasswordHasherService>();
             // TODO: 나중에 Service 추가되면 이곳에 작성하여 추가
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ISocialService, SocialService>();

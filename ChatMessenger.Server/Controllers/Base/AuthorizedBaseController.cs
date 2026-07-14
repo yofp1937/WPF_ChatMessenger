@@ -1,6 +1,4 @@
-﻿using ChatMessenger.Shared.Common;
-using ChatMessenger.Shared.Enums;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;

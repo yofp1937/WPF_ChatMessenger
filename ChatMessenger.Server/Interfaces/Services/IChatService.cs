@@ -1,5 +1,4 @@
-﻿using ChatMessenger.Server.Data.DTOs;
-using ChatMessenger.Shared.Common;
+﻿using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Requests.Chat;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
 

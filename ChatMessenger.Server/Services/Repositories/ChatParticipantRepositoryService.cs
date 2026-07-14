@@ -3,15 +3,14 @@ using ChatMessenger.Server.Data.DTOs;
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces.Services.Repositories;
 using ChatMessenger.Server.Services.Bases;
-using ChatMessenger.Shared.Common;
-using ChatMessenger.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Services.Repositories
 {
     public class ChatParticipantRepositoryService : BaseRepositoryService, IChatParticipantRepositoryService
     {
-        public ChatParticipantRepositoryService(AppDbContext context) : base(context) { }
+        public ChatParticipantRepositoryService(AppDbContext context, ILogger<ChatParticipantRepositoryService> logger) : base(context, logger) { }
 
         #region public Method
         /// <inheritdoc/>
@@ -132,7 +131,7 @@ namespace ChatMessenger.Server.Services.Repositories
                     .Where(cp => cp.ChatRoomId == roomId)
                     .ToListAsync();
                 // 1대1 채팅인 경우에만 동작
-                if(participants.Count > 0 && !participants.First().ChatRoom.IsGroupChat)
+                if (participants.Count > 0 && !participants.First().ChatRoom.IsGroupChat)
                 {
                     ChatParticipant? target = participants.FirstOrDefault(cp => cp.UserEmail != myEmail);
                     // 상대방이 퇴장 상태라면 메세지 전송을 위해 입장 상태로 변경

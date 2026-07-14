@@ -40,7 +40,6 @@ namespace ChatMessenger.Client.ViewModels.Base
         }
         /// <summary>
         /// 창을 닫습니다.
-        /// <br/>(TODO: 나중에 설정에 창 닫을때 시스템 트레이로 이동할지, 프로그램 종료할지 결정하는거 넣기)
         /// </summary>
         [RelayCommand]
         protected virtual void CloseWindow()

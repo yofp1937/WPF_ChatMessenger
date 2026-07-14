@@ -77,7 +77,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs
             WeakReferenceMessenger.Default.Register<ChatRoomSelectionChangedMessage>(this, (r, m) =>
             {
                 CurrentVM = _chatRoomVM;
-                _chatRoomVM.SetChatRoom(m.roomId);
+                _ = _chatRoomVM.SetChatRoom(m.roomId);
             });
             // ContentPanel 화면을 CreateChatRoomView로 변경합니다.
             WeakReferenceMessenger.Default.Register<OpenCreateChatRoomRequestMessage>(this, (r, m) =>
@@ -114,7 +114,7 @@ namespace ChatMessenger.Client.ViewModels.Tabs
                 AddFriendWarningText = "이메일을 입력해주세요.";
                 return;
             }
-            
+
             // 1. 서버에 유저 검색 요청
             ServiceResult<FriendModel> response = await _friendService.SearchFriendAsync(SearchEmail);
             if (!response.IsSuccess)

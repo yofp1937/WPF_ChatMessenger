@@ -5,7 +5,7 @@ using ChatMessenger.Client.ViewModels.Base;
 
 namespace ChatMessenger.Client.Common.Interfaces
 {
-    interface IWindowService
+    public interface IWindowService
     {
         /// <summary>
         /// 넘겨받은 viewModel에 맞는 Window를 생성하여 띄워줍니다.

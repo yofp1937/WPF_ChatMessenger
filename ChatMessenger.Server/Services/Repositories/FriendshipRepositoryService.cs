@@ -5,12 +5,13 @@ using ChatMessenger.Server.Mappers;
 using ChatMessenger.Server.Services.Bases;
 using ChatMessenger.Shared.DTOs.Responses.Friend;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Services.Repositories
 {
     public class FriendshipRepositoryService : BaseRepositoryService, IFriendshipRepository
     {
-        public FriendshipRepositoryService(AppDbContext context) : base(context) { }
+        public FriendshipRepositoryService(AppDbContext context, ILogger<FriendshipRepositoryService> logger) : base(context, logger) { }
 
         /// <inheritdoc/>
         public async Task<List<FriendResponse>> GetFriendResponseListAsync(string userEmail)

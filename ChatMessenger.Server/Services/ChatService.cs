@@ -1,5 +1,4 @@
-﻿using Azure;
-using ChatMessenger.Server.Data.DTOs;
+﻿using ChatMessenger.Server.Data.DTOs;
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Hubs;
 using ChatMessenger.Server.Interfaces.Services;
@@ -13,7 +12,7 @@ using ChatMessenger.Shared.DTOs.Responses.Chat;
 using ChatMessenger.Shared.DTOs.Responses.Friend;
 using ChatMessenger.Shared.Enums;
 using Microsoft.AspNetCore.SignalR;
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Services
 {
@@ -23,13 +22,14 @@ namespace ChatMessenger.Server.Services
     public class ChatService : BaseBusinessService, IChatService
     {
         private readonly IHubContext<ChatHub> _chatHubContext;
-        private IChatRoomRepositoryService _chatRoomRepository;
-        private IChatParticipantRepositoryService _chatParticipantRepository;
-        private IChatMessageRepositoryService _chatMessageRepository;
-        private IUserRepositoryService _userRepository;
+        private readonly IChatRoomRepositoryService _chatRoomRepository;
+        private readonly IChatParticipantRepositoryService _chatParticipantRepository;
+        private readonly IChatMessageRepositoryService _chatMessageRepository;
+        private readonly IUserRepositoryService _userRepository;
 
         public ChatService(IHubContext<ChatHub> chatHubContext, IChatRoomRepositoryService chatRoomRepository, IChatParticipantRepositoryService chatParticipantRepository,
-            IChatMessageRepositoryService chatMessageRepository, IUserRepositoryService userRepository)
+            IChatMessageRepositoryService chatMessageRepository, IUserRepositoryService userRepository, ILogger<ChatService> logger)
+            : base(logger)
         {
             _chatHubContext = chatHubContext;
             _chatRoomRepository = chatRoomRepository;
@@ -43,7 +43,7 @@ namespace ChatMessenger.Server.Services
         /// </summary>
         /// <remarks>
         /// 해당 메서드는 ChatParticipant 객체를 찾지 못할시 throw를 던지기때문에<br/>
-        /// 반드시 try-catch문을 사용하는 BaseBusinessService의 ExecutedBusinessLogicAsync 메서드 내부에서 실행되어야합니다.
+        /// 반드시 try-catch문을 사용하는 BaseBusinessService의 ExecuteBusinessLogicAsync 메서드 내부에서 실행되어야합니다.
         /// </remarks>
         /// <param name="roomId">접근하려는 채팅방의 식별 번호</param>
         /// <param name="userEmail">권한을 확인하려는 User의 Email</param>
@@ -57,7 +57,7 @@ namespace ChatMessenger.Server.Services
             ChatParticipant? participant = isTracking
                 ? await _chatParticipantRepository.GetTrackingParticipantEntityAsync(roomId, userEmail)
                 : await _chatParticipantRepository.GetParticipantEntityAsync(roomId, userEmail);
-            // 2. 없으면 throw (BaseBusinessService의 ExecutedBusinessLogicAsync 내부 catch에서 예외 처리)
+            // 2. 없으면 throw (BaseBusinessService의 ExecuteBusinessLogicAsync 내부 catch에서 예외 처리)
             if (participant == null || participant.IsLeft)
                 throw new UnauthorizedAccessException("해당 채팅방에 접근 권한이 없습니다.");
             // 3. 있으면 반환
@@ -67,7 +67,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<ChatRoomSummaryResponse>> GetChatRoomSummaryResponseAsync(Guid roomId, string myEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
                 if (roomId == Guid.Empty || string.IsNullOrEmpty(myEmail))
@@ -86,7 +86,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<List<ChatRoomSummaryResponse>>> GetChatRoomSummaryResponseListAsync(string myEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
                 if (string.IsNullOrEmpty(myEmail))
@@ -101,7 +101,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<ChatRoomDetailResponse>> GetChatRoomDetailResponseAsync(Guid roomId, string myEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
                 if (roomId == Guid.Empty || string.IsNullOrEmpty(myEmail))
@@ -122,7 +122,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<Guid>> CreateGroupChatRoomAsync(string myEmail, CreateGroupChatRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(request.Title) || request.TargetEmails.Count == 0)
@@ -133,7 +133,7 @@ namespace ChatMessenger.Server.Services
                     throw new InvalidOperationException("SystemMessage가 누락됐습니다.");
                 // 3. 참가자들에게 입장 SystemMessage 전송
                 bool sendMessageResult = await SendJoinAndLeaveSystemMessageInternalAsync(transactionResult, true);
-                if(!sendMessageResult)
+                if (!sendMessageResult)
                     throw new InvalidOperationException("SystemMessage 전송에 실패했습니다.");
                 // 4. 결과 반환
                 return ServiceResult<Guid>.Success(transactionResult.RoomId);
@@ -142,7 +142,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<Guid>> GetOrCreatePrivateChatAsync(string myEmail, CreatePrivateChatRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(request.TargetEmail))
@@ -175,7 +175,7 @@ namespace ChatMessenger.Server.Services
                 if (roomResult == null)
                     throw new InvalidOperationException("새로운 채팅방 생성에 실패 했습니다.");
                 // 2. 방 개설자 참가자로 등록
-                bool isCreatorAdded = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomResult.Id, [myEmail], 0);
+                bool isCreatorAdded = await _chatParticipantRepository.AddParticipantsToRoomAsync(roomResult.Id, [myEmail], long.MaxValue);
                 if (!isCreatorAdded)
                     throw new InvalidOperationException("채팅방 개설자 등록 중 오류가 발생했습니다.");
                 // 3. 참가자 등록
@@ -210,7 +210,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<bool>> RemoveParticipantAndCreateLeaveMessageAsync(Guid roomId, string userEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
                 if (roomId == Guid.Empty || string.IsNullOrEmpty(userEmail))
@@ -222,7 +222,7 @@ namespace ChatMessenger.Server.Services
                 //    퇴장 메세지 전송을 위한 결과값 반환받음
                 JoinAndLeaveChatRoomDTO transactionResult = await RemoveParticipantAndCreateMessageInternalAsync(roomId, participant);
                 // 4. transactionResult.SystemMessage가 null이면 채팅방이 삭제된거라 메세지 전송 스킵
-                if(transactionResult.SystemMessage != null && isGroupChat)
+                if (transactionResult.SystemMessage != null && isGroupChat)
                 {
                     // 5. 참가자들에게 퇴장 SystemMessage 전송
                     bool sendMessageResult = await SendJoinAndLeaveSystemMessageInternalAsync(transactionResult, false, userEmail);
@@ -236,10 +236,10 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<bool>> AddParticipantsToRoomAsync(Guid roomId, string myEmail, IEnumerable<string> emails)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
-                if(roomId == Guid.Empty || string.IsNullOrEmpty(myEmail) || emails.Count() == 0)
+                if (roomId == Guid.Empty || string.IsNullOrEmpty(myEmail) || !emails.Any())
                     return ServiceResult<bool>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
                 // 2. 채팅방 접근 권한 확인
                 ChatParticipant participant = await GetValidatedParticipantAsync(roomId, myEmail);
@@ -290,12 +290,12 @@ namespace ChatMessenger.Server.Services
                 if (leaverEmail == null || string.IsNullOrEmpty(leaverEmail))
                     throw new InvalidOperationException("leaverEmail이 정상적으로 넘어오지 않았습니다.");
                 User? user = await _userRepository.GetUserByEmailAsync(leaverEmail);
-                if(user == null)
+                if (user == null)
                     throw new InvalidOperationException("User 객체를 찾지못했습니다.");
                 userResponse = new() { FriendMapper.MapToFriendResponse(user) };
             }
             // 6. ChatHub를 통해 채팅방 참가자들에게 전송
-            ChatParticipantStatusResponse response = 
+            ChatParticipantStatusResponse response =
                 ChatMapper.ToParticipantStatusResponse(msgResponse, dto.RemainingUsersEmailList.Count, userResponse, isJoined);
             await BroadcastToUsersAsync(_chatHubContext, dto.RemainingUsersEmailList, ChatHubEvents.ChatHubResponseEvent.UpdateParticipantStatus, response);
             return true;
@@ -403,7 +403,7 @@ namespace ChatMessenger.Server.Services
                 long lastMessageId = await _chatMessageRepository.GetLastMessageIdAsync(roomId);
                 long entryMessageId = lastMessageId;
                 // 1대1 채팅방의 경우 입퇴장 메세지가 없기때문에 entryMessageId는 LastMessageId보다 1 커야함
-                if(!participant.ChatRoom.IsGroupChat)
+                if (!participant.ChatRoom.IsGroupChat)
                     entryMessageId += 1;
                 await _chatParticipantRepository.UpdateChatParticipantAsync(participant, p =>
                 {
@@ -419,25 +419,24 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<UserReadUpdateResponse>> UpdateLastReadedMessageAsync(string myEmail, UpdateLastReadedMessageRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
-                if(string.IsNullOrEmpty(myEmail) || request.RoomId == Guid.Empty || request.LastReadMessageId < 0)
+                if (string.IsNullOrEmpty(myEmail) || request.RoomId == Guid.Empty || request.LastReadMessageId < 0)
                     return ServiceResult<UserReadUpdateResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
                 // 2. 채팅방 접근 권한 확인
                 ChatParticipant participant = await GetValidatedParticipantAsync(request.RoomId, myEmail, true);
                 // 3. 이전에 마지막으로 읽었던 메세지 번호 저장
-                long previouseId = participant.LastReadMessageId;
+                long previousId = participant.LastReadMessageId;
                 // 4. 내 ChatParticipant Entity의 값을 수정하고 Db에 적용 요청
                 bool isSuccess = await _chatParticipantRepository.UpdateChatParticipantAsync(participant, p =>
                 {
-                    Console.WriteLine($"전달받은 LastReadMessageId: {request.LastReadMessageId}, Db에 기록된 LastReadMessageId: {p.LastReadMessageId}");
                     p.LastReadMessageId = request.LastReadMessageId;
                 });
                 if (!isSuccess)
                     return ServiceResult<UserReadUpdateResponse>.Failed("변경 사항이 없거나, 저장에 실패했습니다.", ServiceResultType.InternalServerError);
                 // 4. 결과 Data들 Response로 매핑
-                UserReadUpdateResponse response = ChatMapper.ToReadUpdateResponse(request.RoomId, myEmail, request.LastReadMessageId, previouseId);
+                UserReadUpdateResponse response = ChatMapper.ToReadUpdateResponse(request.RoomId, myEmail, request.LastReadMessageId, previousId);
                 // 5. 업데이트 성공했으면 ChatHub를 통해 내가 메세지를 읽었으니 View 업데이트하라고 브로드 캐스트 전송
                 await BroadcastToRoomAsync(_chatHubContext, request.RoomId.ToString(), ChatHubEvents.ChatHubResponseEvent.UserReadMessage, response);
                 // 6. Response 반환
@@ -447,7 +446,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<ChatMessageResponse>> SendMessageAsync(string myEmail, SendMessageRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검증
                 if (string.IsNullOrEmpty(myEmail) || request.RoomId == Guid.Empty || string.IsNullOrEmpty(request.Content))
@@ -482,11 +481,11 @@ namespace ChatMessenger.Server.Services
             return await ExecuteTransactionAsync(_chatMessageRepository, async () =>
             {
                 // 1. 사용자 요청에따라 Db에 메세지 등록
-                ChatMessage? messageResult = await _chatMessageRepository.AddMessageAsnyc(myEmail, request);
+                ChatMessage? messageResult = await _chatMessageRepository.AddMessageAsync(myEmail, request);
                 if (messageResult == null)
                     throw new InvalidOperationException("메세지 저장 중 오류가 발생했습니다.");
                 // 2. 1대1 채팅이면 상대방의 IsLeft와 상관없이 메세지를 전송할수있게 검사 로직 실행
-                if(!myParticipant.ChatRoom.IsGroupChat)
+                if (!myParticipant.ChatRoom.IsGroupChat)
                 {
                     await _chatParticipantRepository.ActivateParticipantIsLeftStatusIfPrivateAsync(request.RoomId, myEmail, messageResult.Id);
                 }
@@ -506,11 +505,11 @@ namespace ChatMessenger.Server.Services
         /// </summary>
         /// <remarks>
         /// 해당 메서드는 ChatMessage 객체를 찾지 못할시 throw를 던지기때문에<br/>
-        /// 반드시 try-catch문을 사용하는 BaseBusinessService의 ExecutedBusinessLogicAsync 메서드 내부에서 실행되어야합니다.
+        /// 반드시 try-catch문을 사용하는 BaseBusinessService의 ExecuteBusinessLogicAsync 메서드 내부에서 실행되어야합니다.
         /// </remarks>
         /// <param name="nicknames">메세지에 표시될 유저들의 Nickname List</param>
         /// <param name="roomId">채팅방 식별 번호</param>
-        /// <param name="isJoin">ture: 입장 메세지, false: 퇴장 메세지</param>
+        /// <param name="isJoin">true: 입장 메세지, false: 퇴장 메세지</param>
         /// <returns>등록된 ChatMessage 객체, 실패 시 null</returns>
         private async Task<ChatMessage> AddJoinAndExitSystemMessageAsync(IEnumerable<string> nicknames, Guid roomId, bool isJoin)
         {
@@ -522,7 +521,7 @@ namespace ChatMessenger.Server.Services
                 Content = ChatMapper.CreateSystemMessagesContent(nicknames, isJoin)
             };
             // 2. 메세지 Db에 등록
-            ChatMessage? messageResult = await _chatMessageRepository.AddMessageAsnyc(null, tempReq);
+            ChatMessage? messageResult = await _chatMessageRepository.AddMessageAsync(null, tempReq);
             if (messageResult == null)
                 throw new InvalidOperationException("메세지 등록에 실패했습니다.");
             // 3. 처리 결과 반환

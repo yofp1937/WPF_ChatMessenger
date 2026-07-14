@@ -1,5 +1,4 @@
-﻿using ChatMessenger.Server.Data;
-using ChatMessenger.Server.Data.Entities;
+﻿using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces.Services;
 using ChatMessenger.Server.Interfaces.Services.Repositories;
 using ChatMessenger.Server.Mappers;
@@ -8,7 +7,7 @@ using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Requests;
 using ChatMessenger.Shared.DTOs.Responses.Friend;
 using ChatMessenger.Shared.Enums;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Services
 {
@@ -17,10 +16,11 @@ namespace ChatMessenger.Server.Services
     /// </summary>
     public class SocialService : BaseBusinessService, ISocialService
     {
-        private IFriendshipRepository _friendshipRepository;
-        private IUserRepositoryService _userRepository;
+        private readonly IFriendshipRepository _friendshipRepository;
+        private readonly IUserRepositoryService _userRepository;
 
-        public SocialService(IFriendshipRepository friendshipRepository, IUserRepositoryService userService)
+        public SocialService(IFriendshipRepository friendshipRepository, IUserRepositoryService userService, ILogger<SocialService> logger)
+            : base(logger)
         {
             _friendshipRepository = friendshipRepository;
             _userRepository = userService;
@@ -30,7 +30,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<List<FriendResponse>>> GetFriendResponseListAsync(string myEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검사
                 if (string.IsNullOrEmpty(myEmail))
@@ -45,14 +45,14 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<FriendResponse>> GetFriendResponseAsync(string myEmail, string friendEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검사
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(friendEmail))
                     return ServiceResult<FriendResponse>.Failed("잘못된 요청 데이터입니다.", ServiceResultType.BadRequest);
                 // 2. friendEmail이 등록된 이메일인지 확인
                 User? user = await _userRepository.GetUserByEmailAsync(friendEmail);
-                if(user == null)
+                if (user == null)
                     return ServiceResult<FriendResponse>.Failed("유저를 찾을 수 없습니다.", ServiceResultType.BadRequest);
                 // 3. Response 생성에 필요한 friendship 검색
                 Friendship? friendship = await _friendshipRepository.GetFriendshipEntityAsync(myEmail, friendEmail);
@@ -64,7 +64,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<FriendResponse>> AddFriendAsync(string myEmail, string friendEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검사
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(friendEmail))
@@ -84,7 +84,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<bool>> DeleteFriendAsync(string myEmail, string friendEmail)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검사
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(friendEmail))
@@ -103,7 +103,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<bool>> UpdateFavoriteAsync(string myEmail, FriendStatusRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검사
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(request.Email))
@@ -125,7 +125,7 @@ namespace ChatMessenger.Server.Services
         /// <inheritdoc/>
         public async Task<ServiceResult<bool>> UpdateBlockAsync(string myEmail, FriendStatusRequest request)
         {
-            return await ExecutedBusinessLogicAsync(async () =>
+            return await ExecuteBusinessLogicAsync(async () =>
             {
                 // 1. 입력 값 검사
                 if (string.IsNullOrEmpty(myEmail) || string.IsNullOrEmpty(request.Email))
@@ -135,7 +135,7 @@ namespace ChatMessenger.Server.Services
                 // 3. 조건에 따라 처리
                 bool result;
                 // [분기 1]: 상대와 친구 관계가 아닌 경우
-                if(friendship == null)
+                if (friendship == null)
                 {
                     // 모르는 대상을 차단하려하는 경우 차단 상태의 새로운 관계 생성
                     if (request.IsBlocked)
@@ -148,7 +148,7 @@ namespace ChatMessenger.Server.Services
                 else
                 {
                     // 친구를 차단하려는 경우 즐겨찾기, 차단 상태 변경
-                    if(request.IsBlocked)
+                    if (request.IsBlocked)
                         result = await _friendshipRepository.UpdateFriendshipAsync(friendship, f =>
                         {
                             f.IsBlocked = true;

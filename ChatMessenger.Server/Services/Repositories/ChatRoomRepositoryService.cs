@@ -5,6 +5,7 @@ using ChatMessenger.Server.Interfaces.Services.Repositories;
 using ChatMessenger.Server.Services.Bases;
 using ChatMessenger.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Services.Repositories
 {
@@ -13,7 +14,7 @@ namespace ChatMessenger.Server.Services.Repositories
     /// </summary>
     public class ChatRoomRepositoryService : BaseRepositoryService, IChatRoomRepositoryService
     {
-        public ChatRoomRepositoryService(AppDbContext context) : base(context) { }
+        public ChatRoomRepositoryService(AppDbContext context, ILogger<ChatRoomRepositoryService> logger) : base(context, logger) { }
 
         #region public Method
 

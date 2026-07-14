@@ -86,6 +86,8 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             // 2. 신규 채팅방을 개설하는 경우
             else
                 await CreateNewChatRoom();
+
+            ResetInputValues();
         }
         [RelayCommand]
         private async Task CloseView()

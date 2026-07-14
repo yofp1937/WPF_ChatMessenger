@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="ChatMessenger.Client/ChatMessenger.Client.csproj" />
   <Project Path="ChatMessenger.Server/ChatMessenger.Server.csproj" />
+  <Project Path="ChatMessenger.Server.Tests/ChatMessenger.Server.Tests.csproj" />
   <Project Path="ChatMessenger.Shared/ChatMessenger.Shared.csproj" />
 </Solution>

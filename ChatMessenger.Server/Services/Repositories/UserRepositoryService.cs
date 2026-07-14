@@ -2,15 +2,14 @@
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces.Services.Repositories;
 using ChatMessenger.Server.Services.Bases;
-using ChatMessenger.Shared.Common;
-using ChatMessenger.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Services.Repositories
 {
     public class UserRepositoryService : BaseRepositoryService, IUserRepositoryService
     {
-        public UserRepositoryService(AppDbContext context) : base(context) { }
+        public UserRepositoryService(AppDbContext context, ILogger<UserRepositoryService> logger) : base(context, logger) { }
 
         #region public Method
         /// <inheritdoc/>

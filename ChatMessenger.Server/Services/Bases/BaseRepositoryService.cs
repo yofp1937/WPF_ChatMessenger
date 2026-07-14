@@ -1,6 +1,7 @@
 ﻿using ChatMessenger.Server.Data;
 using ChatMessenger.Server.Interfaces.Services.Repositories;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 
 namespace ChatMessenger.Server.Services.Bases
@@ -14,10 +15,16 @@ namespace ChatMessenger.Server.Services.Bases
     public abstract class BaseRepositoryService : IBaseRepositoryService
     {
         protected readonly AppDbContext _context;
+        /// <summary>
+        /// 표준 로깅을 위한 로거입니다. 자식 Class가 자신의 타입(ILogger&lt;자식타입&gt;)을 주입하므로,
+        /// 로그 카테고리에 실제 예외가 발생한 구체 Class명이 자동으로 기록됩니다.
+        /// </summary>
+        protected readonly ILogger _logger;
 
-        protected BaseRepositoryService(AppDbContext context)
+        protected BaseRepositoryService(AppDbContext context, ILogger logger)
         {
             _context = context;
+            _logger = logger;
         }
         #region public Method
         /// <inheritdoc/>
@@ -64,12 +71,11 @@ namespace ChatMessenger.Server.Services.Bases
         {
             // 1. GetType().Name으로 해당 인스턴스를 작동시키는 자식 클래스명을 추출
             string className = GetType().Name;
-            // 2. 현재 시간 정보 확보
-            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            // 3. 로그 메세지 형식 작성
-            string logMessage = $"[Database Error] - [{timestamp}] [{className}_{callerMethodName}]: {ex.Message}";
-            // 4. 콘솔 출력 (TODO: 추후 로그 저장 추가시 해당 부분 변경)
-            Console.WriteLine(logMessage);
+            // 2. ILogger로 구조적 로그 기록.
+            //    - 타임스탬프/로그레벨/카테고리는 로깅 프레임워크가 자동 부여하므로 수기 포맷팅을 제거함.
+            //    - 예외 객체(ex)를 첫 인자로 넘겨 스택 트레이스까지 함께 기록되도록 함.
+            _logger.LogError(ex, "[Database Error] [{ClassName}.{Method}] Db 작업 중 예외가 발생했습니다.",
+                className, callerMethodName);
         }
         #endregion private Method
     }

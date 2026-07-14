@@ -3,7 +3,6 @@ using ChatMessenger.Client.Configs;
 using ChatMessenger.Shared.Constants;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
 using Microsoft.AspNetCore.SignalR.Client;
-using System.Diagnostics;
 
 namespace ChatMessenger.Client.Common.Services.Chats
 {

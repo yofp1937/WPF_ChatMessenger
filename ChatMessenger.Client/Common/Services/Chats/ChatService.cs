@@ -4,7 +4,6 @@ using ChatMessenger.Client.Models.Chats;
 using ChatMessenger.Shared.Common;
 using ChatMessenger.Shared.DTOs.Requests.Chat;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
-using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Json;
 

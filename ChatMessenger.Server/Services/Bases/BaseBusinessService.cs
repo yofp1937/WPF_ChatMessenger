@@ -1,11 +1,11 @@
 ﻿using ChatMessenger.Server.Hubs;
 using ChatMessenger.Server.Interfaces.Services.Repositories;
 using ChatMessenger.Shared.Common;
-using ChatMessenger.Shared.Constants;
 using ChatMessenger.Shared.DTOs.Responses.Base;
 using ChatMessenger.Shared.Enums;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 
 namespace ChatMessenger.Server.Services.Bases
@@ -19,6 +19,21 @@ namespace ChatMessenger.Server.Services.Bases
     /// </remarks>
     public abstract class BaseBusinessService
     {
+        /// <summary>
+        /// 표준 로깅을 위한 로거입니다. 자식 Class가 자신의 타입(ILogger&lt;자식타입&gt;)을 주입하므로,
+        /// 로그 카테고리에 실제 예외가 발생한 구체 Class명이 자동으로 기록됩니다.
+        /// </summary>
+        protected readonly ILogger _logger;
+
+        /// <summary>
+        /// 자식 Business Service가 자신의 <see cref="ILogger{TCategoryName}"/>를 주입하여 로깅 체계를 공유합니다.
+        /// </summary>
+        /// <param name="logger">자식 Class 타입으로 카테고리화된 로거</param>
+        protected BaseBusinessService(ILogger logger)
+        {
+            _logger = logger;
+        }
+
         #region protected Method
         /// <summary>
         /// try-catch문을 사용해 비즈니스 로직을 안전하게 실행하고, 예외 발생시 ServiceResult를 반환하면서 로그도 남깁니다.
@@ -27,7 +42,7 @@ namespace ChatMessenger.Server.Services.Bases
         /// <param name="businessLogic">try 내부에서 실행할 비지니스 로직</param>
         /// <param name="callerMethodName">컴파일러에 의해 주입되는 호출 메서드 이름</param>
         /// <returns>로직 실행 결과 또는 예외 처리 결과</returns>
-        protected async Task<ServiceResult<T>> ExecutedBusinessLogicAsync<T>(Func<Task<ServiceResult<T>>> businessLogic,
+        protected async Task<ServiceResult<T>> ExecuteBusinessLogicAsync<T>(Func<Task<ServiceResult<T>>> businessLogic,
             [CallerMemberName] string callerMethodName = "")
         {
             try
@@ -36,7 +51,7 @@ namespace ChatMessenger.Server.Services.Bases
             }
             catch (Exception ex)
             {
-                return HandleExcetpion<T>(ex, callerMethodName);
+                return HandleException<T>(ex, callerMethodName);
             }
         }
         /// <summary>
@@ -44,7 +59,7 @@ namespace ChatMessenger.Server.Services.Bases
         /// try-cach문을 사용해 하나의 작업이 실패하면 모든 작업을 Rollback합니다.
         /// </summary>
         /// <remarks>
-        /// 해당 메서드는 ExecutedBusinessLogicAsync 내부에서 호출되기때문에 예외 발생시 throw new Exception을 사용하면 정상적으로 로그가 기록됩니다.
+        /// 해당 메서드는 ExecuteBusinessLogicAsync 내부에서 호출되기때문에 예외 발생시 throw new Exception을 사용하면 정상적으로 로그가 기록됩니다.
         /// </remarks>
         /// <typeparam name="T">반환할 데이터 타입</typeparam>
         /// <param name="repositoryService">transaction 생성 메서드를 호출해줄 RepositoryService</param>
@@ -90,7 +105,8 @@ namespace ChatMessenger.Server.Services.Bases
         /// <param name="userEmails">메시지를 수신할 유저들의 이메일 리스트</param>
         /// <param name="eventMethod">클라이언트가 수신할 실시간 이벤트 메서드명</param>
         /// <param name="response">BaseResponse를 상속받은 Response 객체</param>
-        protected async Task BroadcastToUsersAsync(IHubContext<ChatHub> hubContext, IEnumerable<string> userEmails, string eventMethod, BaseResponse response)
+        protected async Task BroadcastToUsersAsync(IHubContext<ChatHub> hubContext, IEnumerable<string> userEmails,
+                string eventMethod, BaseResponse response)
         {
             if (userEmails == null || !userEmails.Any() || string.IsNullOrEmpty(eventMethod))
                 return;
@@ -107,7 +123,7 @@ namespace ChatMessenger.Server.Services.Bases
         /// <param name="callerMethodName">호출 메서드 이름</param>
         /// <param name="errorMessage">외부로 노출할 에러 메세지</param>
         /// <returns>Data 요청 결과가 담긴 ServiceResult 객체</returns>
-        private ServiceResult<T> HandleExcetpion<T>(Exception ex, string callerMethodName,
+        private ServiceResult<T> HandleException<T>(Exception ex, string callerMethodName,
             string errorMessage = "서버 내부 데이터 처리 중 오류가 발생했습니다.")
         {
             // 1. 공통 로그 처리 메서드 호출
@@ -116,7 +132,7 @@ namespace ChatMessenger.Server.Services.Bases
             return ServiceResult<T>.Failed(errorMessage, ServiceResultType.InternalServerError);
         }
         /// <summary>
-        /// 발생한 Exception을 로그로 납깁니다.
+        /// 발생한 Exception을 로그로 남깁니다.
         /// </summary>
         /// <param name="ex">발생한 예외 객체</param>
         /// <param name="callerMethodName">호출 메서드 이름</param>
@@ -124,12 +140,11 @@ namespace ChatMessenger.Server.Services.Bases
         {
             // 1. GetType().Name으로 해당 인스턴스를 작동시키는 자식 클래스명을 추출
             string className = GetType().Name;
-            // 2. 현재 시간 정보 확보
-            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            // 3. 로그 메세지 형식 작성
-            string logMessage = $"[{timestamp}] [Error] [{className}_{callerMethodName}]: {ex.Message}";
-            // 4. 콘솔 출력 (TODO: 추후 로그 저장 추가시 해당 부분 변경)
-            Console.WriteLine(logMessage);
+            // 2. ILogger로 구조적 로그 기록.
+            //    - 타임스탬프/로그레벨/카테고리는 로깅 프레임워크가 자동 부여하므로 수기 포맷팅을 제거함.
+            //    - 예외 객체(ex)를 첫 인자로 넘겨 스택 트레이스까지 함께 기록되도록 함.
+            _logger.LogError(ex, "[Business Error] [{ClassName}.{Method}] 비즈니스 로직 처리 중 예외가 발생했습니다.",
+                className, callerMethodName);
         }
         #endregion private Method
     }

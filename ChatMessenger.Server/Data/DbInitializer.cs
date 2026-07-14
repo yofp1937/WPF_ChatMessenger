@@ -8,7 +8,9 @@
  */
 using ChatMessenger.Server.Data.Entities;
 using ChatMessenger.Server.Interfaces;
+using ChatMessenger.Server.Interfaces.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ChatMessenger.Server.Data
 {
@@ -16,12 +18,16 @@ namespace ChatMessenger.Server.Data
     {
         #region Property
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly IPasswordHasherService _passwordHasher;
+        private readonly ILogger<DbInitializer> _logger;
         #endregion
 
         #region 생성자
-        public DbInitializer(IServiceScopeFactory scopeFactory)
+        public DbInitializer(IServiceScopeFactory scopeFactory, IPasswordHasherService passwordHasher, ILogger<DbInitializer> logger)
         {
             _scopeFactory = scopeFactory;
+            _passwordHasher = passwordHasher;
+            _logger = logger;
         }
         #endregion
 
@@ -33,7 +39,7 @@ namespace ChatMessenger.Server.Data
             using (IServiceScope scope = _scopeFactory.CreateScope())
             {
                 AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                Console.WriteLine("[DbInitializer - InitializeDbAsync]: Db를 초기화합니다.");
+                _logger.LogInformation("[DbInitializer] Db를 초기화합니다.");
 
                 // 2.DB 연결 및 생성, 테스트 테이블 입력까지 처리
                 if (await ConnectionDbAsync(context))
@@ -45,38 +51,44 @@ namespace ChatMessenger.Server.Data
         /// <inheritdoc/>
         public async Task<bool> ConnectionDbAsync(AppDbContext context)
         {
-            // DB가 없으면 생성해주는 CheckAndCreateTablesAsync() 호출
-            await CheckAndCreateTablesAsync(context);
             try
             {
-                Console.WriteLine("[DbInitializer - ConnectionDbAsync]: Db 연결 확인 중...");
+                // DB가 없으면 생성해주는 CheckAndCreateTablesAsync() 호출
+                // EnsureCreatedAsync가 던지는 예외(DB 서버 연결 자체 실패 등)까지 함께 처리하기 위해 try 블록 안에서 호출
+                await CheckAndCreateTablesAsync(context);
+
+                _logger.LogInformation("[DbInitializer] Db 연결 확인 중...");
                 if (await context.Database.CanConnectAsync())
                 {
                     string dbName = context.Database.GetDbConnection().Database;
-                    Console.WriteLine($"[DbInitializer - ConnectionDbAsync]: MSSQL 서버 {dbName} 데이터베이스에 연결됐습니다.");
+                    _logger.LogInformation("[DbInitializer] MSSQL 서버 {DbName} 데이터베이스에 연결됐습니다.", dbName);
                     return true;
                 }
                 else
                 {
-                    Console.WriteLine("[DbInitializer - ConnectionDbAsync]: 연결이 거부됐습니다. 서버 설정을 확인하세요.");
+                    _logger.LogError("[DbInitializer] 연결이 거부됐습니다. 서버 설정을 확인하세요.");
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DbInitializer - ConnectionDbAsync]: 에러 발생 {ex.Message}");
+                // DB 서버 자체에 연결할 수 없는 상황(네트워크 장애, 방화벽 차단 등)에서도
+                // 여기서 예외를 잡아 로그로 남기고 InitializeDbAsync가 정상적으로 이어지도록 함(로그 없이 크래시하는 것 방지)
+                _logger.LogError(ex, "[DbInitializer] Db 초기화 중 오류가 발생했습니다.");
                 return false;
             }
         }
         /// <inheritdoc/>
         public async Task CheckAndCreateTablesAsync(AppDbContext context)
         {
-            Console.WriteLine("[DbInitializer - CheckAndCreateTablesAsync]: 데이터베이스와 테이블 구조 확인 및 생성 중...");
-            /* EnsureCreatedAsync를 사용해서 Database와 Table이 존재하지 않으면 생성
-             * 1.context를 생성할때 매개변수로 넣은 option의 database가 존재하는지 확인하고 없으면 생성
-             * 2.context 객체 내부에 DbSet으로 선언된 Property들의 정보대로 Table들 존재하는지 확인하고 없으면 생성 */
-            await context.Database.EnsureCreatedAsync();
-            Console.WriteLine("[DbInitializer - CheckAndCreateTablesAsync]: 데이터베이스 구조가 준비되었습니다.");
+            _logger.LogInformation("[DbInitializer] 데이터베이스 마이그레이션을 확인 및 적용 중...");
+            /* MigrateAsync를 사용해 Code-First Migration 이력을 기준으로 스키마를 관리
+             * 1. Database가 없으면 새로 생성
+             * 2. __EFMigrationsHistory 테이블을 확인해 아직 적용되지 않은 마이그레이션이 있으면 순서대로 적용
+             * 기존 EnsureCreatedAsync와 달리, Entity 변경 후 새 마이그레이션을 추가하면 기존 데이터를 보존하면서
+             * 스키마 변경(ALTER TABLE 등)을 반영할 수 있음 (Database.md §3) */
+            await context.Database.MigrateAsync();
+            _logger.LogInformation("[DbInitializer] 데이터베이스 구조가 준비되었습니다.");
         }
         /// <inheritdoc/>
         public async Task SeedTestDataAsync(AppDbContext context)
@@ -85,8 +97,9 @@ namespace ChatMessenger.Server.Data
             Random random = new();
             if (!userList.Any())
             {
-                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 초기 테스트 유저 데이터 주입 중...");
-                string password = "1";
+                _logger.LogInformation("[DbInitializer] 초기 테스트 유저 데이터 주입 중...");
+                // 테스트 계정도 실제 회원가입과 동일하게 해싱된 비밀번호로 저장해야 로그인 로직(VerifyPassword)과 정합성이 맞음
+                string password = _passwordHasher.HashPassword("1");
 
                 // 1. User 데이터 시딩
                 for (int i = 1; i <= 10; i++)
@@ -109,13 +122,13 @@ namespace ChatMessenger.Server.Data
                 string updateSql = "UPDATE Users SET StatusMessage = N'안녕하세요 ' + Nickname + N'입니다. 잘부탁드립니다.'";
 
                 await context.Database.ExecuteSqlRawAsync(updateSql);
-                Console.WriteLine($"[DbInitializer - SeedTestDataAsync]: 테스트 유저 데이터가 생성되었습니다.");
+                _logger.LogInformation("[DbInitializer] 테스트 유저 데이터가 생성되었습니다.");
             }
 
             // 2. 친구 관계(Friendship) 데이터 시딩
             if (!await context.Friendships.AnyAsync())
             {
-                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 초기 테스트 친구 관계 주입 중...");
+                _logger.LogInformation("[DbInitializer] 초기 테스트 친구 관계 주입 중...");
 
                 foreach (User user in userList)
                 {
@@ -133,13 +146,13 @@ namespace ChatMessenger.Server.Data
                     });
                 }
                 await context.SaveChangesAsync();
-                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 테스트 친구 관계가 생성되었습니다.");
+                _logger.LogInformation("[DbInitializer] 테스트 친구 관계가 생성되었습니다.");
             }
 
             // 3. 채팅방 데이터 시딩
             if (!await context.ChatRooms.AnyAsync())
             {
-                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 초기 채팅방 생성 중...");
+                _logger.LogInformation("[DbInitializer] 초기 채팅방 생성 중...");
 
                 // 테스트용 그룹 채팅방 생성
                 ChatRoom groupChat = new ChatRoom
@@ -221,7 +234,7 @@ namespace ChatMessenger.Server.Data
 
             else
             {
-                Console.WriteLine("[DbInitializer - SeedTestDataAsync]: 이미 데이터가 존재하므로 시딩을 건너뜁니다.");
+                _logger.LogInformation("[DbInitializer] 이미 데이터가 존재하므로 시딩을 건너뜁니다.");
             }
         }
         #endregion
