@@ -106,7 +106,7 @@
 - [x] 12-1. `AuthService.cs:60` 비밀번호 평문 비교/저장 → 해시(PBKDF2) 적용으로 전환 (13-3/R-3에서 완료)
 - [x] 12-2. `appsettings.Production.json`에 평문 커밋된 JWT Key / DB 비밀번호를 환경변수 또는 시크릿 매니저로 이전 완료(13-4/R-4). 실제 운영 DB 비밀번호는 사용자가 SSMS에서 `sa` 계정 값 순환 완료, 로컬 JWT 키도 새 값으로 회전 완료(운영 배포용 JWT 키는 사용자가 별도 생성 필요 — 남은 절차 안내됨)
 - [x] 12-3. `ChatRoomViewModel.cs:69` `async void SetChatRoom` → `async Task` 전환 완료(13-6/R-6에서 완료)
-- [x] 12-4. `EnsureCreatedAsync()` → EF Core Migrations로 전환 완료 — `dotnet-ef` 로컬 도구 설치, `InitialCreate` 마이그레이션 생성, `DbInitializer`가 `MigrateAsync()` 사용. 로컬 DB 삭제 후 재생성으로 실기동 검증 완료. **⚠️ 운영(원격 13.53.43.132) DB는 아직 기존 `EnsureCreatedAsync` 상태라 배포 전 별도 조치 필요(사용자 결정 대기)**
+- [x] 12-4. `EnsureCreatedAsync()` → EF Core Migrations로 전환 완료 — `dotnet-ef` 로컬 도구 설치, `InitialCreate` 마이그레이션 생성, `DbInitializer`가 `MigrateAsync()` 사용. 로컬·운영(13.53.43.132) DB 모두 삭제 후 재생성해 실기동 검증 완료(운영은 실제 배포 후 로그인·해시 저장까지 end-to-end 확인)
 - [x] 12-5. `IWindowService` 접근제한자 `internal` → `public` 통일 완료(13-7/R-7에서 완료)
 - [x] 12-6. `DbInitializer.ConnectionDbAsync`가 DB 연결 실패 시 로그 없이 크래시하던 버그 수정 — `CheckAndCreateTablesAsync` 호출을 try-catch 안으로 이동, `Console.WriteLine` 전체를 `ILogger`로 전환(R-8 검증 중 발견, 즉시 수정 완료)
 
