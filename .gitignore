@@ -35,9 +35,11 @@ publish/
 PublishProfiles/
 
 ## AI 프레임워크 파일 (Claude Code 전용, 배포 산출물에서 제외)
-AIPrompt/
 수정기록/
 CLAUDE.md
+.claude/
+.mcp.json
+.serena/
 
 ## Test Results
 *.trx
