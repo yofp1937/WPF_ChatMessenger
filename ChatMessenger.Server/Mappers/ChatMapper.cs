@@ -83,6 +83,8 @@ namespace ChatMessenger.Server.Mappers
                 ParticipantCount = participants.Count,
                 IsGroupChat = room.IsGroupChat,
                 Participants = participants,
+                // Client가 메세지별 안 읽은 사람 수를 파생 계산할 수 있도록 참가자별 읽은 위치를 함께 전달
+                ParticipantReadPositions = projections.ToDictionary(p => p.User.Email, p => p.LastReadMessageId),
                 Messages = ToMessageResponseList(room.Id, projections, messages),
                 UnreadCount = messages.Count(m => m.Id > myParticipant.LastReadMessageId),
                 LastReadMessageId = myParticipant.LastReadMessageId,
@@ -117,21 +119,19 @@ namespace ChatMessenger.Server.Mappers
             .ToList();
         }
         /// <summary>
-        /// 다른 참가자들의 View 갱신을 위해 User가 마지막으로 읽은 메세지 번호와 이전 메세지 번호를 Response로 DTO로 변환합니다. 
+        /// 다른 참가자들의 View 갱신을 위해 User가 마지막으로 읽은 메세지 번호를 Response DTO로 변환합니다.
         /// </summary>
         /// <param name="roomId">채팅방 식별 번호</param>
         /// <param name="userEmail">갱신할 User의 Email</param>
         /// <param name="lastReadMessageId">마지막으로 읽은 메세지 식별 번호</param>
-        /// <param name="previousLastReadMessageId">변경 전 마지막으로 읽었던 메세지 식별 번호</param>
         /// <returns>다른 참가자들의 View 갱신을 위해 전송할 Response</returns>
-        public static UserReadUpdateResponse ToReadUpdateResponse(Guid roomId, string userEmail, long lastReadMessageId, long previousLastReadMessageId)
+        public static UserReadUpdateResponse ToReadUpdateResponse(Guid roomId, string userEmail, long lastReadMessageId)
         {
             return new UserReadUpdateResponse
             {
                 RoomId = roomId,
                 UserEmail = userEmail,
-                LastReadMessageId = lastReadMessageId,
-                PreviousLastReadMessageId = previousLastReadMessageId
+                LastReadMessageId = lastReadMessageId
             };
         }
         /// <summary>

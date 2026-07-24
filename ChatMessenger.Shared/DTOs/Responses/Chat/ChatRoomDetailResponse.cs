@@ -18,6 +18,9 @@ namespace ChatMessenger.Shared.DTOs.Responses.Chat
 
         // 방 참여자 목록
         public List<FriendResponse> Participants { get; set; } = new();
+        // 참가자별 마지막으로 읽은 메세지 위치 (Email -> LastReadMessageId)
+        // Client가 메세지별 안 읽은 사람 수를 증분이 아니라 이 위치 집합에서 파생 계산하기 위한 기준 데이터
+        public Dictionary<string, long> ParticipantReadPositions { get; set; } = new();
         // 채팅 내역
         public List<ChatMessageResponse> Messages { get; set; } = new();
 

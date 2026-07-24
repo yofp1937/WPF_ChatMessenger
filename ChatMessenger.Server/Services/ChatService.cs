@@ -426,9 +426,7 @@ namespace ChatMessenger.Server.Services
                     return ServiceResult<UserReadUpdateResponse>.Failed("유효한 요청 값이 아닙니다.", ServiceResultType.BadRequest);
                 // 2. 채팅방 접근 권한 확인
                 ChatParticipant participant = await GetValidatedParticipantAsync(request.RoomId, myEmail, true);
-                // 3. 이전에 마지막으로 읽었던 메세지 번호 저장
-                long previousId = participant.LastReadMessageId;
-                // 4. 내 ChatParticipant Entity의 값을 수정하고 Db에 적용 요청
+                // 3. 내 ChatParticipant Entity의 값을 수정하고 Db에 적용 요청
                 bool isSuccess = await _chatParticipantRepository.UpdateChatParticipantAsync(participant, p =>
                 {
                     p.LastReadMessageId = request.LastReadMessageId;
@@ -436,7 +434,7 @@ namespace ChatMessenger.Server.Services
                 if (!isSuccess)
                     return ServiceResult<UserReadUpdateResponse>.Failed("변경 사항이 없거나, 저장에 실패했습니다.", ServiceResultType.InternalServerError);
                 // 4. 결과 Data들 Response로 매핑
-                UserReadUpdateResponse response = ChatMapper.ToReadUpdateResponse(request.RoomId, myEmail, request.LastReadMessageId, previousId);
+                UserReadUpdateResponse response = ChatMapper.ToReadUpdateResponse(request.RoomId, myEmail, request.LastReadMessageId);
                 // 5. 업데이트 성공했으면 ChatHub를 통해 내가 메세지를 읽었으니 View 업데이트하라고 브로드 캐스트 전송
                 await BroadcastToRoomAsync(_chatHubContext, request.RoomId.ToString(), ChatHubEvents.ChatHubResponseEvent.UserReadMessage, response);
                 // 6. Response 반환

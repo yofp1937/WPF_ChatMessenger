@@ -3,6 +3,7 @@
  */
 using ChatMessenger.Client.Models.Friends;
 using ChatMessenger.Shared.DTOs.Responses.Chat;
+using ChatMessenger.Shared.Enums;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -41,6 +42,11 @@ namespace ChatMessenger.Client.Models.Chats
         // 마지막으로 내가 읽은 메시지 ID
         // 서버와 동기화하여 unreadCount를 계산할 때 기준이 됨
         public long LastReadMessageId { get; set; }
+
+        // 참가자별 마지막으로 읽은 메세지 위치 (Email -> LastReadMessageId)
+        // 메세지의 UnreadPeopleCount는 이 위치 집합에서 매번 파생 계산한다.
+        // 카운트를 직접 증감(--)하지 않으므로, 중복 이벤트나 재입장에도 값이 어긋나지 않는다.
+        private readonly Dictionary<string, long> _readPositions = new();
 
         public ChatRoomDetailModel()
         {
@@ -81,6 +87,11 @@ namespace ChatMessenger.Client.Models.Chats
 
             this.Participants = new(dto.Participants.Select(p => new FriendModel(p)));
 
+            // 참가자별 읽은 위치 맵을 서버 값으로 초기화 (이후 UnreadPeopleCount 파생의 기준)
+            _readPositions.Clear();
+            foreach (KeyValuePair<string, long> position in dto.ParticipantReadPositions)
+                _readPositions[position.Key] = position.Value;
+
             _messages.Clear();
             bool isFirstUnreadFound = false;
             IEnumerable<ChatMessageModel> tempMessages = dto.Messages.Select(m =>
@@ -100,6 +111,9 @@ namespace ChatMessenger.Client.Models.Chats
 
             this.UnreadCount = dto.UnreadCount;
             this.LastReadMessageId = dto.LastReadMessageId;
+
+            // 초기 메세지들의 UnreadPeopleCount도 위치 맵에서 파생 계산해 서버 기준과 정합성을 맞춘다.
+            RecalculateUnreadCounts();
         }
 
         /// <summary>
@@ -120,8 +134,55 @@ namespace ChatMessenger.Client.Models.Chats
         {
             // 1. 현재 채팅방의 마지막으로 읽은 메세지 번호 갱신
             LastReadMessageId = lastMessageId;
-            // 2. UnreadCount를 lastMessageId보다 큰 Message의 개수 값으로 변경 (보통의 상황에서 lastMessageId보다 Id가 큰 메세지는 존재하지않음)  
+            // 2. UnreadCount를 lastMessageId보다 큰 Message의 개수 값으로 변경 (보통의 상황에서 lastMessageId보다 Id가 큰 메세지는 존재하지않음)
             UnreadCount = _messages.Count(msg => msg.MessageId > LastReadMessageId);
+        }
+
+        /// <summary>
+        /// 참가자 한 명의 마지막으로 읽은 메세지 위치를 갱신합니다.
+        /// </summary>
+        /// <remarks>
+        /// 읽은 위치는 단조 증가한다. 재입장이나 순서가 뒤바뀐 읽음 이벤트로 더 낮은 값이 들어오면
+        /// 무시하여 위치가 역행하는 것을 막는다. 이 멱등성 덕분에 같은 이벤트를 여러 번 처리해도 결과가 안전하다.
+        /// </remarks>
+        /// <param name="email">갱신할 참가자의 Email</param>
+        /// <param name="lastReadMessageId">참가자가 마지막으로 읽은 메세지 식별 번호</param>
+        public void UpdateReadPosition(string email, long lastReadMessageId)
+        {
+            if (string.IsNullOrEmpty(email)) return;
+            if (_readPositions.TryGetValue(email, out long existing) && existing >= lastReadMessageId)
+                return;
+            _readPositions[email] = lastReadMessageId;
+        }
+
+        /// <summary>
+        /// 채팅방을 나간 참가자를 읽은 위치 집합에서 제거합니다.
+        /// </summary>
+        /// <param name="email">제거할 참가자의 Email</param>
+        public void RemoveReadPosition(string email)
+        {
+            if (string.IsNullOrEmpty(email)) return;
+            _readPositions.Remove(email);
+        }
+
+        /// <summary>
+        /// 참가자별 읽은 위치 집합을 기준으로 모든 메세지의 안 읽은 사람 수를 다시 계산합니다.
+        /// </summary>
+        /// <remarks>
+        /// 각 메세지의 UnreadPeopleCount = 그 메세지보다 읽은 위치가 뒤처진 참가자 수.<br/>
+        /// 증분이 아닌 파생 계산이므로, 읽음/입장/퇴장 이벤트가 몇 번 재처리되든 항상 정확한 값이 나온다.<br/>
+        /// 시스템 메세지(입퇴장 알림)는 안 읽은 사람 수를 표시하지 않으므로 계산 대상에서 제외한다.
+        /// </remarks>
+        public void RecalculateUnreadCounts()
+        {
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                foreach (ChatMessageModel message in _messages)
+                {
+                    if (message.MessageType == ChatMessageType.System) continue;
+                    message.UnreadPeopleCount = _readPositions.Count(position => position.Value < message.MessageId);
+                }
+            });
         }
     }
 }

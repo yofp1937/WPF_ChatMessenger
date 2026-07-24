@@ -180,7 +180,10 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             App.Current.Dispatcher.Invoke(async () =>
             {
                 ChatMessageModel newMessage = ProcessIncomingMessage(response);
-                // 3. 내가 보낸 메세지가 아니면 읽음 처리 호출 (내가 메세지를 전송하면 나의 lastReadedMessagId는 자동으로 전송한 MessageId로 업데이트됨)
+                // 3. 발신자는 자기 메세지를 읽은 상태이므로 읽은 위치를 갱신 (이후 재계산에서 발신자가 미읽음으로 집계되지 않도록)
+                if (response.Sender != null)
+                    CurrentRoom.UpdateReadPosition(response.Sender.Email, response.MessageId);
+                // 4. 내가 보낸 메세지가 아니면 읽음 처리 호출 (내가 메세지를 전송하면 나의 lastReadedMessagId는 자동으로 전송한 MessageId로 업데이트됨)
                 if (!newMessage.IsMine)
                 {
                     await UpdateLastReadedMessageAsync(response.RoomId, response.MessageId);
@@ -191,17 +194,18 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
         /// 누군가가 현재 방의 메세지를 읽었을때, ChatHubService로 서버가 신호를 보내는데, 이를 감지하여 동작하는 메서드입니다.
         /// </summary>
         /// <remarks>
-        /// 누군가 특정 메세지까지 읽었으니 해당 메세지 번호보다 작은 메세지들의 UnreadPeopleCount 값을 -- 처리합니다.
+        /// 해당 참가자의 읽은 위치를 갱신한 뒤, 모든 메세지의 UnreadPeopleCount를 위치 집합에서 다시 계산합니다.
         /// </remarks>
         /// <param name="response"></param>
         private void OnReadStatusUpdated(UserReadUpdateResponse response)
         {
             // 1. 현재 방인지 확인
             if (CurrentRoom == null || CurrentRoom.RoomId != response.RoomId) return;
-            // 2. 내가 보낸 메세지는 전송 이후 처리했기때문에 return
+            // 2. 내 읽음은 UpdateLastReadedMessageAsync에서 이미 처리했으므로 return
             if (_identityService.MyProfile.Email == response.UserEmail) return;
-            // 2. 해당 ID 이하의 메시지들 카운트 감소
-            DecrementUnreadCounts(response.LastReadMessageId, response.PreviousLastReadMessageId);
+            // 3. 상대방의 읽은 위치를 갱신하고 안 읽은 사람 수를 파생 재계산
+            CurrentRoom.UpdateReadPosition(response.UserEmail, response.LastReadMessageId);
+            CurrentRoom.RecalculateUnreadCounts();
         }
         /// <summary>
         /// 현재 방의 참가자가 변경 메세지 수신시 호출되는 메서드  
@@ -215,7 +219,18 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             {
                 CurrentRoom.ParticipantCount = response.CurrentParticipantCount;
                 UpdateParticipantList(response.TargetUsers, response.IsJoined);
+                // 입퇴장에 맞춰 읽은 위치 맵도 갱신한다.
+                // 입장자는 진입 시점(입장 시스템 메세지) 위치로 등록되어 이전 메세지 카운트에 영향을 주지 않고,
+                // 퇴장자는 집계 대상에서 제거되어 남은 메세지의 안 읽은 사람 수가 서버 기준과 일치한다.
+                foreach (FriendResponse user in response.TargetUsers)
+                {
+                    if (response.IsJoined)
+                        CurrentRoom.UpdateReadPosition(user.Email, response.Message.MessageId);
+                    else
+                        CurrentRoom.RemoveReadPosition(user.Email);
+                }
                 ProcessIncomingMessage(response.Message);
+                CurrentRoom.RecalculateUnreadCounts();
             });
         }
         #endregion ChatHub Action Event와 연결된 Method
@@ -262,42 +277,13 @@ namespace ChatMessenger.Client.ViewModels.Tabs.Chats
             // 2. 마지막으로 읽은 메세지 Update 요청
             ServiceResult<bool> result = await _chatService.UpdateLastReadedMessageAsync(request);
             if (!result.IsSuccess || CurrentRoom == null) return;
-            // 3. 서버로부터의 반환값이 true면 메모리 값 수정
-            DecrementUnreadCounts(messageId, CurrentRoom.LastReadMessageId);
-            // 4. CurrentRoom messageId까지 읽음 처리
+            // 3. 내 읽은 위치를 갱신하고 안 읽은 사람 수를 파생 재계산
+            CurrentRoom.UpdateReadPosition(_identityService.MyProfile.Email, messageId);
+            CurrentRoom.RecalculateUnreadCounts();
+            // 4. CurrentRoom messageId까지 읽음 처리 (내 UnreadCount / LastReadMessageId 갱신)
             CurrentRoom.MarkAsRead(messageId);
             // 5. ChatListViewModel에게도 현재 방의 UnreadCount를 0으로 변경하라고 신호 전송
             WeakReferenceMessenger.Default.Send(new ChatRoomReadMarkedMessage(roomId));
-        }
-        /// <summary>
-        /// 특정 메세지의 UnreadPeopleCount를 1만큼 감소시킵니다
-        /// </summary>
-        /// <remarks>
-        /// lastMessageId와 previousLastMessageId 사이에 존재하는 메세지들의 UnreadPeopleCount를 1씩 감소시킵니다.
-        /// </remarks>
-        /// <param name="lastMessageId">UnreadPeopleCount를 감소시키기 시작할 메세지의 Id</param>
-        /// <param name="previousLastMessageId">UnreadPeopleCount를 감소시키고 메서드 종료할 메세지의 Id</param>
-        private void DecrementUnreadCounts(long lastMessageId, long previousLastMessageId)
-        {
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                // 최근 메세지부터 조회하기위해 메세지들을 역순으로 가져옴
-                IEnumerable<ChatMessageModel>? messages = CurrentRoom?.Messages.Reverse();
-                if (messages == null) return;
-
-                foreach (ChatMessageModel message in messages)
-                {
-                    // 전달받은 messageId보다 Id가 큰 메세지는 아직 처리 대상이 아니므로 건너뜀
-                    if (message.MessageId > lastMessageId) continue;
-                    // 이전에 읽었던 마지막 메세지 Id보다 message의 Id가 낮으면 이미 카운트를 줄인 메세지이므로 break
-                    if (previousLastMessageId >= message.MessageId) break;
-                    // message의 unreadpeoplecount가 0이거나 음수면 뒤 메세지도 이미 처리됐을테니 break
-                    if (0 >= message.UnreadPeopleCount) break;
-
-                    // 메세지의 UnreadPeopleCount 감소
-                    message.UnreadPeopleCount--;
-                }
-            });
         }
         /// <summary>
         /// ChatMessageResponse를 ChatMessageModel로 변환하고 CurrentRoom의 메세지 목록에 추가하는 공통 로직
