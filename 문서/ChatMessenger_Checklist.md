@@ -14,6 +14,8 @@
 * [9. 클라이언트 - ViewModel / Messenger](#9-클라이언트---viewmodel--messenger)
 * [10. 클라이언트 - View / Style](#10-클라이언트---view--style)
 * [12. 향후 개선 권장 사항](#12-향후-개선-권장-사항)
+* [13. 리팩토링 작업 (2026-07-14 진행)](#13-리팩토링-작업-2026-07-14-진행)
+* [14. 향후 로드맵 (우선순위순)](#14-향후-로드맵-우선순위순)
 
 ---
 
@@ -123,3 +125,39 @@
 - [x] 13-6. **R-6** `ChatRoomViewModel.SetChatRoom` `async void`→`async Task` — 호출부(`ContentPanelViewModel`)도 기존 Discard 패턴에 맞춰 갱신 (빌드 검증 완료, 12-3과 동일)
 - [x] 13-7. **R-7** `IWindowService` 접근제한자 명시 — `internal`(기본값) → `public`, 폴더 내 다른 6개 인터페이스와 통일 (빌드 검증 완료, 12-5와 동일)
 - [x] 13-8. **R-8** 실행 환경별 로그 Provider 분리 및 영속화 구현 — Serilog(+File+Async+Debug Sink) 도입, `Configs/LoggingConfig.cs` 신설. Development는 Console/Debug만, Production은 Error 이상 로그를 `logs/` 파일에 영속 저장 (빌드+격리환경 Sink 검증+테스트 11/11 통과 완료. 배포 시 Docker 볼륨 마운트 필요 — 사용자 조치 항목)
+
+---
+
+## 14. 향후 로드맵 (우선순위순)
+> 초기 기능 구현이 완료된 뒤, 포트폴리오 관점에서 "규모와 실패를 고려하는 설계"를 증명하기 위한 후속 작업입니다. 우선순위는 **① 다른 작업의 기반이 되는가 ② 실무·확장성 감각을 드러내는가**를 기준으로 매겼습니다. P1~P3이 서로 코드를 재사용하므로 이 순서로 진행하는 것을 전제로 분해했습니다. (착수 시점에 세부 API 시그니처는 재확정)
+
+### P1 — 메시지 커서 페이징 + 무한 스크롤 (기반 작업)
+현재 입장 시 최근 50개만 조회하고 이전 메시지를 불러올 수단이 없습니다. 이후 P3(재연결 gap 복구)이 이 조회 API를 그대로 재사용하므로 최우선입니다. 메시지는 계속 쌓이므로 offset(`Skip/Take`)이 아니라 **keyset(커서) 페이징**으로 구현합니다(offset은 새 메시지 유입 시 페이지가 밀려 중복·누락 발생). `ChatMessage.Id`가 `long` 단조 증가라 커서로 그대로 사용 가능합니다.
+- [ ] 14-1. 서버: `ChatMessageRepositoryService`에 커서 기반 이전 메시지 조회 메서드 추가 (`WHERE Id < @cursor ORDER BY Id DESC` + 개수 제한, `AsNoTracking()`)
+- [ ] 14-2. 서버: `ChatController`에 이전 메시지 조회 엔드포인트 추가 (예: `GET api/chat/messages/{roomId}?before={messageId}&size=50`)
+- [ ] 14-3. 클라이언트: `ChatService(Client)` + `IChatService`에 이전 메시지 조회 메서드 추가
+- [ ] 14-4. 클라이언트: `ChatRoomViewModel`에 상단 로드 커맨드 + 로딩 중복 방지 플래그(`_isLoadingOlder`) + 커서 상태 보관
+- [ ] 14-5. View: `ChatRoomView` 스크롤 상단 도달 감지 + 프리펜드 시 스크롤 위치 보정(점프 방지)
+
+### P2 — 부하 테스트 하네스 + 통신 최적화
+"측정 → 병목 발견 → 개선 → 재측정" 사이클을 before/after 수치로 남기는 것이 목표입니다. WPF 클라이언트를 다수 띄우는 대신 **헤드리스 SignalR 커넥션**을 N개 생성하는 별도 콘솔 프로젝트로 구성합니다.
+- [ ] 14-6. `ChatMessenger.LoadTester` 콘솔 프로젝트 신설(헤드리스 SignalR 클라이언트 N개 생성) + 솔루션(`*.sln*`) 등록 + 전체 빌드 검증
+- [ ] 14-7. 봇 시나리오 구현: 로그인 → 방 입장 → 주기적 메시지 전송, 동시 접속 수·전송 주기를 파라미터화
+- [ ] 14-8. baseline 측정: 메시지 e2e 지연 p50/p95/p99, 서버 CPU/메모리, SQL Server 커넥션 풀 고갈 시점 기록
+- [ ] 14-9. 최적화①: 읽음 처리 호출 디바운스 — 현재 수신 메시지마다 POST 발생(`ChatRoomViewModel.cs:189`). 일정 시간 뭉쳐 마지막 위치만 1회 전송하도록 개선
+- [ ] 14-10. 최적화②: `ChatService.SendMessageAsync`의 메시지당 트랜잭션 경로 부하 검토 → 병목이면 쓰기 배치(채널/큐로 모아 처리) 도입 여부 판단
+- [ ] 14-11. 개선 후 재측정하여 14-8 지표와 before/after 비교표 작성
+
+### P3 — 재연결 시 메시지 동기화(gap 복구)
+`WithAutomaticReconnect`는 연결만 복구할 뿐, 끊긴 동안 놓친 메시지는 받지 못합니다. 재연결 시 마지막 수신 Id 이후를 REST로 당겨와 병합합니다(14-2 엔드포인트 재사용).
+- [ ] 14-12. 클라이언트: 방별 마지막 수신 메시지 Id 보관
+- [ ] 14-13. SignalR `Reconnected` 콜백에서 14-2 엔드포인트로 누락분 조회 후 목록 병합(중복 제거)
+
+### P4 — Presence / 타이핑 인디케이터
+- [ ] 14-14. `ChatHub.OnConnectedAsync`/`OnDisconnectedAsync`에서 접속 상태 전파(같은 유저 다중 접속 카운팅 처리 포함)
+- [ ] 14-15. 타이핑 이벤트 SignalR 채널 추가 + 클라이언트 표시(디바운스/쓰로틀)
+
+### P5 — 완성도 마감 (임팩트 낮음, 빈 구멍 메우기)
+- [ ] 14-16. 채팅방 나가기 확인 다이얼로그 (`ChatRoomViewModel.cs:139` TODO)
+- [ ] 14-17. 설정 화면 실구현 — 현재 플레이스홀더(`SettingListView`/`SettingDetailView`). 다크모드 토글 등
+- [ ] 14-18. 창 닫기 시 시스템 트레이 이동 (`WindowViewModelBase.cs:43` TODO)
